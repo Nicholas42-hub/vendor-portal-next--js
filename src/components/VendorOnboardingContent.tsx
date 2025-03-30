@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
 import { queryBusinessData } from "@/utils/graphQL-api-Get";
 import VendorOnboardingForm from "./forms/VendorOnboardingForm";
+import { useRouter } from "next/navigation";
 
 interface VendorOnboardingContentProps {
   // Add any props the component needs
@@ -55,6 +54,7 @@ const StatusFilter: React.FC<StatusFilterProps> = ({
 
 const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
   const { data: session } = useSession();
+  const router = useRouter();
   const [tableData, setTableData] = useState<VendorData[]>([]);
   const [filteredData, setFilteredData] = useState<VendorData[]>([]);
   const [currentFilter, setCurrentFilter] = useState<string>("all");
@@ -69,6 +69,7 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
     Declined: 0,
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // No need for showOnboardingForm state since we're navigating to a new page
 
   // Fetch data when the component mounts
   useEffect(() => {
@@ -111,6 +112,11 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
 
     fetchData();
   }, [session, session?.accessToken]);
+
+  // Navigate to the vendor onboarding form page
+  const handleNavigateToForm = () => {
+    window.location.href = "/vendor-onboarding/onboardingform";
+  };
 
   // Filter data based on current filter and search term
   const filterData = (data: VendorData[], filter: string, search: string) => {
@@ -176,6 +182,9 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
       email
     )}`;
   };
+
+  // We're not conditionally rendering the form in this component anymore
+  // Instead, we'll navigate to a separate page
 
   return (
     <Card className="w-full">
@@ -254,7 +263,7 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
           {/* Vendor Onboarding Form Button */}
           <Button
             id="vendor-onboarding"
-            onClick={() => (window.location.href = "/Vendor-Onboarding/create")}
+            onClick={handleNavigateToForm}
             className="status-filter create-button"
           >
             <div className="label">Create a Vendor Onboarding Form</div>

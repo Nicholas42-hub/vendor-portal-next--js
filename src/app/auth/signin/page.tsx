@@ -4,7 +4,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-
+import Link from "next/link";
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
