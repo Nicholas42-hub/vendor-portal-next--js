@@ -11,6 +11,9 @@
   "dependencies": {
     "@azure/msal-browser": "^4.7.0",
     "@azure/msal-react": "^3.0.6",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^7.0.1",
     "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-popover": "^1.1.6",
     "@radix-ui/react-select": "^2.1.6",
