@@ -42,8 +42,6 @@ export interface GeneralDetails {
   email: string;
   businessName: string;
   vendorType: VendorType;
-  childVendor?: YesNo;
-  parentVendor?: string;
 }
 
 export interface TradingTerms {

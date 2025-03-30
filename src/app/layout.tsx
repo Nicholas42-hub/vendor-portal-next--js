@@ -1,10 +1,10 @@
-import './globals.css';
-import type { Metadata } from 'next';
-import Providers from './providers';
+import "./globals.css";
+import type { Metadata } from "next";
+import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: 'NRI Booking Portal',
-  description: 'NRI Booking Portal with Azure Entra ID authentication',
+  title: "Vendor Portal",
+  description: "Vendor Portal with Azure Entra ID authentication",
 };
 
 export default function RootLayout({
@@ -18,4 +18,5 @@ export default function RootLayout({
         <Providers>{children}</Providers>
       </body>
     </html>
-  );}
+  );
+}

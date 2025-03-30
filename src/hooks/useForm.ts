@@ -10,8 +10,6 @@ const initialVendorData: VendorData = {
     email: '',
     businessName: '',
     vendorType: '' as any,
-    childVendor: '',
-    parentVendor: '',
   },
   tradingTerms: {
     quotesObtained: '',
@@ -71,6 +69,7 @@ interface UseFormReturn {
   handleBlur: (section: keyof VendorData, field: string) => void;
   handleSubmit: (e: FormEvent) => Promise<boolean>;
   resetForm: () => void;
+  validateFormData: () => ValidationErrors; // Added this function
 }
 
 export const useForm = (validateForm: (data: VendorData) => ValidationErrors, onSubmit: (data: VendorData) => Promise<boolean>): UseFormReturn => {
@@ -95,6 +94,13 @@ export const useForm = (validateForm: (data: VendorData) => ValidationErrors, on
     );
     setIsValid(!hasErrors);
   }, [formData, validateForm]);
+
+  // Function to manually validate the form data
+  const validateFormData = (): ValidationErrors => {
+    const validationErrors = validateForm(formData);
+    setErrors(validationErrors);
+    return validationErrors;
+  };
 
   // Handle changes to form fields
   const handleChange = (section: keyof VendorData, field: string, value: any) => {
@@ -155,17 +161,13 @@ export const useForm = (validateForm: (data: VendorData) => ValidationErrors, on
     });
     setTouched(allTouched);
     
-    // Only submit if valid
-    if (isValid) {
-      try {
-        return await onSubmit(formData);
-      } catch (error) {
-        console.error('Form submission error:', error);
-        return false;
-      }
+    // Always proceed with submission, validation will happen in the onSubmit function
+    try {
+      return await onSubmit(formData);
+    } catch (error) {
+      console.error('Form submission error:', error);
+      return false;
     }
-    
-    return false;
   };
 
   // Reset the form to initial state
@@ -184,5 +186,6 @@ export const useForm = (validateForm: (data: VendorData) => ValidationErrors, on
     handleBlur,
     handleSubmit,
     resetForm,
+    validateFormData, // Expose the validation function
   };
 };

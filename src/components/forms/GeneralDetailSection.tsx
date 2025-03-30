@@ -20,7 +20,6 @@ interface GeneralDetailsSectionProps {
   onChange: (field: string, value: any) => void;
   onCheckboxChange: (field: string, value: string, checked: boolean) => void;
   onBlur: (field: string) => void;
-  parentVendors?: Array<{ id: string; name: string; email: string }>;
 }
 
 // Styled Container
@@ -96,13 +95,6 @@ const vendorTypeOptions = [
   { value: "OVERHEADANDSTOCK", label: "Overhead and Stock" },
 ];
 
-// Yes/No options
-const yesNoOptions = [
-  { value: "", label: "Select an option", disabled: true },
-  { value: "yes", label: "Yes" },
-  { value: "no", label: "No" },
-];
-
 // Component
 export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
   data,
@@ -111,17 +103,7 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
   onChange,
   onCheckboxChange,
   onBlur,
-  parentVendors = [],
 }) => {
-  // Handle parent vendor options
-  const parentVendorOptions = [
-    { value: "", label: "Select a parent vendor", disabled: true },
-    ...parentVendors.map((vendor) => ({
-      value: vendor.email,
-      label: `${vendor.name} (${vendor.email})`,
-    })),
-  ];
-
   return (
     <SectionContainer>
       <FormLegend>Vendor Account Set Up Form</FormLegend>

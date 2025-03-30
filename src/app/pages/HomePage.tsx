@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { redirect } from "next/navigation";
-import BookingApp from "@/app/pages/BookingApp";
+// import BookingApp from "@/app/pages/BookingApp";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import VendorOnboardingForm from "@/components/forms/VendorOnboardingForm";
@@ -84,7 +84,7 @@ export default function BookingPage() {
 
             <div className="flex-grow flex justify-center">
               <h1 className="text-xl font-bold text-[#F01E73]">
-                NRI Booking Management
+                Vendor Onboarding Form
               </h1>
             </div>
 

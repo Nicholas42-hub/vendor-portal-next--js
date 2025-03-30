@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { styled } from "@mui/material/styles";
 import {
   VendorData,
@@ -36,18 +36,32 @@ const FormSubmitContainer = styled("div")({
   width: "100%",
 });
 
+const ErrorMessage = styled("div")({
+  color: "#ff0000",
+  padding: "15px",
+  marginBottom: "20px",
+  backgroundColor: "#ffecec",
+  borderRadius: "5px",
+  borderLeft: "5px solid #ff0000",
+  fontSize: "14px",
+});
+
 interface VendorOnboardingFormProps {}
 
 export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
-  const [parentVendors, setParentVendors] = useState<
-    Array<{ id: string; name: string; email: string }>
-  >([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [showSimilarityWarning, setShowSimilarityWarning] =
     useState<boolean>(false);
   const [similarVendors, setSimilarVendors] = useState<SimilarVendor[]>([]);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Create refs for each section
+  const generalDetailsRef = useRef<HTMLDivElement>(null);
+  const tradingTermsRef = useRef<HTMLDivElement>(null);
+  const supplyTermsRef = useRef<HTMLDivElement>(null);
+  const financialTermsRef = useRef<HTMLDivElement>(null);
 
   // Initialize form with validation
   const {
@@ -60,26 +74,52 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
     handleBlur,
     handleSubmit,
     resetForm,
+    validateFormData,
   } = useForm(ValidationService.validateForm, submitVendorData);
-
-  // Fetch parent vendors on component mount
-  useEffect(() => {
-    const fetchParentVendors = async () => {
-      try {
-        const vendors = await fabricService.getParentVendors();
-        setParentVendors(vendors);
-      } catch (error) {
-        console.error("Error fetching parent vendors:", error);
-      }
-    };
-
-    fetchParentVendors();
-  }, []);
 
   // Submit vendor data to Fabric
   async function submitVendorData(data: VendorData): Promise<boolean> {
     setIsLoading(true);
     try {
+      // Run validation ourselves
+      const validationErrors = validateFormData();
+
+      // Check if there are any validation errors
+      if (hasValidationErrors(validationErrors)) {
+        setIsLoading(false);
+        // Mark all fields as touched to show validation errors
+        const allFields = getAllFieldsArray();
+        allFields.forEach((fieldPath) => {
+          handleBlur(...fieldPath);
+        });
+
+        // Explicitly scroll to the top of the form to show the first elements
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+
+        // Also attempt to scroll to the first error section
+        setTimeout(() => {
+          scrollToFirstError(validationErrors);
+        }, 100);
+
+        // Set a validation error message
+        setValidationError(
+          "Please complete all required fields before submitting the form."
+        );
+
+        // Hide the error message after 5 seconds
+        setTimeout(() => {
+          setValidationError(null);
+        }, 5000);
+
+        return false;
+      }
+
+      // Clear any previous validation error
+      setValidationError(null);
+
       // Check for similar vendors
       const similarityResult = await fabricService.checkSimilarVendors(
         data.generalDetails
@@ -103,17 +143,94 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
     }
   }
 
+  // Helper function to get all form field paths
+  const getAllFieldsArray = (): Array<[keyof VendorData, string]> => {
+    const fields: Array<[keyof VendorData, string]> = [];
+
+    // General Details fields
+    Object.keys(formData.generalDetails).forEach((field) => {
+      fields.push(["generalDetails", field]);
+    });
+
+    // Trading Terms fields
+    Object.keys(formData.tradingTerms).forEach((field) => {
+      fields.push(["tradingTerms", field]);
+    });
+
+    // Supply Terms fields
+    Object.keys(formData.supplyTerms).forEach((field) => {
+      fields.push(["supplyTerms", field]);
+    });
+
+    // Financial Terms fields
+    Object.keys(formData.financialTerms).forEach((field) => {
+      fields.push(["financialTerms", field]);
+    });
+
+    return fields;
+  };
+
+  // Helper function to check if there are any validation errors
+  const hasValidationErrors = (validationErrors: any): boolean => {
+    return Object.values(validationErrors).some(
+      (sectionErrors) => Object.keys(sectionErrors as object).length > 0
+    );
+  };
+
+  // Helper function to scroll to the first section with errors
+  const scrollToFirstError = (validationErrors: any): void => {
+    if (
+      Object.keys(validationErrors.generalDetails).length > 0 &&
+      generalDetailsRef.current
+    ) {
+      generalDetailsRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
+    if (
+      Object.keys(validationErrors.tradingTerms).length > 0 &&
+      tradingTermsRef.current
+    ) {
+      tradingTermsRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
+    if (
+      Object.keys(validationErrors.supplyTerms).length > 0 &&
+      supplyTermsRef.current
+    ) {
+      supplyTermsRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
+    if (
+      Object.keys(validationErrors.financialTerms).length > 0 &&
+      financialTermsRef.current
+    ) {
+      financialTermsRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+  };
+
   // Handle confirmation from the popup
   const handleConfirmSubmit = async () => {
     setIsLoading(true);
     setShowConfirmation(false);
 
     try {
-      const isChildVendor = formData.generalDetails.childVendor === "yes";
-      const result = await fabricService.submitVendorData(
-        formData,
-        isChildVendor
-      );
+      const result = await fabricService.submitVendorData(formData, false);
 
       if (result) {
         setShowSuccess(true);
@@ -158,76 +275,71 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
 
   // Determine the vendor type for conditional rendering
   const vendorType = formData.generalDetails.vendorType || "";
-  const isChildVendor = formData.generalDetails.childVendor === "yes";
 
   return (
     <FormContainer>
       <form onSubmit={handleSubmit}>
+        {validationError && <ErrorMessage>{validationError}</ErrorMessage>}
+
         {/* General Details Section */}
-        <GeneralDetailsSection
-          data={formData.generalDetails}
-          errors={errors.generalDetails || {}}
-          touched={touched}
-          onChange={handleGeneralDetailsChange}
-          onCheckboxChange={(field, value, checked) =>
-            handleCheckboxChange("generalDetails", field, value, checked)
-          }
-          onBlur={(field) => handleBlur("generalDetails", field)}
-          parentVendors={parentVendors}
-        />
+        <div ref={generalDetailsRef}>
+          <GeneralDetailsSection
+            data={formData.generalDetails}
+            errors={errors.generalDetails || {}}
+            touched={touched}
+            onChange={handleGeneralDetailsChange}
+            onCheckboxChange={(field, value, checked) =>
+              handleCheckboxChange("generalDetails", field, value, checked)
+            }
+            onBlur={(field) => handleBlur("generalDetails", field)}
+          />
+        </div>
 
         {/* Trading Terms Section */}
-        <TradingTermsSection
-          data={formData.tradingTerms}
-          vendorType={vendorType as VendorType}
-          errors={errors.tradingTerms || {}}
-          touched={touched}
-          onChange={handleTradingTermsChange}
-          onBlur={(field) => handleBlur("tradingTerms", field)}
-        />
+        <div ref={tradingTermsRef}>
+          <TradingTermsSection
+            data={formData.tradingTerms}
+            vendorType={vendorType as VendorType}
+            errors={errors.tradingTerms || {}}
+            touched={touched}
+            onChange={handleTradingTermsChange}
+            onBlur={(field) => handleBlur("tradingTerms", field)}
+          />
+        </div>
 
         {/* Supply Terms Section */}
-        <SupplyTermsSection
-          data={formData.supplyTerms}
-          errors={errors.supplyTerms || {}}
-          touched={touched}
-          onChange={handleSupplyTermsChange}
-          onBlur={(field) => handleBlur("supplyTerms", field)}
-        />
+        <div ref={supplyTermsRef}>
+          <SupplyTermsSection
+            data={formData.supplyTerms}
+            errors={errors.supplyTerms || {}}
+            touched={touched}
+            onChange={handleSupplyTermsChange}
+            onBlur={(field) => handleBlur("supplyTerms", field)}
+          />
+        </div>
 
         {/* Financial Terms Section */}
-        <FinancialTermsSection
-          data={formData.financialTerms}
-          vendorType={vendorType as VendorType}
-          errors={errors.financialTerms || {}}
-          touched={touched}
-          onChange={handleFinancialTermsChange}
-          onBlur={(field) => handleBlur("financialTerms", field)}
-        />
+        <div ref={financialTermsRef}>
+          <FinancialTermsSection
+            data={formData.financialTerms}
+            vendorType={vendorType as VendorType}
+            errors={errors.financialTerms || {}}
+            touched={touched}
+            onChange={handleFinancialTermsChange}
+            onBlur={(field) => handleBlur("financialTerms", field)}
+          />
+        </div>
 
-        {/* Submit Buttons */}
+        {/* Submit Button */}
         <FormSubmitContainer>
-          {isChildVendor ? (
-            <SubmitButton
-              text="Send to Approval Flow"
-              loadingText="Processing..."
-              isLoading={isLoading}
-              disabled={!isValid}
-              type="submit"
-              variant="approval"
-              fullWidth={true}
-            />
-          ) : (
-            <SubmitButton
-              text="Send a vendor portal invite"
-              loadingText="Processing..."
-              isLoading={isLoading}
-              disabled={!isValid}
-              type="submit"
-              variant="primary"
-              fullWidth={true}
-            />
-          )}
+          <SubmitButton
+            text="Send a vendor portal invite"
+            loadingText="Processing..."
+            isLoading={isLoading}
+            type="submit"
+            variant="primary"
+            fullWidth={true}
+          />
         </FormSubmitContainer>
       </form>
 

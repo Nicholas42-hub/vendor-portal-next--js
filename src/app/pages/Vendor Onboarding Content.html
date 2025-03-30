@@ -1,0 +1,303 @@
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>CRM Data Table</title>
+<style>
+    .filter-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .status-filter {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        background-color: #f0f0f0;
+        color: #333;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .status-filter:hover {
+        background-color: #e0e0e0;
+    }
+
+    .status-filter.active {
+        background-color: #1976D2;
+        color: white;
+    }
+
+    .status-filter .label {
+        font-weight: bold;
+    }
+
+    .status-filter .count {
+        margin-top: 5px;
+        font-size: 12px;
+    }
+
+    #all { 
+        border-bottom: 4px solid #1976D2; 
+        
+    }
+    #pending-manager-approval { border-bottom: 4px solid #2196F3; }
+    #pending-exco-approval { border-bottom: 4px solid #9C27B0; }
+    #pending-cfo-approval { border-bottom: 4px solid #FF5722; }
+    #completed { border-bottom: 4px solid #4CAF50; }
+    #declined { border-bottom: 4px solid #F44336; }
+    #invitation-sent { border-bottom: 4px solid #FFC107; }
+
+    .create-button {
+        background-color: #1976D2;
+        color: white;
+        border: none;
+        padding: 15px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .create-button:hover {
+        background-color: #1565C0;
+    }
+</style>
+<div class="top-spacer"></div>
+<div class="content-wrapper">
+    <div class="filter-wrapper">
+        <!-- All Status Filter -->
+        <button id="all" data-status="all" class="status-filter">
+            <div class="label">All</div>
+            <div class="count">0</div>
+        </button>
+
+        <!-- Invitation Sent Filter -->
+        <button id="invitation-sent" data-status="Invitation sent" class="status-filter">
+            <div class="label">Invitation sent</div>
+            <div class="count">0</div>
+        </button>
+
+        <!-- Pending Manager Approval Filter -->
+        <button id="pending-manager-approval" data-status="Pending Manager Approval" class="status-filter">
+            <div class="label">Pending Manager Approval</div>
+            <div class="count">0</div>
+        </button>
+    
+        <!-- Pending Exco Approval Filter -->
+        <button id="pending-exco-approval" data-status="Pending Exco Approval" class="status-filter">
+            <div class="label">Pending Exco Approval</div>
+            <div class="count">0</div>
+        </button>
+    
+        <!-- Pending CFO Approval Filter -->
+        <button id="pending-cfo-approval" data-status="Pending CFO Approval" class="status-filter">
+            <div class="label">Pending CFO Approval</div>
+            <div class="count">0</div>
+        </button>
+    
+        <!-- Creation Approved Filter -->
+        <button id="completed" data-status="Creation approved" class="status-filter">
+            <div class="label">Creation approved</div>
+            <div class="count">0</div>
+        </button>
+        
+        <!-- Declined Filter -->
+        <button id="declined" data-status="Declined" class="status-filter">
+            <div class="label">Declined</div>
+            <div class="count">0</div>
+        </button>
+    
+
+    
+        <!-- Vendor Onboarding Form Button -->
+        <button id="vendor-onboarding" onclick="window.location.href='https://lagardereawpl-vendorportal.powerappsportals.com/Vendor-Onboarding/vendoronboardingform/'" type="button" class="status-filter create-button">
+            <div class="label">Create a Vendor Onboarding Form</div>
+        </button>
+    </div>
+  <div class="search-container" style="display: flex; justify-content: center; margin-bottom: 30px;"><input type="text" id="searchInput" placeholder="Search for Business Name" style="width: 300px; padding-top: 10px; padding-right: 15px; padding-bottom: 10px; padding-left: 15px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-top-color: rgb(204, 204, 204); border-right-color: rgb(204, 204, 204); border-bottom-color: rgb(204, 204, 204); border-left-color: rgb(204, 204, 204); border-image-source: initial; border-image-slice: initial; border-image-width: initial; border-image-outset: initial; border-image-repeat: initial; border-top-left-radius: 4px; border-top-right-radius: 0px; border-bottom-right-radius: 0px; border-bottom-left-radius: 4px; font-size: 16px;"><button type="button" id="searchButton" style="padding-top: 10px; padding-right: 20px; padding-bottom: 10px; padding-left: 20px; background-color: rgb(63, 81, 181); color: white; border-top-width: initial; border-right-width: initial; border-bottom-width: initial; border-left-width: initial; border-top-style: none; border-right-style: none; border-bottom-style: none; border-left-style: none; border-top-color: initial; border-right-color: initial; border-bottom-color: initial; border-left-color: initial; border-image-source: initial; border-image-slice: initial; border-image-width: initial; border-image-outset: initial; border-image-repeat: initial; border-top-left-radius: 0px; border-top-right-radius: 4px; border-bottom-right-radius: 4px; border-bottom-left-radius: 0px; cursor: pointer; font-size: 16px;">Search</button></div>
+  <div id="POContainer" class="POContainer" style="margin-top: 30px;">
+    <table id="crmDataTable" style="width: 100%; border-collapse: separate; -webkit-border-horizontal-spacing: 0px; -webkit-border-vertical-spacing: 0px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; border-top-style: solid; border-right-style: solid; border-bottom-style: solid; border-left-style: solid; border-top-color: rgb(224, 224, 224); border-right-color: rgb(224, 224, 224); border-bottom-color: rgb(224, 224, 224); border-left-color: rgb(224, 224, 224); border-image-source: initial; border-image-slice: initial; border-image-width: initial; border-image-outset: initial; border-image-repeat: initial; border-top-left-radius: 4px; border-top-right-radius: 4px; border-bottom-right-radius: 4px; border-bottom-left-radius: 4px; overflow-x: hidden; overflow-y: hidden;">
+      <thead>
+        <tr style="cursor: pointer;">
+          <th style="padding-top: 12px; padding-right: 15px; padding-bottom: 12px; padding-left: 15px; text-align: left; background-color: rgb(245, 245, 245); color: rgb(51, 51, 51); font-weight: bold; text-transform: uppercase; font-size: 12px; border-bottom-width: 2px; border-bottom-style: solid; border-bottom-color: rgb(224, 224, 224);" align="left" bgcolor="rgb(245, 245, 245)">Business Name</th>
+          <th style="padding-top: 12px; padding-right: 15px; padding-bottom: 12px; padding-left: 15px; text-align: left; background-color: rgb(245, 245, 245); color: rgb(51, 51, 51); font-weight: bold; text-transform: uppercase; font-size: 12px; border-bottom-width: 2px; border-bottom-style: solid; border-bottom-color: rgb(224, 224, 224);" align="left" bgcolor="rgb(245, 245, 245)">Email</th>
+          <th style="padding-top: 12px; padding-right: 15px; padding-bottom: 12px; padding-left: 15px; text-align: left; background-color: rgb(245, 245, 245); color: rgb(51, 51, 51); font-weight: bold; text-transform: uppercase; font-size: 12px; border-bottom-width: 2px; border-bottom-style: solid; border-bottom-color: rgb(224, 224, 224);" align="left" bgcolor="rgb(245, 245, 245)">Created By</th>
+          <th style="padding-top: 12px; padding-right: 15px; padding-bottom: 12px; padding-left: 15px; text-align: left; background-color: rgb(245, 245, 245); color: rgb(51, 51, 51); font-weight: bold; text-transform: uppercase; font-size: 12px; border-bottom-width: 2px; border-bottom-style: solid; border-bottom-color: rgb(224, 224, 224);" align="left" bgcolor="rgb(245, 245, 245)">Created On</th>
+          <th style="padding-top: 12px; padding-right: 15px; padding-bottom: 12px; padding-left: 15px; text-align: left; background-color: rgb(245, 245, 245); color: rgb(51, 51, 51); font-weight: bold; text-transform: uppercase; font-size: 12px; border-bottom-width: 2px; border-bottom-style: solid; border-bottom-color: rgb(224, 224, 224);" align="left" bgcolor="rgb(245, 245, 245)">Status</th>
+        </tr>
+      </thead>
+      <tbody id="crmDataTableBody">
+        <!-- Table data will be populated here -->
+      </tbody>
+    </table>
+  </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  (function(webapi, $){
+      function safeAjax(ajaxOptions) {
+          var deferredAjax = $.Deferred();
+
+          shell.getTokenDeferred().done(function (token) {
+              if (!ajaxOptions.headers) {
+                  $.extend(ajaxOptions, {
+                      headers: {
+                          "__RequestVerificationToken": token
+                      }
+                  });
+              } else {
+                  ajaxOptions.headers["__RequestVerificationToken"] = token;
+              }
+              $.ajax(ajaxOptions)
+                  .done(function(data, textStatus, jqXHR) {
+                      validateLoginSession(data, textStatus, jqXHR, deferredAjax.resolve);
+                  }).fail(deferredAjax.reject);
+          }).fail(function () {
+              deferredAjax.rejectWith(this, arguments);
+          });
+
+          return deferredAjax.promise();
+      }
+      webapi.safeAjax = safeAjax;
+  })(window.webapi = window.webapi || {}, jQuery)
+
+  $(document).ready(function() {
+      var tableData = [];
+      var currentFilter = 'all';
+
+      // Fetch data from API
+      function fetchData() {
+          return new Promise((resolve, reject) => {
+              webapi.safeAjax({
+                  type: "GET",
+                  url: "/_api/contacts?$select=adx_createdbyusername,createdon,lastname,crb7c_statuscode,crb7c_vendoremail&$filter=crb7c_createdvendor eq 'Yes'",
+                  contentType: "application/json",
+                  headers: {
+                      "Prefer": "odata.include-annotations=*,odata.maxpagesize=100"
+                  },
+                  success: function(data, textStatus, xhr) {
+                      console.log("Raw API response:", data);
+                      var results = data.value.map(function(result) {
+                          return {
+                              crb7c_accountcontact: result["contactid"],
+                              crb7c_poemail: result["crb7c_vendoremail"],
+                              crb7c_businessname: result["lastname"],
+                              createdon: result["createdon"],
+                              adx_createdbyusername: result['adx_createdbyusername'],
+                              createdon_formatted: result["createdon@OData.Community.Display.V1.FormattedValue"],
+                              statecodename: result["crb7c_statuscode"],
+                              originalStatus: result["crb7c_statuscode"] // Store the original status
+                          };
+                      });
+                      resolve(results);
+                  },
+                  error: function(xhr, textStatus, errorThrown) {
+                      console.error("Error fetching data:", errorThrown);
+                      reject(errorThrown);
+                  }
+              });
+          });
+      }
+
+      // Populate the table based on the filtered data
+      function populateTable(data) {
+          var tableBody = $('#crmDataTableBody');
+          tableBody.empty();
+
+          data.forEach(function(row) {
+              var tr = $('<tr>');
+              tr.append($('<td>').addClass('clickable-cell').text(row.crb7c_businessname).data('email', row.crb7c_poemail));
+              tr.append($('<td>').addClass('clickable-cell').text(row.crb7c_poemail).data('email', row.crb7c_poemail));
+              tr.append($('<td>').addClass('clickable-cell').text(row.adx_createdbyusername).data('email', row.crb7c_poemail));
+              tr.append($('<td>').addClass('clickable-cell').text(row.createdon_formatted).data('email', row.crb7c_poemail));
+              tr.append($('<td>').addClass('clickable-cell').text(row.statecodename).data('email', row.crb7c_poemail).data('original-status', row.originalStatus));
+              tableBody.append(tr);
+              console.log("Setting status:", row.statecodename); // Debug log
+          });
+
+          // Handle row click events
+          $('#crmDataTable').off('click', '.clickable-cell').on('click', '.clickable-cell', function() {
+              var email = $(this).data('email');
+              window.location.href = 'https://lagardereawpl-vendorportal.powerappsportals.com/Vendor-Onboarding/vendorapprovalflow/?email=' + encodeURIComponent(email);
+          });
+      }
+
+      // Filter data based on the current filter and search term
+// Filter data based on the current filter and search term
+function filterData() {
+        var searchTerm = $('#searchInput').val().toLowerCase();
+        var filteredData = tableData.filter(function(row) {
+            var matchesFilter = currentFilter === 'all' || row.originalStatus === currentFilter;
+            var businessName = row.crb7c_businessname ? row.crb7c_businessname.toLowerCase() : '';
+            var matchesSearch = businessName.includes(searchTerm);
+            return matchesFilter && matchesSearch;
+        });
+        populateTable(filteredData);
+        updateCounts(filteredData);  // Update counts after filtering
+    }
+
+    // Handle filter button clicks
+    $('.status-filter').on('click', function() {
+        $('.status-filter').removeClass('active');
+        $(this).addClass('active');
+        currentFilter = $(this).data('status');
+        filterData();
+    });
+
+    // Fetch data and populate the table
+    fetchData().then(function(data) {
+        tableData = data;
+        filterData();  // Initial population
+        updateCounts(data);  // Initial count update
+    }).catch(function(error) {
+        console.error("Error loading data:", error);
+    });
+
+    // Handle search input and button click
+    $('#searchButton').on('click', filterData);
+    $('#searchInput').on('keyup', function(e) {
+        if (e.key === 'Enter') {
+            filterData();
+        }
+    });
+});
+
+// Function to update the counts
+function updateCounts(data) {
+    console.log("Updating counts with data:", data);
+
+    var counts = {
+        'all': data.length,
+        'Invitation sent': 0,
+        'Pending Manager Approval': 0,
+        'Pending Exco Approval': 0,
+        'Pending CFO Approval': 0,
+        'Creation approved': 0,
+        'Declined': 0
+    };
+
+    data.forEach(function(row) {
+        if (counts.hasOwnProperty(row.statecodename)) {
+            counts[row.statecodename]++;
+        } else {
+            console.warn("Unknown status encountered:", row.statecodename);
+        }
+    });
+
+    console.log("Calculated counts:", counts);
+
+    $('.status-filter').each(function() {
+        var status = $(this).data('status');
+        var count = counts[status] || 0;
+        $(this).find('.count').text(count);
+        console.log("Updated count for", status, ":", count);
+    });
+
+    console.log("Count update complete");
+}
+</script>
+<div class="row sectionBlockLayout text-left" style="display: flex; flex-wrap: wrap; margin: 0px; min-height: auto; padding: 8px;">
+  <div class="container" style="padding: 0px; display: flex; flex-wrap: wrap;"><div class="col-md-12 columnBlockLayout" style="flex-grow: 1; display: flex; flex-direction: column; min-width: 250px; word-break: break-word;"></div></div>
+</div>
