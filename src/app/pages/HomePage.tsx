@@ -1,13 +1,10 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { redirect } from "next/navigation";
-// import BookingApp from "@/app/pages/BookingApp";
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import VendorOnboardingForm from "@/components/forms/VendorOnboardingForm";
+import VendorOnboardingPage from "@/components/VendorOnboardingPage";
 
-export default function BookingPage() {
+export default function HomePage() {
   const { data: session, status } = useSession();
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
@@ -17,7 +14,6 @@ export default function BookingPage() {
       window.location.href = "/auth/signin";
     }
   }, [status]);
-  //
 
   // Show loading state while checking session
   if (status === "loading") {
@@ -56,7 +52,7 @@ export default function BookingPage() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Background image with 80% transparency */}
+      {/* Background image with transparency */}
       <div
         className="absolute inset-0 z-0 w-full h-full"
         style={{
@@ -84,7 +80,7 @@ export default function BookingPage() {
 
             <div className="flex-grow flex justify-center">
               <h1 className="text-xl font-bold text-[#F01E73]">
-                Vendor Onboarding Form
+                Vendor Portal
               </h1>
             </div>
 
@@ -103,7 +99,7 @@ export default function BookingPage() {
         </header>
 
         <main>
-          <VendorOnboardingForm />
+          <VendorOnboardingPage />
         </main>
       </div>
 
