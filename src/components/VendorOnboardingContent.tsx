@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
 import { queryBusinessData } from "@/utils/graphQL-api-Get";
+import VendorOnboardingForm from "./forms/VendorOnboardingForm";
 
 interface VendorOnboardingContentProps {
   // Add any props the component needs
@@ -75,56 +76,33 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
       if (session?.accessToken) {
         try {
           setIsLoading(true);
-          // For demo purposes, use dummy data
-          // In production, uncomment the API call and comment out the dummy data
 
-          // const result = await queryBusinessData(session.accessToken);
-          // if (result.success && result.data) {
-          //   const vendors = result.data.vendors || [];
-          //   setTableData(vendors);
-          //   updateCounts(vendors);
-          //   filterData(vendors, currentFilter, searchTerm);
-          // }
+          // Use the actual API call instead of dummy data
+          const result = await queryBusinessData(session.accessToken);
+          if (result.success && result.data) {
+            // Get vendors data from localStorage (populated by queryBusinessData)
+            const vendorsData = localStorage.getItem("vendor_data");
+            if (vendorsData) {
+              const parsedData = JSON.parse(vendorsData);
+              const vendors = parsedData.items || [];
 
-          // Dummy data for development
-          const dummyData: VendorData[] = [
-            {
-              crb7c_accountcontact: "1",
-              crb7c_poemail: "vendor1@example.com",
-              crb7c_businessname: "Acme Supplies",
-              createdon: "2025-03-01",
-              adx_createdbyusername: "John Doe",
-              createdon_formatted: "Mar 1, 2025",
-              statecodename: "Invitation sent",
-              originalStatus: "Invitation sent",
-            },
-            {
-              crb7c_accountcontact: "2",
-              crb7c_poemail: "vendor2@example.com",
-              crb7c_businessname: "Global Foods",
-              createdon: "2025-03-05",
-              adx_createdbyusername: "Jane Smith",
-              createdon_formatted: "Mar 5, 2025",
-              statecodename: "Pending Manager Approval",
-              originalStatus: "Pending Manager Approval",
-            },
-            {
-              crb7c_accountcontact: "3",
-              crb7c_poemail: "vendor3@example.com",
-              crb7c_businessname: "Tech Solutions",
-              createdon: "2025-03-10",
-              adx_createdbyusername: "Alice Johnson",
-              createdon_formatted: "Mar 10, 2025",
-              statecodename: "Creation approved",
-              originalStatus: "Creation approved",
-            },
-          ];
-
-          setTableData(dummyData);
-          updateCounts(dummyData);
-          filterData(dummyData, currentFilter, searchTerm);
+              setTableData(vendors);
+              updateCounts(vendors);
+              filterData(vendors, currentFilter, searchTerm);
+            } else {
+              console.warn("No vendor data found in localStorage");
+              setTableData([]);
+              setFilteredData([]);
+            }
+          } else {
+            console.error("Error fetching data:", result.message);
+            setTableData([]);
+            setFilteredData([]);
+          }
         } catch (error) {
           console.error("Error fetching data:", error);
+          setTableData([]);
+          setFilteredData([]);
         } finally {
           setIsLoading(false);
         }
@@ -276,10 +254,7 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
           {/* Vendor Onboarding Form Button */}
           <Button
             id="vendor-onboarding"
-            onClick={() =>
-              (window.location.href =
-                "https://lagardereawpl-vendorportal.powerappsportals.com/Vendor-Onboarding/vendoronboardingform/")
-            }
+            onClick={() => (window.location.href = "/Vendor-Onboarding/create")}
             className="status-filter create-button"
           >
             <div className="label">Create a Vendor Onboarding Form</div>
