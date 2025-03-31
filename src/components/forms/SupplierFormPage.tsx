@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import SupplierForm from "./supplierform";
+import SupplierForm from "@/components/forms/SupplierForm";
 import { Card } from "@/components/ui/card";
 
 export default function SupplierFormPage() {

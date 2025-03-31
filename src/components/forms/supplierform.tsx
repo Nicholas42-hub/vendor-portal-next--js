@@ -1,5 +1,5 @@
 "use client";
-
+import { Session } from "next-auth";
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -123,14 +123,19 @@ export default function SupplierForm() {
         }
 
         // Populate business_name if available in session
-        if (session?.user?.email) {
-          setFormData((prev) => ({
-            ...prev,
-            business_name: session.user.name || "",
-            accounts_contact: session.user.email || "",
-            po_email: session.user.email || "",
-            return_order_email: session.user.email || "",
-          }));
+        if (session) {
+          // Type assertion to help TypeScript understand the structure
+          const user = (session as Session).user;
+
+          if (user) {
+            setFormData((prev) => ({
+              ...prev,
+              business_name: user.name || "",
+              accounts_contact: user.email || "",
+              po_email: user.email || "",
+              return_order_email: user.email || "",
+            }));
+          }
         }
       } catch (error) {
         console.error("Error setting user data:", error);
