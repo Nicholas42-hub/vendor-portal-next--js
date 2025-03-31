@@ -9,7 +9,7 @@ import {
 } from "../../models/VendorTypes";
 import { GeneralDetailsSection } from "./GeneralDetailSection";
 import { TradingTermsSection } from "./TradingTermSection";
-import { SupplyTermsSection } from "../SupplyTermSection";
+import { SupplyTermsSection } from "./SupplyTermSection";
 import { FinancialTermsSection } from "./FinancialTermSection";
 import { useForm } from "../../hooks/useForm";
 import { ValidationService } from "../../services/ValidationService";
