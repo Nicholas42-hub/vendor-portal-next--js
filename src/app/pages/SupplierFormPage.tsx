@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import SupplierForm from "@/components/SupplierForm";
+import SupplierForm from "@/components/forms/SupplierForm";
 
 // This page component serves as a wrapper for the SupplierForm
 // It handles authentication checks and redirects
