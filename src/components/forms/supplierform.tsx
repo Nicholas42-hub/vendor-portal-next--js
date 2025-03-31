@@ -2,1046 +2,1262 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardFooter 
-} from "@/components/ui/card";
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from "@/components/ui/form";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useToast } from "@/components/ui/use-toast";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { countries } from "@/lib/countries";
 
-// Define the form schema with zod
-const supplierFormSchema = z.object({
-  // 1. Supplier Details
-  business_name: z.string().min(1, "Business name is required"),
-  trading_name: z.string().min(1, "Trading name is required"),
-  country: z.string().min(1, "Country is required"),
-  gst_registered: z.enum(["Yes", "No"]),
-  
-  // Conditional fields based on country
-  abn: z.string().optional()
-    .refine(val => val === undefined || val.length > 0, "ABN is required for Australian businesses"),
-  gst: z.string().optional()
-    .refine(val => val === undefined || val.length > 0, "GST number is required for New Zealand businesses"),
-  
-  address: z.string().min(1, "Address is required"),
-  website: z.string().optional(),
-  postal_address: z.string().min(1, "Postal address is required"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
-  postcode: z.string().min(1, "Postcode is required"),
-  
-  accounts_contact: z.string().email("Invalid email address"),
-  telephone: z.string().min(1, "Telephone is required"),
-  po_email: z.string().email("Invalid email address"),
-  return_order_email: z.string().email("Invalid email address"),
-  invoice_currency: z.string().min(1, "Currency is required"),
-  
-  // 2. Banking Details
-  payment_method: z.enum(["Bank Transfer", "Bepay"]),
-  
-  // Conditional fields based on payment method and country
-  au_bank_name: z.string().optional(),
-  au_bank_email: z.string().email("Invalid email address").optional(),
-  bsb: z.string().optional()
-    .refine(val => val === undefined || val.length === 6, "BSB must be exactly 6 digits"),
-  account: z.string().optional()
-    .refine(val => val === undefined || val.length === 10, "Account number must be exactly 10 digits"),
-  
-  nz_bank_name: z.string().optional(),
-  nz_bank_email: z.string().email("Invalid email address").optional(),
-  nz_BSB: z.string().optional()
-    .refine(val => val === undefined || val.length === 6, "BSB must be exactly 6 digits"),
-  nz_account: z.string().optional()
-    .refine(val => val === undefined || val.length === 10, "Account number must be exactly 10 digits"),
-  
-  IBAN_SWITCH_yn: z.enum(["IBAN", "SWITCH"]).optional(),
-  overseas_bank_email: z.string().email("Invalid email address").optional(),
-  IBAN: z.string().optional(),
-  SWITCH: z.string().optional(),
-  
-  biller_code: z.string().optional(),
-  ref_code: z.string().optional(),
-  
-  // 3. Consent
-  Iagree: z.boolean().refine(val => val === true, {
-    message: "You must agree to the terms and conditions"
-  }),
-});
+// Define types for the form data
+interface SupplierFormData {
+  business_name: string;
+  trading_name: string;
+  country: string;
+  gst_registered: string;
+  abn?: string;
+  gst?: string;
+  address: string;
+  website: string;
+  postal_address: string;
+  city: string;
+  state: string;
+  postcode: string;
+  accounts_contact: string;
+  telephone: string;
+  po_email: string;
+  return_order_email: string;
+  invoice_currency: string;
+  payment_method: string;
+  // Bank details fields - AU
+  au_bank_name?: string;
+  au_bank_email?: string;
+  bsb?: string;
+  account?: string;
+  // Bank details fields - NZ
+  nz_bank_name?: string;
+  nz_bank_email?: string;
+  nz_BSB?: string;
+  nz_account?: string;
+  // Overseas banking
+  IBAN_SWITCH_yn?: string;
+  IBAN_input?: string;
+  SWITCH_input?: string;
+  overseas_bank_email?: string;
+  // BPay
+  biller_code?: string;
+  ref_code?: string;
+  // Terms agreement
+  iAgree: boolean;
+}
 
-type SupplierFormValues = z.infer<typeof supplierFormSchema>;
+// Define validation errors type
+interface FormErrors {
+  [key: string]: string;
+}
 
 export default function SupplierForm() {
   const { data: session, status } = useSession();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
-  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [fileUploaded, setFileUploaded] = useState<File | null>(null);
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [description, setDescription] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [bankStatement, setBankStatement] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
-  
-  // Access current user's business name
-  const [currentUserInfo, setCurrentUserInfo] = useState({
-    email: "",
-    description: ""
+  const [showTerms, setShowTerms] = useState(false);
+
+  // Initial form state
+  const [formData, setFormData] = useState<SupplierFormData>({
+    business_name: "",
+    trading_name: "",
+    country: "",
+    gst_registered: "",
+    address: "",
+    website: "",
+    postal_address: "",
+    city: "",
+    state: "",
+    postcode: "",
+    accounts_contact: "",
+    telephone: "",
+    po_email: "",
+    return_order_email: "",
+    invoice_currency: "",
+    payment_method: "Bank Transfer",
+    iAgree: false,
   });
-  
-  const form = useForm<SupplierFormValues>({
-    resolver: zodResolver(supplierFormSchema),
-    defaultValues: {
-      business_name: "",
-      trading_name: "",
-      country: "",
-      gst_registered: "No",
-      address: "",
-      website: "",
-      postal_address: "",
-      city: "",
-      state: "",
-      postcode: "",
-      accounts_contact: "",
-      telephone: "",
-      po_email: "",
-      return_order_email: "",
-      invoice_currency: "",
-      payment_method: "Bank Transfer",
-      Iagree: false
-    },
-  });
-  
-  // Watch for value changes to implement conditional logic
-  const watchCountry = form.watch("country");
-  const watchGstRegistered = form.watch("gst_registered");
-  const watchPaymentMethod = form.watch("payment_method");
-  const watchIbanSwitch = form.watch("IBAN_SWITCH_yn");
-  
-  // Fetch user data on component mount
+
+  // Currencies list
+  const currencies = [
+    { value: "AUD", label: "AUD" },
+    { value: "NZD", label: "NZD" },
+    { value: "USD", label: "USD" },
+    { value: "EUR", label: "EUR" },
+    { value: "CNY", label: "CNY" },
+    { value: "GBP", label: "GBP" },
+  ];
+
+  // Get user data on component mount
   useEffect(() => {
     if (session?.user?.email) {
-      fetchUserData(session.user.email);
-      
-      // Set email fields
-      form.setValue("accounts_contact", session.user.email);
-      form.setValue("po_email", session.user.email);
-      form.setValue("return_order_email", session.user.email);
-    }
-  }, [session, form]);
-  
-  // Fetch current user data from API
-  const fetchUserData = async (email: string) => {
-    try {
-      // In a real implementation, this would be an API call
-      // For now, we'll use a mock implementation
-      setCurrentUserInfo({
-        email: email,
-        description: "Australia" // Or could be "New Zealand" or "Overseas"
-      });
-      
-      // Pre-select the country based on description
-      if (currentUserInfo.description) {
-        form.setValue("country", currentUserInfo.description);
+      try {
+        // Detect region based on email domain
+        const emailDomain = session.user.email.split("@")[1] || "";
+
+        if (emailDomain.includes(".au")) {
+          setDescription("Australia");
+        } else if (emailDomain.includes(".nz")) {
+          setDescription("New Zealand");
+        } else {
+          setDescription("Overseas");
+        }
+
+        // Populate business_name if available in session
+        if (session?.user?.email) {
+          setFormData((prev) => ({
+            ...prev,
+            business_name: session.user.name || "",
+            accounts_contact: session.user.email || "",
+            po_email: session.user.email || "",
+            return_order_email: session.user.email || "",
+          }));
+        }
+      } catch (error) {
+        console.error("Error setting user data:", error);
       }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
+    }
+  }, [session]);
+
+  // Handle input changes
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value, type } = e.target;
+
+    // For checkbox type inputs
+    if (type === "checkbox") {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData((prev) => ({
+        ...prev,
+        [name]: checked,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+
+    // Clear error when field is changed
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
   };
 
-  // Handle file input change
+  // Handle select changes
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear error when field is changed
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  // Handle file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    
-    if (files && files.length > 0) {
-      const file = files[0];
-      
-      // Check if the file is a PDF
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
       if (file.type === "application/pdf") {
-        setFileUploaded(file);
+        setBankStatement(file);
         setFileError("");
       } else {
-        setFileUploaded(null);
-        setFileError("Please upload a PDF file only.");
+        setBankStatement(null);
+        setFileError("Please upload a PDF file");
       }
-    } else {
-      setFileUploaded(null);
     }
   };
-  
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors: FormErrors = {};
+
+    // Required fields
+    const requiredFields = [
+      "trading_name",
+      "country",
+      "gst_registered",
+      "postal_address",
+      "city",
+      "state",
+      "postcode",
+      "accounts_contact",
+      "telephone",
+      "po_email",
+      "return_order_email",
+      "invoice_currency",
+      "payment_method",
+    ];
+
+    requiredFields.forEach((field) => {
+      if (!formData[field as keyof SupplierFormData]) {
+        newErrors[field] = "This field is required";
+      }
+    });
+
+    // Email validation
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    const emailFields = ["accounts_contact", "po_email", "return_order_email"];
+
+    emailFields.forEach((field) => {
+      const value = formData[field as keyof SupplierFormData] as string;
+      if (value && !emailRegex.test(value)) {
+        newErrors[field] = "Please enter a valid email address";
+      }
+    });
+
+    // Country-specific validations
+    if (description === "Australia" && formData.gst_registered === "Yes") {
+      if (!formData.abn) {
+        newErrors["abn"] = "ABN is required";
+      } else if (!/^\d{11}$/.test(formData.abn)) {
+        newErrors["abn"] = "ABN must be 11 digits";
+      }
+    }
+
+    if (description === "New Zealand" && formData.gst_registered === "Yes") {
+      if (!formData.gst) {
+        newErrors["gst"] = "GST number is required";
+      }
+    }
+
+    // Payment method validations
+    if (formData.payment_method === "Bank Transfer") {
+      if (description === "Australia") {
+        if (!formData.au_bank_name)
+          newErrors["au_bank_name"] = "Bank name is required";
+        if (!formData.au_bank_email)
+          newErrors["au_bank_email"] = "Bank email is required";
+
+        if (!formData.bsb) {
+          newErrors["bsb"] = "BSB is required";
+        } else if (!/^\d{6}$/.test(formData.bsb)) {
+          newErrors["bsb"] = "BSB must be 6 digits";
+        }
+
+        if (!formData.account) {
+          newErrors["account"] = "Account number is required";
+        } else if (!/^\d{10}$/.test(formData.account)) {
+          newErrors["account"] = "Account number must be 10 digits";
+        }
+      } else if (description === "New Zealand") {
+        if (!formData.nz_bank_name)
+          newErrors["nz_bank_name"] = "Bank name is required";
+        if (!formData.nz_bank_email)
+          newErrors["nz_bank_email"] = "Bank email is required";
+
+        if (!formData.nz_BSB) {
+          newErrors["nz_BSB"] = "BSB is required";
+        } else if (!/^\d{6}$/.test(formData.nz_BSB)) {
+          newErrors["nz_BSB"] = "BSB must be 6 digits";
+        }
+
+        if (!formData.nz_account) {
+          newErrors["nz_account"] = "Account number is required";
+        } else if (!/^\d{10}$/.test(formData.nz_account)) {
+          newErrors["nz_account"] = "Account number must be 10 digits";
+        }
+      } else if (description === "Overseas") {
+        if (!formData.IBAN_SWITCH_yn) {
+          newErrors["IBAN_SWITCH_yn"] = "Please select IBAN or SWITCH";
+        } else if (formData.IBAN_SWITCH_yn === "IBAN") {
+          if (!formData.IBAN_input) {
+            newErrors["IBAN_input"] = "IBAN is required";
+          } else if (formData.IBAN_input.length !== 34) {
+            newErrors["IBAN_input"] = "IBAN must be exactly 34 characters";
+          }
+          if (!formData.overseas_bank_email) {
+            newErrors["overseas_bank_email"] = "Bank email is required";
+          }
+        } else if (formData.IBAN_SWITCH_yn === "SWITCH") {
+          if (!formData.SWITCH_input) {
+            newErrors["SWITCH_input"] = "SWITCH is required";
+          } else if (formData.SWITCH_input.length !== 34) {
+            newErrors["SWITCH_input"] = "SWITCH must be exactly 34 characters";
+          }
+        }
+      }
+
+      // Bank statement validation
+      if (!bankStatement) {
+        setFileError("Bank statement is required");
+      }
+    } else if (formData.payment_method === "Bepay") {
+      if (!formData.biller_code)
+        newErrors["biller_code"] = "Biller code is required";
+      if (!formData.ref_code)
+        newErrors["ref_code"] = "Reference code is required";
+    }
+
+    // Terms agreement validation
+    if (!formData.iAgree) {
+      newErrors["iAgree"] = "You must agree to the terms and conditions";
+    }
+
+    setErrors(newErrors);
+    return (
+      Object.keys(newErrors).length === 0 &&
+      (formData.payment_method !== "Bank Transfer" || bankStatement)
+    );
+  };
+
   // Handle form submission
-  const onSubmit = (data: SupplierFormValues) => {
-    // Check if a file is uploaded when payment method is Bank Transfer
-    if (data.payment_method === "Bank Transfer" && !fileUploaded) {
-      setFileError("Please attach a bank statement.");
-      return;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateForm()) {
+      setShowConfirmation(true);
     }
-    
-    // Show confirmation popup
-    setShowConfirmPopup(true);
   };
-  
-  // Handle final submit after confirmation
+
+  // Handle confirmation
   const handleConfirmSubmit = async () => {
-    setIsSubmitting(true);
-    setShowConfirmPopup(false);
-    
+    setIsLoading(true);
+    setShowConfirmation(false);
+
     try {
-      const formData = form.getValues();
-      
-      // Create the record object to submit
-      const record = {
-        lastname: formData.business_name,
-        crb7c_abn: formData.abn || "",
-        crb7c_accountcontact: formData.accounts_contact,
-        address1_city: formData.city,
-        crb7c_nzgst: formData.gst || "",
-        crb7c_invoicecurrency: formData.invoice_currency,
-        address1_postofficebox: formData.postal_address,
-        address1_postalcode: formData.postcode,
-        address1_stateorprovince: formData.state,
-        websiteurl: formData.website || "",
-        address1_telephone2: formData.telephone,
-        crb7c_tradingname: formData.trading_name,
-        crb7c_aubsb: formData.bsb || "",
-        crb7c_auaccount: formData.account || "",
-        crb7c_nzbsb: formData.nz_BSB || "",
-        crb7c_nzaccount: formData.nz_account || "",
-        crb7c_statuscode: "Pending Manager Approval",
-        crb7c_vendorsetupstatus: "Pending",
-        crb7c_bankname: formData.au_bank_name || formData.nz_bank_name || "",
-      };
-      
-      // This would be replaced with an actual API call
-      // e.g., await updateVendorRecord(record);
-      console.log("Submitting record:", record);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Show success popup
-      setShowSuccessPopup(true);
+      // In a real implementation, you would submit the form data and file to your API here
+      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate API call
+
+      setShowSuccess(true);
     } catch (error) {
       console.error("Error submitting form:", error);
-      toast({
-        title: "Submission Error",
-        description: "There was an error submitting your form. Please try again later.",
-        variant: "destructive"
-      });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
-  
-  // Handle closing of success popup
+
+  // Handle success close
   const handleSuccessClose = () => {
-    setShowSuccessPopup(false);
-    // Reset form
-    form.reset();
-    setFileUploaded(null);
-    // Redirect to profile page
+    setShowSuccess(false);
     window.location.href = "/profile";
   };
 
-  // If session is loading or not authenticated
-  if (status === "loading") {
-    return <div className="flex justify-center items-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-    </div>;
-  }
-  
-  if (status === "unauthenticated") {
-    return <div className="p-8 text-center">
-      <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
-      <p className="mb-4">You must be logged in to view this form.</p>
-      <Button onClick={() => window.location.href = "/auth/signin"}>
-        Sign In
-      </Button>
-    </div>;
-  }
+  // Toggle bank details based on payment method
+  const toggleBankDetails = () => {
+    return formData.payment_method === "Bank Transfer";
+  };
+
+  // Toggle IBAN/SWITCH fields
+  const showIBANField = formData.IBAN_SWITCH_yn === "IBAN";
+  const showSWITCHField = formData.IBAN_SWITCH_yn === "SWITCH";
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className="w-full max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Vendor Onboarding Form</CardTitle>
-        </CardHeader>
-        
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              {/* 1. Supplier Details Section */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h2 className="text-xl font-semibold mb-6">1. Supplier Details</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Business Name */}
-                  <FormField
-                    control={form.control}
-                    name="business_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Business Name</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            readOnly 
-                            className="bg-gray-100"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Trading Name */}
-                  <FormField
-                    control={form.control}
-                    name="trading_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Trading Name <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Country */}
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Country <span className="text-red-500">*</span></FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a country" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {countries.map(country => (
-                              <SelectItem key={country} value={country}>
-                                {country}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* GST Registered */}
-                  <FormField
-                    control={form.control}
-                    name="gst_registered"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Registered for GST? <span className="text-red-500">*</span></FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Yes or No" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Yes">Yes</SelectItem>
-                            <SelectItem value="No">No</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Australian Business Number (conditionally rendered) */}
-                  {watchCountry === "Australia" && watchGstRegistered === "Yes" && (
-                    <FormField
-                      control={form.control}
-                      name="abn"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Australian Business Number (ABN) <span className="text-red-500">*</span></FormLabel>
-                          <FormControl>
-                            <Input 
-                              {...field} 
-                              inputMode="numeric"
-                              onChange={(e) => {
-                                // Keep only digits
-                                const value = e.target.value.replace(/\D/g, '');
-                                field.onChange(value);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                  
-                  {/* New Zealand GST Number (conditionally rendered) */}
-                  {watchCountry === "New Zealand" && watchGstRegistered === "Yes" && (
-                    <FormField
-                      control={form.control}
-                      name="gst"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>New Zealand GST Number <span className="text-red-500">*</span></FormLabel>
-                          <FormControl>
-                            <Input 
-                              {...field} 
-                              inputMode="numeric"
-                              onChange={(e) => {
-                                // Keep only digits
-                                const value = e.target.value.replace(/\D/g, '');
-                                field.onChange(value);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                  
-                  {/* Address */}
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem className="col-span-full">
-                        <FormLabel>Address</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            placeholder="Start typing an address..."
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Website */}
-                  <FormField
-                    control={form.control}
-                    name="website"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Website</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Postal Address */}
-                  <FormField
-                    control={form.control}
-                    name="postal_address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Postal Address <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* City */}
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* State */}
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Postcode */}
-                  <FormField
-                    control={form.control}
-                    name="postcode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Postcode <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            inputMode="numeric"
-                            onChange={(e) => {
-                              // Keep only digits
-                              const value = e.target.value.replace(/\D/g, '');
-                              field.onChange(value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Primary Contact Email */}
-                  <FormField
-                    control={form.control}
-                    name="accounts_contact"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Primary Contact Email <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            type="email"
-                            placeholder="example@domain.com"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Telephone */}
-                  <FormField
-                    control={form.control}
-                    name="telephone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telephone <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            inputMode="numeric"
-                            onChange={(e) => {
-                              // Keep only digits and formatting characters
-                              const value = e.target.value.replace(/[^\d+\-\s()]/g, '');
-                              field.onChange(value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* PO Email */}
-                  <FormField
-                    control={form.control}
-                    name="po_email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>PO Email <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            type="email"
-                            placeholder="example@domain.com"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Return Order Email */}
-                  <FormField
-                    control={form.control}
-                    name="return_order_email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Return Order Email <span className="text-red-500">*</span></FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            type="email"
-                            placeholder="example@domain.com"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Invoice Currency */}
-                  <FormField
-                    control={form.control}
-                    name="invoice_currency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Invoice Currency <span className="text-red-500">*</span></FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a currency" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="AUD">AUD</SelectItem>
-                            <SelectItem value="NZD">NZD</SelectItem>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="EUR">EUR</SelectItem>
-                            <SelectItem value="CNY">CNY</SelectItem>
-                            <SelectItem value="GBP">GBP</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Vendor Onboarding Form</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Hidden field for description (region) */}
+          <input
+            type="hidden"
+            id="description"
+            name="description"
+            value={description}
+          />
+
+          {/* 1. Supplier Details */}
+          <div className="bg-gray-50 p-6 rounded-lg">
+            <h2 className="text-xl font-semibold mb-6">1. Supplier Details</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Business Name */}
+              <div className="space-y-2">
+                <Label htmlFor="business_name">Business Name</Label>
+                <Input
+                  id="business_name"
+                  name="business_name"
+                  value={formData.business_name}
+                  onChange={handleInputChange}
+                  readOnly
+                  className="bg-gray-100"
+                />
               </div>
-              
-              {/* 2. Banking Details Section */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h2 className="text-xl font-semibold mb-6">2. Banking Details</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Payment Method */}
-                  <FormField
-                    control={form.control}
-                    name="payment_method"
-                    render={({ field }) => (
-                      <FormItem className="col-span-full">
-                        <FormLabel>Payment Method <span className="text-red-500">*</span></FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select Payment Method" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                            <SelectItem value="Bepay">Bepay</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Bank Transfer Fields */}
-                  {watchPaymentMethod === "Bank Transfer" && (
-                    <>
-                      {/* Australia Banking Fields */}
-                      {watchCountry === "Australia" && (
-                        <div className="col-span-full bg-white p-4 rounded-md">
-                          <h3 className="font-medium mb-4">Australia</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="au_bank_name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Bank Name <span className="text-red-500">*</span></FormLabel>
-                                  <FormControl>
-                                    <Input {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={form.control}
-                              name="au_bank_email"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Bank Email <span className="text-red-500">*</span></FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      {...field} 
-                                      type="email"
-                                      placeholder="example@domain.com"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={form.control}
-                              name="bsb"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>BSB <span className="text-red-500">*</span></FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      {...field} 
-                                      maxLength={6}
-                                      inputMode="numeric"
-                                      onChange={(e) => {
-                                        // Keep only digits
-                                        const value = e.target.value.replace(/\D/g, '');
-                                        field.onChange(value);
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormDescription>
-                                    Must be exactly 6 digits
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={form.control}
-                              name="nz_account"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Account Number <span className="text-red-500">*</span></FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      {...field} 
-                                      maxLength={10}
-                                      minLength={10}
-                                      inputMode="numeric"
-                                      onChange={(e) => {
-                                        // Keep only digits
-                                        const value = e.target.value.replace(/\D/g, '');
-                                        field.onChange(value);
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormDescription>
-                                    Must be exactly 10 digits
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Overseas Banking Fields */}
-                      {watchCountry !== "Australia" && watchCountry !== "New Zealand" && (
-                        <div className="col-span-full bg-white p-4 rounded-md">
-                          <h3 className="font-medium mb-4">Overseas</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="IBAN_SWITCH_yn"
-                              render={({ field }) => (
-                                <FormItem className="col-span-full">
-                                  <FormLabel>IBAN or SWITCH <span className="text-red-500">*</span></FormLabel>
-                                  <Select
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select an option" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="IBAN">IBAN</SelectItem>
-                                      <SelectItem value="SWITCH">SWITCH</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            {watchIbanSwitch === "IBAN" && (
-                              <>
-                                <FormField
-                                  control={form.control}
-                                  name="overseas_bank_email"
-                                  render={({ field }) => (
-                                    <FormItem className="col-span-full">
-                                      <FormLabel>Bank Email <span className="text-red-500">*</span></FormLabel>
-                                      <FormControl>
-                                        <Input 
-                                          {...field} 
-                                          type="email"
-                                          placeholder="example@domain.com"
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                
-                                <FormField
-                                  control={form.control}
-                                  name="IBAN"
-                                  render={({ field }) => (
-                                    <FormItem className="col-span-full">
-                                      <FormLabel>IBAN <span className="text-red-500">*</span></FormLabel>
-                                      <FormControl>
-                                        <Input 
-                                          {...field} 
-                                          maxLength={34}
-                                          minLength={34}
-                                        />
-                                      </FormControl>
-                                      <FormDescription>
-                                        Must be exactly 34 characters
-                                      </FormDescription>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </>
-                            )}
-                            
-                            {watchIbanSwitch === "SWITCH" && (
-                              <FormField
-                                control={form.control}
-                                name="SWITCH"
-                                render={({ field }) => (
-                                  <FormItem className="col-span-full">
-                                    <FormLabel>SWITCH <span className="text-red-500">*</span></FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        {...field} 
-                                        maxLength={34}
-                                        minLength={34}
-                                      />
-                                    </FormControl>
-                                    <FormDescription>
-                                      Must be exactly 34 characters
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Bank Statement Upload */}
-                      <div className="col-span-full mt-4">
-                        <Label>Please attach a recent (last 3 months) bank statement - PDF only <span className="text-red-500">*</span></Label>
-                        <div className="mt-2">
-                          <div className={cn(
-                            "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer",
-                            fileError ? "border-red-500 bg-red-50" : "border-gray-300 hover:border-gray-400"
-                          )}>
-                            <input
-                              type="file"
-                              id="file-input"
-                              accept=".pdf"
-                              className="hidden"
-                              onChange={handleFileChange}
-                            />
-                            <Button 
-                              type="button" 
-                              variant="outline"
-                              onClick={() => document.getElementById('file-input')?.click()}
-                            >
-                              Choose a PDF file
-                            </Button>
-                            {fileUploaded && (
-                              <p className="mt-2 text-sm text-gray-600">{fileUploaded.name}</p>
-                            )}
-                          </div>
-                          {fileError && (
-                            <p className="mt-1 text-sm text-red-500">{fileError}</p>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  
-                  {/* Bepay Fields */}
-                  {watchPaymentMethod === "Bepay" && (
-                    <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="biller_code"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Biller Code <span className="text-red-500">*</span></FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                inputMode="numeric"
-                                onChange={(e) => {
-                                  // Keep only digits
-                                  const value = e.target.value.replace(/\D/g, '');
-                                  field.onChange(value);
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="ref_code"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Ref Code <span className="text-red-500">*</span></FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                inputMode="numeric"
-                                onChange={(e) => {
-                                  // Keep only digits
-                                  const value = e.target.value.replace(/\D/g, '');
-                                  field.onChange(value);
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
-                </div>
+
+              {/* Trading Name */}
+              <div className="space-y-2">
+                <Label htmlFor="trading_name">
+                  Trading Name (if different to Business Name)
+                  <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="trading_name"
+                  name="trading_name"
+                  value={formData.trading_name}
+                  onChange={handleInputChange}
+                  required
+                  className={errors.trading_name ? "border-red-500" : ""}
+                />
+                {errors.trading_name && (
+                  <p className="text-red-500 text-sm">{errors.trading_name}</p>
+                )}
               </div>
-              
-              {/* 3. Consent Statement Section */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h2 className="text-xl font-semibold mb-6">3. Consent Statement</h2>
-                
-                <div className="flex flex-col items-start">
-                  <div className="flex items-center gap-2 mb-4">
-                    <button
-                      type="button"
-                      className="text-blue-600 underline"
-                      onClick={() => setShowTerms(!showTerms)}
-                    >
-                      Please click to view the terms and conditions
-                    </button>
-                    <span className="text-red-500">*</span>
-                  </div>
-                  
-                  {showTerms && (
-                    <div className="w-full bg-white border rounded-md p-4 mb-4">
-                      <div className="mb-4">
-                        <iframe 
-                          src="/Supplierterm.pdf" 
-                          className="w-full h-[500px] border"
-                          title="Terms and Conditions"
-                        />
-                      </div>
-                      
-                      <FormField
-                        control={form.control}
-                        name="Iagree"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox 
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>
-                                Acknowledge the terms and conditions <span className="text-red-500">*</span>
-                              </FormLabel>
-                              <FormMessage />
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Submit Button */}
-              <div className="flex justify-end">
-                <Button 
-                  type="submit" 
-                  className="bg-blue-600 hover:bg-blue-700"
-                  disabled={isSubmitting}
+
+              {/* Country */}
+              <div className="space-y-2">
+                <Label htmlFor="country">
+                  Country<span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.country}
+                  onValueChange={(value) =>
+                    handleSelectChange("country", value)
+                  }
                 >
-                  {isSubmitting ? (
-                    <>
-                      <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
-                      Submitting...
-                    </>
-                  ) : (
-                    'Submit onboarding form'
-                  )}
-                </Button>
+                  <SelectTrigger
+                    id="country"
+                    className={errors.country ? "border-red-500" : ""}
+                  >
+                    <SelectValue placeholder="Select a country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countries.map((country) => (
+                      <SelectItem key={country} value={country}>
+                        {country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.country && (
+                  <p className="text-red-500 text-sm">{errors.country}</p>
+                )}
               </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-      
+
+              {/* GST Registered */}
+              <div className="space-y-2">
+                <Label htmlFor="gst_registered">
+                  Registered for GST?<span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.gst_registered}
+                  onValueChange={(value) =>
+                    handleSelectChange("gst_registered", value)
+                  }
+                >
+                  <SelectTrigger
+                    id="gst_registered"
+                    className={errors.gst_registered ? "border-red-500" : ""}
+                  >
+                    <SelectValue placeholder="Select Yes or No" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Yes">Yes</SelectItem>
+                    <SelectItem value="No">No</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.gst_registered && (
+                  <p className="text-red-500 text-sm">
+                    {errors.gst_registered}
+                  </p>
+                )}
+              </div>
+
+              {/* ABN - Only for Australia */}
+              {description === "Australia" &&
+                formData.gst_registered === "Yes" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="abn">
+                      Australian Business Number (ABN)
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="abn"
+                      name="abn"
+                      value={formData.abn || ""}
+                      onChange={handleInputChange}
+                      inputMode="numeric"
+                      maxLength={11}
+                      className={errors.abn ? "border-red-500" : ""}
+                    />
+                    {errors.abn && (
+                      <p className="text-red-500 text-sm">{errors.abn}</p>
+                    )}
+                  </div>
+                )}
+
+              {/* GST - Only for New Zealand */}
+              {description === "New Zealand" &&
+                formData.gst_registered === "Yes" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="gst">
+                      New Zealand Goods & Services Tax Number (GST)
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="gst"
+                      name="gst"
+                      value={formData.gst || ""}
+                      onChange={handleInputChange}
+                      inputMode="numeric"
+                      className={errors.gst ? "border-red-500" : ""}
+                    />
+                    {errors.gst && (
+                      <p className="text-red-500 text-sm">{errors.gst}</p>
+                    )}
+                  </div>
+                )}
+
+              {/* Address */}
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  placeholder="Start typing an address..."
+                  maxLength={100}
+                />
+              </div>
+
+              {/* Website */}
+              <div className="space-y-2">
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  name="website"
+                  value={formData.website}
+                  onChange={handleInputChange}
+                  placeholder="https://example.com"
+                />
+              </div>
+
+              {/* Postal Address */}
+              <div className="space-y-2">
+                <Label htmlFor="postal_address">
+                  Postal Address<span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="postal_address"
+                  name="postal_address"
+                  value={formData.postal_address}
+                  onChange={handleInputChange}
+                  required
+                  className={errors.postal_address ? "border-red-500" : ""}
+                />
+                {errors.postal_address && (
+                  <p className="text-red-500 text-sm">
+                    {errors.postal_address}
+                  </p>
+                )}
+              </div>
+
+              {/* City */}
+              <div className="space-y-2">
+                <Label htmlFor="city">
+                  City<span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  required
+                  className={errors.city ? "border-red-500" : ""}
+                />
+                {errors.city && (
+                  <p className="text-red-500 text-sm">{errors.city}</p>
+                )}
+              </div>
+
+              {/* State */}
+              <div className="space-y-2">
+                <Label htmlFor="state">
+                  State<span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="state"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleInputChange}
+                  required
+                  className={errors.state ? "border-red-500" : ""}
+                />
+                {errors.state && (
+                  <p className="text-red-500 text-sm">{errors.state}</p>
+                )}
+              </div>
+
+              {/* Postcode */}
+              <div className="space-y-2">
+                <Label htmlFor="postcode">
+                  Postcode<span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="postcode"
+                  name="postcode"
+                  value={formData.postcode}
+                  onChange={handleInputChange}
+                  inputMode="numeric"
+                  required
+                  className={errors.postcode ? "border-red-500" : ""}
+                />
+                {errors.postcode && (
+                  <p className="text-red-500 text-sm">{errors.postcode}</p>
+                )}
+              </div>
+
+              {/* Primary Contact Email */}
+              <div className="space-y-2">
+                <Label htmlFor="accounts_contact">
+                  Primary Contact Email<span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="accounts_contact"
+                  name="accounts_contact"
+                  type="email"
+                  value={formData.accounts_contact}
+                  onChange={handleInputChange}
+                  placeholder="example@domain.com"
+                  required
+                  className={errors.accounts_contact ? "border-red-500" : ""}
+                />
+                {errors.accounts_contact && (
+                  <p className="text-red-500 text-sm">
+                    {errors.accounts_contact}
+                  </p>
+                )}
+              </div>
+
+              {/* Telephone */}
+              <div className="space-y-2">
+                <Label htmlFor="telephone">
+                  Telephone<span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="telephone"
+                  name="telephone"
+                  value={formData.telephone}
+                  onChange={handleInputChange}
+                  inputMode="numeric"
+                  required
+                  className={errors.telephone ? "border-red-500" : ""}
+                />
+                {errors.telephone && (
+                  <p className="text-red-500 text-sm">{errors.telephone}</p>
+                )}
+              </div>
+
+              {/* PO Email */}
+              <div className="space-y-2">
+                <Label htmlFor="po_email">
+                  PO Email<span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="po_email"
+                  name="po_email"
+                  type="email"
+                  value={formData.po_email}
+                  onChange={handleInputChange}
+                  placeholder="example@domain.com"
+                  required
+                  className={errors.po_email ? "border-red-500" : ""}
+                />
+                {errors.po_email && (
+                  <p className="text-red-500 text-sm">{errors.po_email}</p>
+                )}
+              </div>
+
+              {/* Return Order Email */}
+              <div className="space-y-2">
+                <Label htmlFor="return_order_email">
+                  Return Order Email<span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="return_order_email"
+                  name="return_order_email"
+                  type="email"
+                  value={formData.return_order_email}
+                  onChange={handleInputChange}
+                  placeholder="example@domain.com"
+                  required
+                  className={errors.return_order_email ? "border-red-500" : ""}
+                />
+                {errors.return_order_email && (
+                  <p className="text-red-500 text-sm">
+                    {errors.return_order_email}
+                  </p>
+                )}
+              </div>
+
+              {/* Invoice Currency */}
+              <div className="space-y-2">
+                <Label htmlFor="invoice_currency">
+                  Invoice Currency<span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.invoice_currency}
+                  onValueChange={(value) =>
+                    handleSelectChange("invoice_currency", value)
+                  }
+                >
+                  <SelectTrigger
+                    id="invoice_currency"
+                    className={errors.invoice_currency ? "border-red-500" : ""}
+                  >
+                    <SelectValue placeholder="Select a currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencies.map((currency) => (
+                      <SelectItem key={currency.value} value={currency.value}>
+                        {currency.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.invoice_currency && (
+                  <p className="text-red-500 text-sm">
+                    {errors.invoice_currency}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Banking Details */}
+          <div className="bg-gray-50 p-6 rounded-lg">
+            <h2 className="text-xl font-semibold mb-6">2. Banking Details</h2>
+
+            {/* Payment Method */}
+            <div className="space-y-2 mb-6">
+              <Label htmlFor="payment_method">
+                Payment Method<span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.payment_method}
+                onValueChange={(value) =>
+                  handleSelectChange("payment_method", value)
+                }
+              >
+                <SelectTrigger
+                  id="payment_method"
+                  className={errors.payment_method ? "border-red-500" : ""}
+                >
+                  <SelectValue placeholder="Select Payment Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="Bepay">Bepay</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.payment_method && (
+                <p className="text-red-500 text-sm">{errors.payment_method}</p>
+              )}
+            </div>
+
+            {/* Bank Transfer Fields */}
+            {formData.payment_method === "Bank Transfer" && (
+              <>
+                {/* Australia Banking Fields */}
+                {description === "Australia" && (
+                  <div className="mb-6 bg-white p-4 rounded-md border">
+                    <h3 className="font-medium mb-4">Australia</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="au_bank_name">
+                          Bank Name<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="au_bank_name"
+                          name="au_bank_name"
+                          value={formData.au_bank_name || ""}
+                          onChange={handleInputChange}
+                          className={
+                            errors.au_bank_name ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.au_bank_name && (
+                          <p className="text-red-500 text-sm">
+                            {errors.au_bank_name}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="au_bank_email">
+                          Bank Email<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="au_bank_email"
+                          name="au_bank_email"
+                          type="email"
+                          value={formData.au_bank_email || ""}
+                          onChange={handleInputChange}
+                          placeholder="example@domain.com"
+                          className={
+                            errors.au_bank_email ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.au_bank_email && (
+                          <p className="text-red-500 text-sm">
+                            {errors.au_bank_email}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="bsb">
+                          BSB<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="bsb"
+                          name="bsb"
+                          value={formData.bsb || ""}
+                          onChange={handleInputChange}
+                          maxLength={6}
+                          inputMode="numeric"
+                          className={errors.bsb ? "border-red-500" : ""}
+                        />
+                        {errors.bsb && (
+                          <p className="text-red-500 text-sm">{errors.bsb}</p>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          Must be exactly 6 digits
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="account">
+                          Account Number<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="account"
+                          name="account"
+                          value={formData.account || ""}
+                          onChange={handleInputChange}
+                          maxLength={10}
+                          inputMode="numeric"
+                          className={errors.account ? "border-red-500" : ""}
+                        />
+                        {errors.account && (
+                          <p className="text-red-500 text-sm">
+                            {errors.account}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          Must be exactly 10 digits
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* New Zealand Banking Fields */}
+                {description === "New Zealand" && (
+                  <div className="mb-6 bg-white p-4 rounded-md border">
+                    <h3 className="font-medium mb-4">New Zealand</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nz_bank_name">
+                          Bank Name<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="nz_bank_name"
+                          name="nz_bank_name"
+                          value={formData.nz_bank_name || ""}
+                          onChange={handleInputChange}
+                          className={
+                            errors.nz_bank_name ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.nz_bank_name && (
+                          <p className="text-red-500 text-sm">
+                            {errors.nz_bank_name}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="nz_bank_email">
+                          Bank Email<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="nz_bank_email"
+                          name="nz_bank_email"
+                          type="email"
+                          value={formData.nz_bank_email || ""}
+                          onChange={handleInputChange}
+                          placeholder="example@domain.com"
+                          className={
+                            errors.nz_bank_email ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.nz_bank_email && (
+                          <p className="text-red-500 text-sm">
+                            {errors.nz_bank_email}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="nz_BSB">
+                          BSB<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="nz_BSB"
+                          name="nz_BSB"
+                          value={formData.nz_BSB || ""}
+                          onChange={handleInputChange}
+                          maxLength={6}
+                          minLength={6}
+                          inputMode="numeric"
+                          className={errors.nz_BSB ? "border-red-500" : ""}
+                        />
+                        {errors.nz_BSB && (
+                          <p className="text-red-500 text-sm">
+                            {errors.nz_BSB}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          Must be exactly 6 digits
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="nz_account">
+                          Account Number<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="nz_account"
+                          name="nz_account"
+                          value={formData.nz_account || ""}
+                          onChange={handleInputChange}
+                          maxLength={10}
+                          minLength={10}
+                          inputMode="numeric"
+                          className={errors.nz_account ? "border-red-500" : ""}
+                        />
+                        {errors.nz_account && (
+                          <p className="text-red-500 text-sm">
+                            {errors.nz_account}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          Must be exactly 10 digits
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Overseas Banking Fields */}
+                {description === "Overseas" && (
+                  <div className="mb-6 bg-white p-4 rounded-md border">
+                    <h3 className="font-medium mb-4">Overseas</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="IBAN_SWITCH_yn">
+                          IBAN or SWITCH<span className="text-red-500">*</span>
+                        </Label>
+                        <Select
+                          value={formData.IBAN_SWITCH_yn || ""}
+                          onValueChange={(value) =>
+                            handleSelectChange("IBAN_SWITCH_yn", value)
+                          }
+                        >
+                          <SelectTrigger
+                            id="IBAN_SWITCH_yn"
+                            className={
+                              errors.IBAN_SWITCH_yn ? "border-red-500" : ""
+                            }
+                          >
+                            <SelectValue placeholder="Select an option" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="IBAN">IBAN</SelectItem>
+                            <SelectItem value="SWITCH">SWITCH</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {errors.IBAN_SWITCH_yn && (
+                          <p className="text-red-500 text-sm">
+                            {errors.IBAN_SWITCH_yn}
+                          </p>
+                        )}
+                      </div>
+
+                      {showIBANField && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="overseas_bank_email">
+                              Bank Email<span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id="overseas_bank_email"
+                              name="overseas_bank_email"
+                              type="email"
+                              value={formData.overseas_bank_email || ""}
+                              onChange={handleInputChange}
+                              placeholder="example@domain.com"
+                              className={
+                                errors.overseas_bank_email
+                                  ? "border-red-500"
+                                  : ""
+                              }
+                            />
+                            {errors.overseas_bank_email && (
+                              <p className="text-red-500 text-sm">
+                                {errors.overseas_bank_email}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="IBAN_input">
+                              IBAN<span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id="IBAN_input"
+                              name="IBAN_input"
+                              value={formData.IBAN_input || ""}
+                              onChange={handleInputChange}
+                              maxLength={34}
+                              minLength={34}
+                              className={
+                                errors.IBAN_input ? "border-red-500" : ""
+                              }
+                            />
+                            {errors.IBAN_input && (
+                              <p className="text-red-500 text-sm">
+                                {errors.IBAN_input}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              Must be exactly 34 characters
+                            </p>
+                          </div>
+                        </>
+                      )}
+
+                      {showSWITCHField && (
+                        <div className="space-y-2">
+                          <Label htmlFor="SWITCH_input">
+                            SWITCH<span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="SWITCH_input"
+                            name="SWITCH_input"
+                            value={formData.SWITCH_input || ""}
+                            onChange={handleInputChange}
+                            maxLength={34}
+                            minLength={34}
+                            className={
+                              errors.SWITCH_input ? "border-red-500" : ""
+                            }
+                          />
+                          {errors.SWITCH_input && (
+                            <p className="text-red-500 text-sm">
+                              {errors.SWITCH_input}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            Must be exactly 34 characters
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Bank Statement Upload */}
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="bank-statement">
+                    Please attach a recent (last 3 months) bank statement - PDF
+                    only
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <div
+                    className={`border-2 border-dashed rounded-md p-6 text-center ${
+                      fileError
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300 hover:border-gray-400"
+                    } cursor-pointer`}
+                  >
+                    <input
+                      type="file"
+                      id="file-input"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() =>
+                        document.getElementById("file-input")?.click()
+                      }
+                    >
+                      Choose a PDF file
+                    </Button>
+                    {bankStatement && (
+                      <p className="mt-2 text-sm text-gray-600">
+                        {bankStatement.name}
+                      </p>
+                    )}
+                  </div>
+                  {fileError && (
+                    <p className="text-red-500 text-sm">{fileError}</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* BePay Fields */}
+            {formData.payment_method === "Bepay" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-md border">
+                <div className="space-y-2">
+                  <Label htmlFor="biller_code">
+                    Biller Code<span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="biller_code"
+                    name="biller_code"
+                    value={formData.biller_code || ""}
+                    onChange={handleInputChange}
+                    pattern="\d+"
+                    inputMode="numeric"
+                    className={errors.biller_code ? "border-red-500" : ""}
+                  />
+                  {errors.biller_code && (
+                    <p className="text-red-500 text-sm">{errors.biller_code}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ref_code">
+                    Ref Code<span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="ref_code"
+                    name="ref_code"
+                    value={formData.ref_code || ""}
+                    onChange={handleInputChange}
+                    pattern="\d+"
+                    inputMode="numeric"
+                    className={errors.ref_code ? "border-red-500" : ""}
+                  />
+                  {errors.ref_code && (
+                    <p className="text-red-500 text-sm">{errors.ref_code}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 3. Consent Statement */}
+          <div className="bg-gray-50 p-6 rounded-lg">
+            <h2 className="text-xl font-semibold mb-6">3. Consent Statement</h2>
+
+            <div className="flex flex-col items-start">
+              <button
+                type="button"
+                className="text-blue-600 underline cursor-pointer"
+                onClick={() => setShowTerms(!showTerms)}
+              >
+                Please click to view the terms and conditions
+                <span className="text-red-500">*</span>
+              </button>
+
+              {showTerms && (
+                <div className="w-full bg-white border rounded-md p-4 mt-4 mb-4">
+                  <div className="h-80 overflow-y-auto border p-4 mb-4">
+                    <iframe
+                      src="/Supplierterm.pdf"
+                      width="100%"
+                      height="100%"
+                      title="Terms and Conditions"
+                      className="border-0"
+                    ></iframe>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <div>
+                      <input
+                        type="checkbox"
+                        id="iAgree"
+                        name="iAgree"
+                        checked={formData.iAgree}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            iAgree: e.target.checked,
+                          }))
+                        }
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </div>
+                    <Label htmlFor="iAgree" className="font-medium">
+                      I acknowledge the terms and conditions
+                      <span className="text-red-500">*</span>
+                    </Label>
+                  </div>
+                  {errors.iAgree && (
+                    <p className="text-red-500 text-sm mt-1">{errors.iAgree}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
+                  Submitting...
+                </>
+              ) : (
+                "Submit Onboarding Form"
+              )}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+
       {/* Confirmation Popup */}
-      {showConfirmPopup && (
+      {showConfirmation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-semibold mb-4">Would you want to proceed?</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              Would you want to proceed?
+            </h2>
             <div className="flex justify-between gap-4">
               <Button
                 onClick={handleConfirmSubmit}
@@ -1050,7 +1266,7 @@ export default function SupplierForm() {
                 Yes
               </Button>
               <Button
-                onClick={() => setShowConfirmPopup(false)}
+                onClick={() => setShowConfirmation(false)}
                 variant="destructive"
               >
                 No
@@ -1059,13 +1275,15 @@ export default function SupplierForm() {
           </div>
         </div>
       )}
-      
+
       {/* Success Popup */}
-      {showSuccessPopup && (
+      {showSuccess && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h2 className="text-xl font-semibold mb-4">Thank you!</h2>
-            <p className="mb-6">Your form has been successfully submitted. Thanks!</p>
+            <p className="mb-6">
+              Your form has been successfully submitted. Thanks!
+            </p>
             <div className="flex justify-center">
               <Button
                 onClick={handleSuccessClose}
@@ -1077,99 +1295,6 @@ export default function SupplierForm() {
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
-}(value);
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormDescription>
-                                    Must be exactly 6 digits
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={form.control}
-                              name="account"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Account Number <span className="text-red-500">*</span></FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      {...field} 
-                                      maxLength={10}
-                                      inputMode="numeric"
-                                      onChange={(e) => {
-                                        // Keep only digits
-                                        const value = e.target.value.replace(/\D/g, '');
-                                        field.onChange(value);
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormDescription>
-                                    Must be exactly 10 digits
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* New Zealand Banking Fields */}
-                      {watchCountry === "New Zealand" && (
-                        <div className="col-span-full bg-white p-4 rounded-md">
-                          <h3 className="font-medium mb-4">New Zealand</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="nz_bank_name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Bank Name <span className="text-red-500">*</span></FormLabel>
-                                  <FormControl>
-                                    <Input {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={form.control}
-                              name="nz_bank_email"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Bank Email <span className="text-red-500">*</span></FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      {...field} 
-                                      type="email"
-                                      placeholder="example@domain.com"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={form.control}
-                              name="nz_BSB"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>BSB <span className="text-red-500">*</span></FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      {...field} 
-                                      maxLength={6}
-                                      minLength={6}
-                                      inputMode="numeric"
-                                      onChange={(e) => {
-                                        // Keep only digits
-                                        const value = e.target.value.replace(/\D/g, '');
-                                        field.onChange
+}
