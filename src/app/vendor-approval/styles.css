@@ -1,0 +1,157 @@
+/* Status indicators */
+.status-pending {
+    background-color: #FFF9C4;
+    color: #FBC02D;
+  }
+  
+  .status-approved {
+    background-color: #C8E6C9;
+    color: #4CAF50;
+  }
+  
+  .status-rejected, .status-declined {
+    background-color: #FFCDD2;
+    color: #E53935;
+  }
+  
+  .status-current {
+    background-color: #E3F2FD;
+    color: #1E88E5;
+  }
+  
+  /* Approval steps */
+  .approval-step {
+    background-color: #fff;
+    border: 2px solid #e0e0e0;
+    padding: 20px;
+    margin-bottom: 40px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: relative;
+    transition: all 0.3s ease;
+  }
+  
+  .approval-step.current {
+    border-color: #1E88E5;
+    box-shadow: 0 0 15px rgba(30,136,229,0.3);
+  }
+  
+  .approval-step.approved {
+    border-color: #4CAF50;
+  }
+  
+  .approval-step.declined {
+    border-color: #E53935;
+  }
+  
+  /* Arrows between steps */
+  .approval-step:not(:last-child)::after {
+    content: '▼';
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    color: #e0e0e0;
+    transition: all 0.3s ease;
+  }
+  
+  .approval-step.current::after {
+    color: #1E88E5;
+  }
+  
+  .approval-step.approved::after {
+    color: #4CAF50;
+  }
+  
+  /* Fields */
+  .field-container {
+    margin-bottom: 15px;
+  }
+  
+  .field-label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    display: block;
+  }
+  
+  .field-value {
+    padding: 8px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+  }
+  
+  /* Buttons */
+  .btn-approve {
+    background-color: #4CAF50;
+    color: white;
+  }
+  
+  .btn-decline {
+    background-color: #F44336;
+    color: white;
+  }
+  
+  .btn-resubmit {
+    background-color: #2196F3;
+    color: white;
+  }
+  
+  .btn-delete {
+    background-color: #E53935;
+    color: white;
+  }
+  
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+  
+  .modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 100%;
+  }
+  
+  .modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  
+  .modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  /* Other styles */
+  .required-field {
+    color: #F44336;
+    margin-left: 2px;
+  }
+  
+  .error-message {
+    color: #F44336;
+    font-size: 0.875rem;
+    margin-top: 4px;
+  }
+  
+  .success-message {
+    color: #4CAF50;
+    font-size: 0.875rem;
+    margin-top: 4px;
+  }
