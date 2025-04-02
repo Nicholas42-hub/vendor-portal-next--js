@@ -14,6 +14,7 @@ const initialVendorData: VendorData = {
   tradingTerms: {
     quotesObtained: '',
     quotesObtainedReason: '',
+    quotesPdf: null,
     backOrder: '',
   },
   supplyTerms: {
@@ -66,6 +67,7 @@ interface UseFormReturn {
   isValid: boolean;
   handleChange: (section: keyof VendorData, field: string, value: any) => void;
   handleCheckboxChange: (section: keyof VendorData, field: string, value: string, checked: boolean) => void;
+  handleFileChange: (section: keyof VendorData, field: string, file: File | null) => void;
   handleBlur: (section: keyof VendorData, field: string) => void;
   handleSubmit: (e: FormEvent) => Promise<boolean>;
   resetForm: () => void;
@@ -139,6 +141,23 @@ export const useForm = (validateForm: (data: VendorData) => ValidationErrors, on
       return prevData;
     });
   };
+  
+  // Handle file uploads for PDF attachments
+  const handleFileChange = (section: keyof VendorData, field: string, file: File | null) => {
+    setFormData(prevData => ({
+      ...prevData,
+      [section]: {
+        ...prevData[section],
+        [field]: file,
+      },
+    }));
+    
+    // Mark the field as touched
+    setTouched(prev => ({
+      ...prev,
+      [`${section}.${field}`]: true,
+    }));
+  };
 
   // Track which fields have been touched (for validation UX)
   const handleBlur = (section: keyof VendorData, field: string) => {
@@ -183,6 +202,7 @@ export const useForm = (validateForm: (data: VendorData) => ValidationErrors, on
     isValid,
     handleChange,
     handleCheckboxChange,
+    handleFileChange,
     handleBlur,
     handleSubmit,
     resetForm,

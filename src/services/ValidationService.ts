@@ -231,6 +231,11 @@ static validateForm(data: VendorData): ValidationErrors {
     if (tradingTerms.quotesObtained === 'no' && !tradingTerms.quotesObtainedReason) {
       errors.quotesObtainedReason = 'Please provide a reason';
     }
+    
+    // PDF attachment - required if quotesObtained is 'yes'
+    if (tradingTerms.quotesObtained === 'yes' && !tradingTerms.quotesPdf) {
+      errors.quotesPdf = 'Please upload quotes PDF';
+    }
 
     return errors;
   }

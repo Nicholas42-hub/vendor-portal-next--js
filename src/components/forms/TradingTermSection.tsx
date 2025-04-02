@@ -4,6 +4,7 @@ import { VendorData, VendorType } from "../../models/VendorTypes";
 import { FormField } from "../ui/FormField";
 import { TextInput } from "../ui/TextInput";
 import { Dropdown } from "../ui/Dropdown";
+import { Input } from "../ui/input";
 
 // Define Props
 interface TradingTermsSectionProps {
@@ -13,6 +14,7 @@ interface TradingTermsSectionProps {
   touched: { [key: string]: boolean };
   onChange: (field: string, value: any) => void;
   onBlur: (field: string) => void;
+  onFileChange?: (field: string, file: File | null) => void;
 }
 
 // Styled Container
@@ -48,13 +50,23 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
   touched,
   onChange,
   onBlur,
+  onFileChange,
 }) => {
   // Show quotes section only for OVERHEADS or OVERHEADANDSTOCK
-  const showQuotesSection = vendorType != "STOCK";
+  const showQuotesSection =
+    vendorType === "OVERHEADS" || vendorType === "OVERHEADANDSTOCK";
 
   // Show back order only for STOCK or OVERHEADANDSTOCK
   const showBackOrder =
     !vendorType || vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK";
+
+  // Handle file change for PDF upload
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0];
+    if (onFileChange) {
+      onFileChange("quotesPdf", file);
+    }
+  };
 
   return (
     <SectionContainer>
@@ -81,6 +93,36 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
               !!errors.quotesObtained && touched["tradingTerms.quotesObtained"]
             }
           />
+        </FormField>
+      )}
+
+      {/* PDF upload for quotes - only if quotesObtained is 'yes' */}
+      {showQuotesSection && data.quotesObtained === "yes" && (
+        <FormField
+          label="Upload quotes (PDF)"
+          htmlFor="quotesPdf"
+          required
+          error={errors.quotesPdf}
+          touched={touched["tradingTerms.quotesPdf"]}
+        >
+          <div className="flex items-center">
+            <Input
+              id="quotesPdf"
+              name="quotesPdf"
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              className="max-w-sm"
+              required
+            />
+            {data.quotesPdf && (
+              <span className="ml-2 text-sm text-green-600">
+                {typeof data.quotesPdf === "object"
+                  ? data.quotesPdf.name
+                  : "File uploaded"}
+              </span>
+            )}
+          </div>
         </FormField>
       )}
 
