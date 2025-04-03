@@ -34,24 +34,7 @@ export async function GET(req: NextRequest) {
         crb7c_approver3: "exco@example.com",
         crb7c_approver3_name: "Bob Exco",
         crb7c_businessunit: "Travel Essentials"
-      }
-    };
-    
-    // Get approvers for the requested business unit
-    const approvers = mockApprovers[businessUnit as keyof typeof mockApprovers];
-    
-    if (!approvers) {
-      return NextResponse.json({ error: 'No approvers found for this business unit' }, { status: 404 });
-    }
-    
-    // Return the approvers data
-    return NextResponse.json([approvers]);
-    
-  } catch (error) {
-    console.error('Error fetching approvers:', error);
-    return NextResponse.json({ error: 'Failed to fetch approvers' }, { status: 500 });
-  }
-},
+      },
       "Food Services": {
         crb7c_approversid: "2",
         crb7c_approver1: "manager2@example.com",
@@ -82,3 +65,20 @@ export async function GET(req: NextRequest) {
         crb7c_approver3_name: "Bob Exco",
         crb7c_businessunit: "Duty Free"
       }
+    };
+    
+    // Get approvers for the requested business unit
+    const approvers = mockApprovers[businessUnit as keyof typeof mockApprovers];
+    
+    if (!approvers) {
+      return NextResponse.json({ error: 'No approvers found for this business unit' }, { status: 404 });
+    }
+    
+    // Return the approvers data
+    return NextResponse.json([approvers]);
+    
+  } catch (error) {
+    console.error('Error fetching approvers:', error);
+    return NextResponse.json({ error: 'Failed to fetch approvers' }, { status: 500 });
+  }
+}
