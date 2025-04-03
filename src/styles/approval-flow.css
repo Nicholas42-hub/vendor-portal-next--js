@@ -1,0 +1,321 @@
+/* src/styles/approval-flow.css */
+
+/* Main container */
+.approval-flow {
+    width: 100%;
+    max-width: 400px;
+    position: relative;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-sizing: border-box;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Approval Steps Container */
+  .approval-steps {
+    width: 100%;
+  }
+  
+  /* Individual Approval Step */
+  .approval-step {
+    background-color: #fff;
+    border: 2px solid #e0e0e0;
+    padding: 20px;
+    margin-bottom: 40px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+    transition: all 0.3s ease;
+  }
+  
+  /* Arrow connecting steps */
+  .approval-step:not(:last-child)::after {
+    content: '▼';
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    color: #e0e0e0;
+    transition: all 0.3s ease;
+  }
+  
+  /* Last step has no arrow */
+  .approval-step.no-arrow::after {
+    display: none;
+  }
+  
+  /* Current step styling */
+  .approval-step.current {
+    border-color: #1E88E5;
+    box-shadow: 0 0 15px rgba(30, 136, 229, 0.3);
+  }
+  
+  .approval-step.current::after {
+    color: #1E88E5;
+  }
+  
+  /* Approved step styling */
+  .approval-step.approved {
+    border-color: #4CAF50;
+  }
+  
+  .approval-step.approved::after {
+    color: #4CAF50;
+  }
+  
+  /* Declined step styling */
+  .approval-step.declined {
+    border-color: #E53935;
+  }
+  
+  /* Status indicators */
+  .status-indicator {
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.9em;
+    font-weight: bold;
+    display: inline-block;
+    margin-top: 5px;
+  }
+  
+  .status-pending {
+    background-color: #FFF9C4;
+    color: #FBC02D;
+  }
+  
+  .status-approved {
+    background-color: #C8E6C9;
+    color: #4CAF50;
+  }
+  
+  .status-rejected, .status-declined {
+    background-color: #FFCDD2;
+    color: #E53935;
+  }
+  
+  .status-current {
+    background-color: #E3F2FD;
+    color: #1E88E5;
+  }
+  
+  /* Step title */
+  .approval-step h3 {
+    margin-top: 0;
+    color: #333;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
+  /* Action buttons container */
+  .button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  
+  /* Button styles */
+  .approve-btn, .decline-btn {
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    width: 48%;
+  }
+  
+  .approve-btn {
+    background-color: #4CAF50;
+    color: white;
+  }
+  
+  .decline-btn {
+    background-color: #f44336;
+    color: white;
+  }
+  
+  .approve-btn:hover {
+    background-color: #45a049;
+  }
+  
+  .decline-btn:hover {
+    background-color: #d32f2f;
+  }
+  
+  /* Resubmit button */
+  .resubmit-btn {
+    background-color: #2196F3;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    width: 100%;
+    margin-top: 10px;
+  }
+  
+  .resubmit-btn:hover {
+    background-color: #1E88E5;
+  }
+  
+  /* Delete button */
+  .delete-btn {
+    background-color: #E53935;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    width: 100%;
+    margin-top: 10px;
+  }
+  
+  .delete-btn:hover {
+    background-color: #D32F2F;
+  }
+  
+  /* Decline message */
+  .decline-message {
+    margin-top: 20px;
+    background-color: #FFEBEE;
+    border-left: 4px solid #E53935;
+    padding: 15px;
+    border-radius: 4px;
+  }
+  
+  .decline-message h3 {
+    margin-top: 0;
+    color: #E53935;
+  }
+  
+  /* Comment section for decline */
+  #declineCommentContainer {
+    margin-top: 20px;
+  }
+  
+  #declineComment {
+    width: 100%;
+    height: 100px;
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+  }
+  
+  /* Popup styles */
+  .popup {
+    width: 400px;
+    background: #fff;
+    border-radius: 6px;
+    position: fixed;
+    z-index: 1001;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.1);
+    text-align: center;
+    padding: 30px;
+    color: #333;
+    visibility: hidden;
+    transition: transform 0.4s, top 0.4s;
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+  }
+  
+  .open-popup {
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  
+  .popup h2 {
+    font-size: 20px;
+    font-weight: 500;
+    margin: 20px 0 10px;
+  }
+  
+  .popup .button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  
+  .popup .button-container-ok {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  
+  .popup button {
+    width: 100px;
+    padding: 10px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .popup button.btn-yes {
+    background-color: #4CAF50;
+  }
+  
+  .popup button.btn-ok {
+    background-color: #4CAF50;
+  }
+  
+  .popup button.btn-no {
+    background-color: #FF0000;
+  }
+  
+  .popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.4s;
+    z-index: 999;
+  }
+  
+  .open-popup-overlay {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  /* Disabled state for buttons */
+  .approve-btn:disabled,
+  .decline-btn:disabled,
+  .resubmit-btn:disabled,
+  .delete-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 600px) {
+    .approval-flow {
+      max-width: 100%;
+      margin-top: 20px;
+    }
+    
+    .popup {
+      width: 90%;
+    }
+    
+    .button-container {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .approve-btn, .decline-btn {
+      width: 100%;
+    }
+  }
