@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect, useRef } from "react";
 import { styled } from "@mui/material/styles";
 import {
@@ -23,7 +24,7 @@ const fabricService = new FabricService();
 
 // Define styled components
 const FormContainer = styled("div")({
-  maxWidth: "1000px",
+  maxWidth: "1400px",
   width: "100%",
   margin: "0 auto",
   padding: "20px",
@@ -263,7 +264,7 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
   const handleTradingTermsChange = (field: string, value: any) => {
     handleChange("tradingTerms", field, value);
   };
-  
+
   // Handle file uploads for trading terms
   const handleTradingTermsFileChange = (field: string, file: File | null) => {
     handleFileChange("tradingTerms", field, file);
