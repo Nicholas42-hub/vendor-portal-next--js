@@ -106,7 +106,6 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
     !vendorType || vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK";
   const showOrderExpiryDays =
     !vendorType || vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK";
-
   return (
     <SectionContainer>
       <SectionTitle>4. Financial Terms</SectionTitle>
@@ -162,24 +161,28 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
       )}
 
       {/* Gross Margin */}
-      <FormField
-        label="Gross Margin"
-        htmlFor="grossMargin"
-        required
-        error={errors.grossMargin}
-        touched={touched["financialTerms.grossMargin"]}
-      >
-        <TextInput
-          id="grossMargin"
-          name="grossMargin"
-          value={data.grossMargin}
-          onChange={(e) => onChange("grossMargin", e.target.value)}
-          onBlur={() => onBlur("grossMargin")}
-          placeholder="%"
+      {showOrderExpiryDays && (
+        <FormField
+          label="Gross Margin"
+          htmlFor="grossMargin"
           required
-          error={!!errors.grossMargin && touched["financialTerms.grossMargin"]}
-        />
-      </FormField>
+          error={errors.grossMargin}
+          touched={touched["financialTerms.grossMargin"]}
+        >
+          <TextInput
+            id="grossMargin"
+            name="grossMargin"
+            value={data.grossMargin}
+            onChange={(e) => onChange("grossMargin", e.target.value)}
+            onBlur={() => onBlur("grossMargin")}
+            placeholder="%"
+            required
+            error={
+              !!errors.grossMargin && touched["financialTerms.grossMargin"]
+            }
+          />
+        </FormField>
+      )}
 
       {/* Invoice Discount */}
       <FormField

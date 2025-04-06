@@ -71,6 +71,7 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
     isValid,
     handleChange,
     handleCheckboxChange,
+    handleFileChange,
     handleBlur,
     handleSubmit,
     resetForm,
@@ -262,6 +263,11 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
   const handleTradingTermsChange = (field: string, value: any) => {
     handleChange("tradingTerms", field, value);
   };
+  
+  // Handle file uploads for trading terms
+  const handleTradingTermsFileChange = (field: string, file: File | null) => {
+    handleFileChange("tradingTerms", field, file);
+  };
 
   // Handle supply terms section changes
   const handleSupplyTermsChange = (field: string, value: any) => {
@@ -304,6 +310,7 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
             touched={touched}
             onChange={handleTradingTermsChange}
             onBlur={(field) => handleBlur("tradingTerms", field)}
+            onFileChange={handleTradingTermsFileChange}
           />
         </div>
 
