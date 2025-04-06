@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import Navigation from "@/components/layout/Navigation";
-import ApproversMatrix from "@/components/forms/Approvers_matrix";
+import ApproversMatrix from "./Approvers_matrix";
 
 // Server component
 export default async function ApproversMatrixPage() {

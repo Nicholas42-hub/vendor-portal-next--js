@@ -12,6 +12,30 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
+// Custom alert component
+const Alert = ({
+  children,
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  variant?: "default" | "destructive";
+}) => {
+  const bgColor =
+    variant === "destructive"
+      ? "bg-red-50 border-red-500"
+      : "bg-blue-50 border-blue-500";
+  return (
+    <div className={`p-4 border-l-4 ${bgColor} rounded-md`}>{children}</div>
+  );
+};
+
+const AlertTitle = ({ children }: { children: React.ReactNode }) => (
+  <h5 className="text-lg font-medium mb-1">{children}</h5>
+);
+
+const AlertDescription = ({ children }: { children: React.ReactNode }) => (
+  <p className="text-sm">{children}</p>
+);
 import axios from "axios";
 
 // Define types
@@ -35,15 +59,15 @@ interface ApproverMatrix {
   createdOn: string;
 }
 
-// GraphQL interfaces matching the Fabric Warehouse schema
-interface FabricApproverMatrix {
-  id: string;
-  BusinessUnit: string;
-  Approver1: string;
-  Approver2: string;
-  Approver3: string;
-  CreatedOn: string;
-}
+// Business unit mapping
+const businessUnitIdMap: Record<string, string> = {
+  "Duty Free": "0e77799b-dbea-43a5-9583-ef630753cf8b",
+  "Food Services": "bd5ba99c-3697-4f5d-97e5-72c232394106",
+  Specialty: "dcbf60bc-6bfc-44ee-a3d3-877f52144e9e",
+  "Travel Essentials": "930dc67f-f921-48ad-a0c1-741c1200f751",
+  Finance: "6033d111-9878-ef11-ac20-00224891e3e1",
+  IT: "76dc8932-0887-ef11-ac20-00224894b1b5",
+};
 
 /**
  * ApproversMatrixDropdowns is a child component that renders dropdowns
@@ -54,13 +78,17 @@ interface ApproversMatrixDropdownsProps {
   selectedBusinessUnit: string;
   formData: {
     approver1: string;
+    approver1backup: string;
     approver2: string;
+    approver2backup: string;
     approver3: string;
+    approver3backup: string;
   };
   onApproverChange: (
-    field: "approver1" | "approver2" | "approver3",
+    field: keyof ApproversMatrixDropdownsProps["formData"],
     value: string
   ) => void;
+  isLoading: boolean;
 }
 
 const ApproversMatrixDropdowns: React.FC<ApproversMatrixDropdownsProps> = ({
@@ -68,6 +96,7 @@ const ApproversMatrixDropdowns: React.FC<ApproversMatrixDropdownsProps> = ({
   selectedBusinessUnit,
   formData,
   onApproverChange,
+  isLoading,
 }) => {
   // Filter contacts based on roles
   const cfoApprovers = contacts.filter((contact) =>
@@ -120,51 +149,100 @@ const ApproversMatrixDropdowns: React.FC<ApproversMatrixDropdownsProps> = ({
     label: string,
     options: Approver[],
     selectedValue: string,
-    field: "approver1" | "approver2" | "approver3"
+    field: keyof ApproversMatrixDropdownsProps["formData"]
   ) => (
     <div className="space-y-2">
       <Label htmlFor={id}>{label}:</Label>
       <Select
         value={selectedValue}
         onValueChange={(value) => onApproverChange(field, value)}
+        disabled={isLoading}
       >
-        <SelectTrigger id={id}>
+        <SelectTrigger id={id} className="w-full">
           <SelectValue placeholder={`Select ${label}`} />
         </SelectTrigger>
         <SelectContent>
-          {options.map((contact) => (
-            <SelectItem key={contact.email} value={contact.email}>
-              {`${contact.lastname} - ${contact.jobtitle} (${contact.email})`}
+          {options.length > 0 ? (
+            options.map((contact) => (
+              <SelectItem key={contact.email} value={contact.email}>
+                {`${contact.lastname}${
+                  contact.jobtitle ? ` - ${contact.jobtitle}` : ""
+                } (${contact.email})`}
+              </SelectItem>
+            ))
+          ) : (
+            <SelectItem value="" disabled>
+              No approvers found
             </SelectItem>
-          ))}
+          )}
         </SelectContent>
       </Select>
     </div>
   );
 
   return (
-    <div className="space-y-4">
-      {renderSelect(
-        "approver1",
-        "Manager Approver",
-        managerApprovers,
-        formData.approver1,
-        "approver1"
-      )}
-      {renderSelect(
-        "approver2",
-        "CFO Approver",
-        cfoApprovers,
-        formData.approver2,
-        "approver2"
-      )}
-      {renderSelect(
-        "approver3",
-        "Exco Approver",
-        excoApprovers,
-        formData.approver3,
-        "approver3"
-      )}
+    <div className="space-y-6">
+      <div className="border p-4 rounded-md bg-slate-50">
+        <h3 className="font-medium text-lg mb-4">Manager Approvers</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {renderSelect(
+            "approver1",
+            "Manager Approver",
+            managerApprovers,
+            formData.approver1,
+            "approver1"
+          )}
+          {renderSelect(
+            "approver1backup",
+            "Manager Approver 2",
+            managerApprovers,
+            formData.approver1backup,
+            "approver1backup"
+          )}
+        </div>
+      </div>
+
+      <div className="border p-4 rounded-md bg-slate-50">
+        <h3 className="font-medium text-lg mb-4">
+          CFO Approvers (for payment terms below 30 days)
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {renderSelect(
+            "approver2",
+            "CFO Approver",
+            cfoApprovers,
+            formData.approver2,
+            "approver2"
+          )}
+          {renderSelect(
+            "approver2backup",
+            "CFO Approver Replacement",
+            cfoApprovers,
+            formData.approver2backup,
+            "approver2backup"
+          )}
+        </div>
+      </div>
+
+      <div className="border p-4 rounded-md bg-slate-50">
+        <h3 className="font-medium text-lg mb-4">Exco Member Approvers</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {renderSelect(
+            "approver3",
+            "Exco Member Approver",
+            excoApprovers,
+            formData.approver3,
+            "approver3"
+          )}
+          {renderSelect(
+            "approver3backup",
+            "Exco Member Approver 2",
+            excoApprovers,
+            formData.approver3backup,
+            "approver3backup"
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -177,6 +255,7 @@ const ApproversMatrix: React.FC = () => {
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const [businessUnits, setBusinessUnits] = useState<string[]>([
     "Travel Essentials",
     "Food Services",
@@ -188,16 +267,14 @@ const ApproversMatrix: React.FC = () => {
   const [selectedBusinessUnit, setSelectedBusinessUnit] = useState<string>("");
   const [contacts, setContacts] = useState<Approver[]>([]);
   const [matrixData, setMatrixData] = useState<ApproverMatrix[]>([]);
-  const [formData, setFormData] = useState<{
-    businessUnit: string;
-    approver1: string;
-    approver2: string;
-    approver3: string;
-  }>({
+  const [formData, setFormData] = useState({
     businessUnit: "",
     approver1: "",
+    approver1backup: "",
     approver2: "",
+    approver2backup: "",
     approver3: "",
+    approver3backup: "",
   });
 
   // Fetch contacts and matrix data on component mount
@@ -210,6 +287,7 @@ const ApproversMatrix: React.FC = () => {
   // Fetch data directly from Fabric Warehouse
   const fetchAllData = async () => {
     setIsLoading(true);
+    setError(null);
 
     try {
       const workspaceId = process.env.NEXT_PUBLIC_FABRIC_WORKSPACE_ID;
@@ -222,7 +300,7 @@ const ApproversMatrix: React.FC = () => {
         const contactsQuery = {
           query: `
             query {
-              contacts(first: 100) {
+              contacts(first: 500) {
                 items {
                   contactid
                   emailaddress1
@@ -247,8 +325,15 @@ const ApproversMatrix: React.FC = () => {
         );
 
         if (contactsResponse?.data?.data?.contacts?.items) {
-          contactsData = contactsResponse.data.data.contacts.items.map(
-            (contact: any) => ({
+          contactsData = contactsResponse.data.data.contacts.items
+            .filter(
+              (contact: any) =>
+                contact.emailaddress1 &&
+                contact.lastname &&
+                !contact.emailaddress1.includes("test") &&
+                !contact.emailaddress1.includes("sample")
+            )
+            .map((contact: any) => ({
               id: contact.contactid,
               email: contact.emailaddress1,
               name: `${contact.firstname || ""} ${
@@ -256,11 +341,12 @@ const ApproversMatrix: React.FC = () => {
               }`.trim(),
               lastname: contact.lastname,
               jobtitle: contact.jobtitle,
-            })
-          );
+            }));
         }
+        console.log("Fetched contacts:", contactsData.length);
       } catch (contactError) {
         console.error("Error fetching contacts from Fabric:", contactError);
+        setError("Failed to fetch contacts. Please try again later.");
       }
 
       setContacts(contactsData);
@@ -308,27 +394,30 @@ const ApproversMatrix: React.FC = () => {
               return {
                 id: item.id,
                 businessUnit: item.BusinessUnit,
-                approver1: item.Approver1,
+                approver1: item.Approver1 || "",
                 approver1_name: approver1Contact?.name || "",
-                approver2: item.Approver2,
+                approver2: item.Approver2 || "",
                 approver2_name: approver2Contact?.name || "",
-                approver3: item.Approver3,
+                approver3: item.Approver3 || "",
                 approver3_name: approver3Contact?.name || "",
                 createdOn: item.CreatedOn,
               };
             }
           );
         }
+        console.log("Fetched matrix data:", matrixData.length);
       } catch (matrixError) {
         console.error(
           "Error fetching approvers matrix from Fabric:",
           matrixError
         );
+        setError("Failed to fetch approvers matrix. Please try again later.");
       }
 
       setMatrixData(matrixData);
     } catch (error) {
       console.error("Critical error in data fetching:", error);
+      setError("An unexpected error occurred. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -344,23 +433,29 @@ const ApproversMatrix: React.FC = () => {
     if (existingMatrix) {
       setFormData({
         businessUnit: value,
-        approver1: existingMatrix.approver1,
-        approver2: existingMatrix.approver2,
-        approver3: existingMatrix.approver3,
+        approver1: existingMatrix.approver1 || "",
+        approver1backup: "", // These backup fields aren't in the matrix data yet
+        approver2: existingMatrix.approver2 || "",
+        approver2backup: "",
+        approver3: existingMatrix.approver3 || "",
+        approver3backup: "",
       });
     } else {
       setFormData({
         businessUnit: value,
         approver1: "",
+        approver1backup: "",
         approver2: "",
+        approver2backup: "",
         approver3: "",
+        approver3backup: "",
       });
     }
   };
 
   // Handle approver selection changes
   const handleApproverChange = (
-    field: "approver1" | "approver2" | "approver3",
+    field: keyof typeof formData,
     value: string
   ) => {
     setFormData((prevData) => ({
@@ -383,18 +478,16 @@ const ApproversMatrix: React.FC = () => {
       alert("Please select a business unit");
       return false;
     }
-    if (!formData.approver1) {
-      alert("Manager Approver is required");
+
+    // At least one approver must be selected
+    const hasApprovers =
+      formData.approver1 || formData.approver2 || formData.approver3;
+
+    if (!hasApprovers) {
+      alert("Please select at least one approver");
       return false;
     }
-    if (!formData.approver2) {
-      alert("CFO Approver is required");
-      return false;
-    }
-    if (!formData.approver3) {
-      alert("Exco Approver is required");
-      return false;
-    }
+
     return true;
   };
 
@@ -402,6 +495,7 @@ const ApproversMatrix: React.FC = () => {
   const handleConfirmSubmit = async () => {
     setIsSubmitting(true);
     setShowConfirmation(false);
+    setError(null);
 
     try {
       const existingMatrix = matrixData.find(
@@ -412,107 +506,186 @@ const ApproversMatrix: React.FC = () => {
       const graphqlEndpoint = `https://${workspaceId}.zaa.graphql.fabric.microsoft.com/v1/workspaces/${workspaceId}/graphqlapis/${graphqlId}/graphql`;
 
       if (existingMatrix) {
+        // Update existing matrix
         const updateMutation = {
           query: `
             mutation {
               updateapprovers_matrix(
                 id: "${existingMatrix.id}",
                 item: {
-                  BusinessUnit: "${formData.businessUnit}",
-                  Approver1: "${formData.approver1}",
-                  Approver2: "${formData.approver2}",
-                  Approver3: "${formData.approver3}"
+                  BusinessUnit: "${formData.businessUnit}"
+                  ${
+                    formData.approver1
+                      ? `Approver1: "${formData.approver1}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver1backup
+                      ? `Approver1backup: "${formData.approver1backup}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver2
+                      ? `Approver2: "${formData.approver2}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver2backup
+                      ? `Approver2backup: "${formData.approver2backup}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver3
+                      ? `Approver3: "${formData.approver3}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver3backup
+                      ? `Approver3backup: "${formData.approver3backup}"`
+                      : ""
+                  }
                 }
               ) {
-                id
-                BusinessUnit
-                Approver1
-                Approver2
-                Approver3
+                result
               }
             }
           `,
         };
 
-        await axios.post(graphqlEndpoint, updateMutation, {
-          headers: {
-            Authorization: `Bearer ${session?.accessToken}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const updateResponse = await axios.post(
+          graphqlEndpoint,
+          updateMutation,
+          {
+            headers: {
+              Authorization: `Bearer ${session?.accessToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        console.log("Update response:", updateResponse.data);
+
+        // Check for GraphQL errors
+        if (updateResponse.data.errors) {
+          throw new Error(
+            `GraphQL error: ${JSON.stringify(updateResponse.data.errors)}`
+          );
+        }
       } else {
+        // Create new matrix
         const createMutation = {
           query: `
             mutation {
               createapprovers_matrix(
                 item: {
-                  BusinessUnit: "${formData.businessUnit}",
-                  Approver1: "${formData.approver1}",
-                  Approver2: "${formData.approver2}",
-                  Approver3: "${formData.approver3}",
+                  BusinessUnit: "${formData.businessUnit}"
+                  ${
+                    formData.approver1
+                      ? `Approver1: "${formData.approver1}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver1backup
+                      ? `Approver1backup: "${formData.approver1backup}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver2
+                      ? `Approver2: "${formData.approver2}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver2backup
+                      ? `Approver2backup: "${formData.approver2backup}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver3
+                      ? `Approver3: "${formData.approver3}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver3backup
+                      ? `Approver3backup: "${formData.approver3backup}"`
+                      : ""
+                  }
                   CreatedOn: "${new Date().toISOString()}"
                 }
               ) {
-                id
-                BusinessUnit
-                Approver1
-                Approver2
-                Approver3
-                CreatedOn
+                result
               }
             }
           `,
         };
 
-        await axios.post(graphqlEndpoint, createMutation, {
-          headers: {
-            Authorization: `Bearer ${session?.accessToken}`,
-            "Content-Type": "application/json",
-          },
-        });
+        const createResponse = await axios.post(
+          graphqlEndpoint,
+          createMutation,
+          {
+            headers: {
+              Authorization: `Bearer ${session?.accessToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        console.log("Create response:", createResponse.data);
+
+        // Check for GraphQL errors
+        if (createResponse.data.errors) {
+          throw new Error(
+            `GraphQL error: ${JSON.stringify(createResponse.data.errors)}`
+          );
+        }
       }
 
       setShowSuccess(true);
       await fetchAllData();
     } catch (error) {
       console.error("Error submitting approvers matrix to Fabric:", error);
-      alert("Failed to save approvers matrix. Please try again.");
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      setError(`Failed to save approvers matrix: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Generate user display name
-  const getUserDisplayName = (contact: Approver) => {
-    if (contact.name && contact.jobtitle && contact.email) {
-      return `${contact.name} - ${contact.jobtitle} (${contact.email})`;
-    }
-    if (contact.name && contact.email) {
-      return `${contact.name} (${contact.email})`;
-    }
-    return contact.email;
-  };
-
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Approvers Matrix</CardTitle>
+    <Card className="w-full max-w-4xl mx-auto shadow-md">
+      <CardHeader className="pb-3 border-b">
+        <CardTitle className="text-2xl">
+          Approvers Matrix Configuration
+        </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <div className="w-8 h-8 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+            <div className="w-10 h-10 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Business Unit Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="businessUnit">Business Unit:</Label>
+            <div className="mb-6">
+              <Label
+                htmlFor="businessUnit"
+                className="text-lg font-medium block mb-2"
+              >
+                Business Unit:
+              </Label>
               <Select
                 value={formData.businessUnit}
-                onValueChange={(value) => handleBusinessUnitChange(value)}
+                onValueChange={handleBusinessUnitChange}
+                disabled={isSubmitting}
               >
-                <SelectTrigger id="businessUnit">
+                <SelectTrigger id="businessUnit" className="w-full max-w-md">
                   <SelectValue placeholder="Select Business Unit" />
                 </SelectTrigger>
                 <SelectContent>
@@ -525,18 +698,21 @@ const ApproversMatrix: React.FC = () => {
               </Select>
             </div>
 
-            {/* Dropdowns for Approvers */}
-            <ApproversMatrixDropdowns
-              contacts={contacts}
-              selectedBusinessUnit={selectedBusinessUnit}
-              formData={formData}
-              onApproverChange={handleApproverChange}
-            />
+            {/* Only show approvers dropdowns when a business unit is selected */}
+            {formData.businessUnit && (
+              <ApproversMatrixDropdowns
+                contacts={contacts}
+                selectedBusinessUnit={selectedBusinessUnit}
+                formData={formData}
+                onApproverChange={handleApproverChange}
+                isLoading={isSubmitting}
+              />
+            )}
 
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-lg font-semibold py-3 px-8"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
@@ -554,28 +730,28 @@ const ApproversMatrix: React.FC = () => {
         {/* Confirmation Modal */}
         {showConfirmation && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
               <h2 className="text-xl font-semibold mb-4">
                 Confirm Approvers Matrix
               </h2>
               <p className="mb-4">
                 Are you sure you want to save these approvers for{" "}
-                {formData.businessUnit}?
+                <span className="font-medium">{formData.businessUnit}</span>?
               </p>
-              <div className="flex justify-between gap-4">
+              <div className="flex justify-end gap-4">
                 <Button
                   onClick={handleConfirmSubmit}
                   className="bg-green-600 hover:bg-green-700"
                   disabled={isSubmitting}
                 >
-                  Yes
+                  Yes, Save
                 </Button>
                 <Button
                   onClick={() => setShowConfirmation(false)}
                   variant="outline"
                   disabled={isSubmitting}
                 >
-                  No
+                  Cancel
                 </Button>
               </div>
             </div>
@@ -585,15 +761,15 @@ const ApproversMatrix: React.FC = () => {
         {/* Success Modal */}
         {showSuccess && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl">
               <h2 className="text-xl font-semibold mb-4">Success!</h2>
-              <p className="mb-4">
+              <p className="mb-6">
                 The approvers matrix has been successfully saved.
               </p>
               <div className="flex justify-center">
                 <Button
                   onClick={() => setShowSuccess(false)}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-8 rounded-md shadow-sm transition-all hover:shadow-md"
                 >
                   OK
                 </Button>
