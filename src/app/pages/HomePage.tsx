@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect } from "react";
-import VendorOnboardingPage from "@/components/VendorOnboardingPage";
+import VendorOnboardingPage from "@/app/pages/VendorOnboardingPage";
 import Navigation from "@/components/layout/Navigation";
 
 export default function HomePage() {

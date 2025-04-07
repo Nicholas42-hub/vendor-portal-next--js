@@ -6,8 +6,7 @@ import VendorOnboardingContent from "@/components/VendorOnboardingContent";
 import {
   fetchVendorsData,
   validateGraphQLConnection,
-} from "@/utils/graphQL-api-Get";
-
+} from "../api/VendorOnboardingPage/route";
 const VendorOnboardingPage: React.FC = () => {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);

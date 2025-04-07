@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
-import { queryBusinessData } from "@/utils/graphQL-api-Get";
+import { queryBusinessData } from "@/app/api/VendorOnboardingPage/route";
 import { useRouter } from "next/navigation";
 
 interface VendorOnboardingContentProps {
