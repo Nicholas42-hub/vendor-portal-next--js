@@ -47,6 +47,7 @@ export interface GeneralDetails {
 export interface TradingTerms {
   quotesObtained: YesNo;
   quotesObtainedReason?: string;
+  quotesPdf?: File | null;
   backOrder?: YesNo;
 }
 

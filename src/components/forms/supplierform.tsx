@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { countries } from "@/lib/countries";
+import { useSearchParams } from "next/navigation";
+import axios from "axios";
 
+// Define interfaces for trading entities
+interface TradingEntity {
+  contactid: string;
+  TradingEntityId: string;
+  entityName: string;
+  entityCountry: string;
+  paymentCountry?: string; // Add this line
+}
 // Define types for the form data
 interface SupplierFormData {
   business_name: string;
@@ -31,30 +42,44 @@ interface SupplierFormData {
   city: string;
   state: string;
   postcode: string;
-  accounts_contact: string;
+  primary_contact_email: string;
   telephone: string;
   po_email: string;
   return_order_email: string;
-  invoice_currency: string;
+  trading_entities: string[];
+
+  // Payment method
   payment_method: string;
-  // Bank details fields - AU
-  au_bank_name?: string;
-  au_bank_email?: string;
-  bsb?: string;
-  account?: string;
-  // Bank details fields - NZ
-  nz_bank_name?: string;
-  nz_bank_email?: string;
-  nz_BSB?: string;
+
+  // AU specific fields
+  au_invoice_currency?: string;
+  au_bank_country?: string;
+  au_bank_address?: string;
+  au_bank_currency_code?: string;
+  au_bank_clearing_code?: string;
+  au_remittance_email?: string;
+  au_bsb?: string;
+  au_account?: string;
+
+  // NZ specific fields
+  nz_invoice_currency?: string;
+  nz_bank_country?: string;
+  nz_bank_address?: string;
+  nz_bank_currency_code?: string;
+  nz_bank_clearing_code?: string;
+  nz_remittance_email?: string;
+  nz_bsb?: string;
   nz_account?: string;
+
   // Overseas banking
-  IBAN_SWITCH_yn?: string;
-  IBAN_input?: string;
-  SWITCH_input?: string;
-  overseas_bank_email?: string;
+  overseas_iban_switch?: string;
+  overseas_iban?: string;
+  overseas_swift?: string;
+
   // BPay
   biller_code?: string;
   ref_code?: string;
+
   // Terms agreement
   iAgree: boolean;
 }
@@ -65,17 +90,21 @@ interface FormErrors {
 }
 
 export default function SupplierForm() {
+  const searchParams = useSearchParams();
+  const contactid = searchParams.get("contactid");
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [tradingEntities, setTradingEntities] = useState<TradingEntity[]>([]);
+  const [hasAuEntities, setHasAuEntities] = useState(false);
+  const [hasNzEntities, setHasNzEntities] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [description, setDescription] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [bankStatement, setBankStatement] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
   const [showTerms, setShowTerms] = useState(false);
-
+  const [vendorCountry, setVendorCountry] = useState<string>("");
   // Initial form state
   const [formData, setFormData] = useState<SupplierFormData>({
     business_name: "",
@@ -88,11 +117,11 @@ export default function SupplierForm() {
     city: "",
     state: "",
     postcode: "",
-    accounts_contact: "",
+    primary_contact_email: "",
     telephone: "",
     po_email: "",
     return_order_email: "",
-    invoice_currency: "",
+    trading_entities: [],
     payment_method: "Bank Transfer",
     iAgree: false,
   });
@@ -103,42 +132,64 @@ export default function SupplierForm() {
     { value: "NZD", label: "NZD" },
     { value: "USD", label: "USD" },
     { value: "EUR", label: "EUR" },
-    { value: "CNY", label: "CNY" },
     { value: "GBP", label: "GBP" },
+    { value: "CNY", label: "CNY" },
   ];
 
-  // Get user data on component mount
+  // Get vendor trading entities on component mount
   useEffect(() => {
-    if (session?.user?.email) {
-      try {
-        // Detect region based on email domain
-        const emailDomain = session.user.email.split("@")[1] || "";
+    if (session?.accessToken) {
+      fetchTradingEntities();
+    }
+  }, [session]);
 
-        if (emailDomain.includes(".au")) {
-          setDescription("Australia");
-        } else if (emailDomain.includes(".nz")) {
-          setDescription("New Zealand");
-        } else {
-          setDescription("Overseas");
-        }
+  // Fetch trading entities
+  const fetchTradingEntities = async () => {
+    try {
+      setIsLoading(true);
+      if (!contactid) {
+        console.error("No contact ID available in URL");
+        return;
+      }
 
-        // Populate business_name if available in session
-        if (session) {
-          // Type assertion to help TypeScript understand the structure
-          const user = (session as Session).user;
+      const response = await axios.get(`/api/supplier/${contactid}`);
 
-          if (user) {
-            setFormData((prev) => ({
-              ...prev,
-              business_name: user.name || "",
-              accounts_contact: user.email || "",
-              po_email: user.email || "",
-              return_order_email: user.email || "",
-            }));
-          }
-        }
-      } catch (error) {
-        console.error("Error setting user data:", error);
+      const { vendorCountry, tradingEntities } = response.data;
+
+      console.log(vendorCountry);
+      setTradingEntities(tradingEntities);
+
+      const auEntities = tradingEntities.filter(
+        (entity: TradingEntity) => entity.paymentCountry === "Australia"
+      );
+      const nzEntities = tradingEntities.filter(
+        (entity: TradingEntity) => entity.paymentCountry === "New Zealand"
+      );
+
+      setHasAuEntities(auEntities.length > 0);
+      setHasNzEntities(nzEntities.length > 0);
+
+      setFormData((prev) => ({ ...prev, country: vendorCountry }));
+      setVendorCountry(vendorCountry);
+    } catch (error) {
+      console.error("Error fetching trading entities:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  // Populate form with user data
+  useEffect(() => {
+    if (session?.user) {
+      const user = (session as Session).user;
+
+      if (user) {
+        setFormData((prev) => ({
+          ...prev,
+          business_name: user.name || "",
+          primary_contact_email: user.email || "",
+          po_email: user.email || "",
+          return_order_email: user.email || "",
+        }));
       }
     }
   }, [session]);
@@ -159,6 +210,11 @@ export default function SupplierForm() {
         [name]: checked,
       }));
     } else {
+      // For address field, enforce 100 character limit
+      if (name === "address" && value.length > 100) {
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
         [name]: value,
@@ -192,6 +248,40 @@ export default function SupplierForm() {
     }
   };
 
+  // Handle trading entity selection
+  const handleTradingEntityChange = (entityId: string) => {
+    const currentEntities = [...formData.trading_entities];
+    const index = currentEntities.indexOf(entityId);
+
+    if (index === -1) {
+      // Add entity
+      currentEntities.push(entityId);
+    } else {
+      // Remove entity
+      currentEntities.splice(index, 1);
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      trading_entities: currentEntities,
+    }));
+
+    // Update AU/NZ entity flags
+    const selectedEntities = tradingEntities.filter((entity) =>
+      currentEntities.includes(entity.TradingEntityId)
+    );
+
+    const hasAu = selectedEntities.some(
+      (entity) => entity.entityCountry === "Australia"
+    );
+    const hasNz = selectedEntities.some(
+      (entity) => entity.entityCountry === "New Zealand"
+    );
+
+    setHasAuEntities(hasAu);
+    setHasNzEntities(hasNz);
+  };
+
   // Handle file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -219,11 +309,10 @@ export default function SupplierForm() {
       "city",
       "state",
       "postcode",
-      "accounts_contact",
+      "primary_contact_email",
       "telephone",
       "po_email",
       "return_order_email",
-      "invoice_currency",
       "payment_method",
     ];
 
@@ -235,7 +324,11 @@ export default function SupplierForm() {
 
     // Email validation
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
-    const emailFields = ["accounts_contact", "po_email", "return_order_email"];
+    const emailFields = [
+      "primary_contact_email",
+      "po_email",
+      "return_order_email",
+    ];
 
     emailFields.forEach((field) => {
       const value = formData[field as keyof SupplierFormData] as string;
@@ -244,8 +337,14 @@ export default function SupplierForm() {
       }
     });
 
-    // Country-specific validations
-    if (description === "Australia" && formData.gst_registered === "Yes") {
+    // Trading entities validation
+    if (formData.trading_entities.length === 0) {
+      newErrors["trading_entities"] =
+        "Please select at least one trading entity";
+    }
+
+    // Country-specific validations for GST/ABN
+    if (vendorCountry === "Australia") {
       if (!formData.abn) {
         newErrors["abn"] = "ABN is required";
       } else if (!/^\d{11}$/.test(formData.abn)) {
@@ -253,65 +352,124 @@ export default function SupplierForm() {
       }
     }
 
-    if (description === "New Zealand" && formData.gst_registered === "Yes") {
+    if (vendorCountry === "New Zealand") {
       if (!formData.gst) {
         newErrors["gst"] = "GST number is required";
       }
     }
 
+    // AU invoice currency validation
+    if (hasAuEntities && !formData.au_invoice_currency) {
+      newErrors["au_invoice_currency"] =
+        "Invoice currency is required for Australian entities";
+    }
+
+    // NZ invoice currency validation
+    if (hasNzEntities && !formData.nz_invoice_currency) {
+      newErrors["nz_invoice_currency"] =
+        "Invoice currency is required for New Zealand entities";
+    }
+
     // Payment method validations
     if (formData.payment_method === "Bank Transfer") {
-      if (description === "Australia") {
-        if (!formData.au_bank_name)
-          newErrors["au_bank_name"] = "Bank name is required";
-        if (!formData.au_bank_email)
-          newErrors["au_bank_email"] = "Bank email is required";
-
-        if (!formData.bsb) {
-          newErrors["bsb"] = "BSB is required";
-        } else if (!/^\d{6}$/.test(formData.bsb)) {
-          newErrors["bsb"] = "BSB must be 6 digits";
+      // AU Banking validation
+      if (hasAuEntities) {
+        if (!formData.au_bank_country) {
+          newErrors["au_bank_country"] = "Bank country is required";
         }
 
-        if (!formData.account) {
-          newErrors["account"] = "Account number is required";
-        } else if (!/^\d{10}$/.test(formData.account)) {
-          newErrors["account"] = "Account number must be 10 digits";
-        }
-      } else if (description === "New Zealand") {
-        if (!formData.nz_bank_name)
-          newErrors["nz_bank_name"] = "Bank name is required";
-        if (!formData.nz_bank_email)
-          newErrors["nz_bank_email"] = "Bank email is required";
-
-        if (!formData.nz_BSB) {
-          newErrors["nz_BSB"] = "BSB is required";
-        } else if (!/^\d{6}$/.test(formData.nz_BSB)) {
-          newErrors["nz_BSB"] = "BSB must be 6 digits";
+        if (!formData.au_bank_address) {
+          newErrors["au_bank_address"] = "Bank address is required";
         }
 
-        if (!formData.nz_account) {
-          newErrors["nz_account"] = "Account number is required";
-        } else if (!/^\d{10}$/.test(formData.nz_account)) {
-          newErrors["nz_account"] = "Account number must be 10 digits";
+        if (!formData.au_bank_currency_code) {
+          newErrors["au_bank_currency_code"] = "Bank currency code is required";
         }
-      } else if (description === "Overseas") {
-        if (!formData.IBAN_SWITCH_yn) {
-          newErrors["IBAN_SWITCH_yn"] = "Please select IBAN or SWITCH";
-        } else if (formData.IBAN_SWITCH_yn === "IBAN") {
-          if (!formData.IBAN_input) {
-            newErrors["IBAN_input"] = "IBAN is required";
-          } else if (formData.IBAN_input.length !== 34) {
-            newErrors["IBAN_input"] = "IBAN must be exactly 34 characters";
+
+        if (!formData.au_remittance_email) {
+          newErrors["au_remittance_email"] = "Remittance email is required";
+        }
+
+        // AU domestic banking
+        if (formData.au_bank_country === "Australia") {
+          if (!formData.au_bsb) {
+            newErrors["au_bsb"] = "BSB is required";
+          } else if (!/^\d{6}$/.test(formData.au_bsb)) {
+            newErrors["au_bsb"] = "BSB must be 6 digits";
           }
-          if (!formData.overseas_bank_email) {
-            newErrors["overseas_bank_email"] = "Bank email is required";
+
+          if (!formData.au_account) {
+            newErrors["au_account"] = "Account number is required";
+          } else if (!/^\d{10}$/.test(formData.au_account)) {
+            newErrors["au_account"] = "Account number must be 10 digits";
           }
-        } else if (formData.IBAN_SWITCH_yn === "SWITCH") {
-          if (!formData.SWITCH_input) {
-            newErrors["SWITCH_input"] = "SWITCH is required";
-          } else if (formData.SWITCH_input.length !== 34) {
-            newErrors["SWITCH_input"] = "SWITCH must be exactly 34 characters";
+        }
+        // Overseas banking for AU entity
+        else if (
+          formData.au_bank_country &&
+          formData.au_bank_country !== "Australia"
+        ) {
+          if (!formData.overseas_iban_switch) {
+            newErrors["overseas_iban_switch"] = "Please select IBAN or SWIFT";
+          } else if (formData.overseas_iban_switch === "IBAN") {
+            if (!formData.overseas_iban) {
+              newErrors["overseas_iban"] = "IBAN is required";
+            }
+          } else if (formData.overseas_iban_switch === "SWIFT") {
+            if (!formData.overseas_swift) {
+              newErrors["overseas_swift"] = "SWIFT is required";
+            }
+          }
+        }
+      }
+
+      // NZ Banking validation
+      if (hasNzEntities) {
+        if (!formData.nz_bank_country) {
+          newErrors["nz_bank_country"] = "Bank country is required";
+        }
+
+        if (!formData.nz_bank_address) {
+          newErrors["nz_bank_address"] = "Bank address is required";
+        }
+
+        if (!formData.nz_bank_currency_code) {
+          newErrors["nz_bank_currency_code"] = "Bank currency code is required";
+        }
+
+        if (!formData.nz_remittance_email) {
+          newErrors["nz_remittance_email"] = "Remittance email is required";
+        }
+
+        // NZ domestic banking
+        if (formData.nz_bank_country === "New Zealand") {
+          if (!formData.nz_bsb) {
+            newErrors["nz_bsb"] = "BSB is required";
+          } else if (!/^\d{6}$/.test(formData.nz_bsb)) {
+            newErrors["nz_bsb"] = "BSB must be 6 digits";
+          }
+
+          if (!formData.nz_account) {
+            newErrors["nz_account"] = "Account number is required";
+          } else if (!/^\d{10}$/.test(formData.nz_account)) {
+            newErrors["nz_account"] = "Account number must be 10 digits";
+          }
+        }
+        // Overseas banking for NZ entity
+        else if (
+          formData.nz_bank_country &&
+          formData.nz_bank_country !== "New Zealand"
+        ) {
+          if (!formData.overseas_iban_switch) {
+            newErrors["overseas_iban_switch"] = "Please select IBAN or SWIFT";
+          } else if (formData.overseas_iban_switch === "IBAN") {
+            if (!formData.overseas_iban) {
+              newErrors["overseas_iban"] = "IBAN is required";
+            }
+          } else if (formData.overseas_iban_switch === "SWIFT") {
+            if (!formData.overseas_swift) {
+              newErrors["overseas_swift"] = "SWIFT is required";
+            }
           }
         }
       }
@@ -320,11 +478,20 @@ export default function SupplierForm() {
       if (!bankStatement) {
         setFileError("Bank statement is required");
       }
-    } else if (formData.payment_method === "Bepay") {
-      if (!formData.biller_code)
+    }
+    // BPay validation
+    else if (formData.payment_method === "Bpay") {
+      if (!formData.biller_code) {
         newErrors["biller_code"] = "Biller code is required";
-      if (!formData.ref_code)
+      } else if (!/^\d+$/.test(formData.biller_code)) {
+        newErrors["biller_code"] = "Biller code must contain only numbers";
+      }
+
+      if (!formData.ref_code) {
         newErrors["ref_code"] = "Reference code is required";
+      } else if (!/^\d+$/.test(formData.ref_code)) {
+        newErrors["ref_code"] = "Reference code must contain only numbers";
+      }
     }
 
     // Terms agreement validation
@@ -333,10 +500,7 @@ export default function SupplierForm() {
     }
 
     setErrors(newErrors);
-    return (
-      Object.keys(newErrors).length === 0 &&
-      (formData.payment_method !== "Bank Transfer" || bankStatement)
-    );
+    return Object.keys(newErrors).length === 0;
   };
 
   // Handle form submission
@@ -353,12 +517,17 @@ export default function SupplierForm() {
     setShowConfirmation(false);
 
     try {
-      // In a real implementation, you would submit the form data and file to your API here
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate API call
+      // Submit form data to the API
+      const response = await axios.post("/api/supplier-onboarding", formData);
 
-      setShowSuccess(true);
+      if (response.data.success) {
+        setShowSuccess(true);
+      } else {
+        alert(`Error: ${response.data.message}`);
+      }
     } catch (error) {
       console.error("Error submitting form:", error);
+      alert("An error occurred while submitting the form. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -367,51 +536,42 @@ export default function SupplierForm() {
   // Handle success close
   const handleSuccessClose = () => {
     setShowSuccess(false);
-    window.location.href = "/profile";
+    router.push("/");
   };
 
-  // Toggle bank details based on payment method
-  const toggleBankDetails = () => {
-    return formData.payment_method === "Bank Transfer";
-  };
+  // Group trading entities by country
+  const auTradingEntities = tradingEntities.filter(
+    (entity) => entity.entityCountry === "Australia"
+  );
 
-  // Toggle IBAN/SWITCH fields
-  const showIBANField = formData.IBAN_SWITCH_yn === "IBAN";
-  const showSWITCHField = formData.IBAN_SWITCH_yn === "SWITCH";
+  const nzTradingEntities = tradingEntities.filter(
+    (entity) => entity.entityCountry === "New Zealand"
+  );
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Vendor Onboarding Form</CardTitle>
+        <CardTitle>Supplier Onboarding Form</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Hidden field for description (region) */}
-          <input
-            type="hidden"
-            id="description"
-            name="description"
-            value={description}
-          />
-
           {/* 1. Supplier Details */}
           <div className="bg-gray-50 p-6 rounded-lg">
             <h2 className="text-xl font-semibold mb-6">1. Supplier Details</h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Business Name */}
-              <div className="space-y-2">
-                <Label htmlFor="business_name">Business Name</Label>
-                <Input
-                  id="business_name"
-                  name="business_name"
-                  value={formData.business_name}
-                  onChange={handleInputChange}
-                  readOnly
-                  className="bg-gray-100"
-                />
-              </div>
+            {/* Business Name (Read-only from Vendor Creation page) */}
+            <div className="space-y-2 mb-6">
+              <Label htmlFor="business_name">Business Name</Label>
+              <Input
+                id="business_name"
+                name="business_name"
+                value={formData.business_name}
+                readOnly
+                className="bg-gray-100"
+              />
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Trading Name */}
               <div className="space-y-2">
                 <Label htmlFor="trading_name">
@@ -461,7 +621,7 @@ export default function SupplierForm() {
                 )}
               </div>
 
-              {/* GST Registered */}
+              {/* GST Registered - New field */}
               <div className="space-y-2">
                 <Label htmlFor="gst_registered">
                   Registered for GST?<span className="text-red-500">*</span>
@@ -491,61 +651,63 @@ export default function SupplierForm() {
               </div>
 
               {/* ABN - Only for Australia */}
-              {description === "Australia" &&
-                formData.gst_registered === "Yes" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="abn">
-                      Australian Business Number (ABN)
-                      <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="abn"
-                      name="abn"
-                      value={formData.abn || ""}
-                      onChange={handleInputChange}
-                      inputMode="numeric"
-                      maxLength={11}
-                      className={errors.abn ? "border-red-500" : ""}
-                    />
-                    {errors.abn && (
-                      <p className="text-red-500 text-sm">{errors.abn}</p>
-                    )}
-                  </div>
-                )}
+              {vendorCountry === "Australia" && (
+                <div className="space-y-2">
+                  <Label htmlFor="abn">
+                    Australian Business Number (ABN)
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="abn"
+                    name="abn"
+                    value={formData.abn || ""}
+                    onChange={handleInputChange}
+                    inputMode="numeric"
+                    maxLength={11}
+                    className={errors.abn ? "border-red-500" : ""}
+                  />
+                  {errors.abn && (
+                    <p className="text-red-500 text-sm">{errors.abn}</p>
+                  )}
+                </div>
+              )}
 
               {/* GST - Only for New Zealand */}
-              {description === "New Zealand" &&
-                formData.gst_registered === "Yes" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="gst">
-                      New Zealand Goods & Services Tax Number (GST)
-                      <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="gst"
-                      name="gst"
-                      value={formData.gst || ""}
-                      onChange={handleInputChange}
-                      inputMode="numeric"
-                      className={errors.gst ? "border-red-500" : ""}
-                    />
-                    {errors.gst && (
-                      <p className="text-red-500 text-sm">{errors.gst}</p>
-                    )}
-                  </div>
-                )}
+              {vendorCountry === "New Zealand" && (
+                <div className="space-y-2">
+                  <Label htmlFor="gst">
+                    New Zealand Goods & Services Tax Number (GST)
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="gst"
+                    name="gst"
+                    value={formData.gst || ""}
+                    onChange={handleInputChange}
+                    inputMode="numeric"
+                    className={errors.gst ? "border-red-500" : ""}
+                  />
+                  {errors.gst && (
+                    <p className="text-red-500 text-sm">{errors.gst}</p>
+                  )}
+                </div>
+              )}
 
-              {/* Address */}
+              {/* Address - with 100 character limit */}
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
-                <Input
+                <Textarea
                   id="address"
                   name="address"
                   value={formData.address}
                   onChange={handleInputChange}
-                  placeholder="Start typing an address..."
+                  placeholder="Enter your address (max 100 characters)"
                   maxLength={100}
+                  className={errors.address ? "border-red-500" : ""}
                 />
+                <p className="text-xs text-gray-500">
+                  {formData.address.length}/100 characters
+                </p>
               </div>
 
               {/* Website */}
@@ -635,24 +797,26 @@ export default function SupplierForm() {
                 )}
               </div>
 
-              {/* Primary Contact Email */}
+              {/* Primary Contact Email (renamed from accounts_contact) */}
               <div className="space-y-2">
-                <Label htmlFor="accounts_contact">
+                <Label htmlFor="primary_contact_email">
                   Primary Contact Email<span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  id="accounts_contact"
-                  name="accounts_contact"
+                  id="primary_contact_email"
+                  name="primary_contact_email"
                   type="email"
-                  value={formData.accounts_contact}
+                  value={formData.primary_contact_email}
                   onChange={handleInputChange}
                   placeholder="example@domain.com"
                   required
-                  className={errors.accounts_contact ? "border-red-500" : ""}
+                  className={
+                    errors.primary_contact_email ? "border-red-500" : ""
+                  }
                 />
-                {errors.accounts_contact && (
+                {errors.primary_contact_email && (
                   <p className="text-red-500 text-sm">
-                    {errors.accounts_contact}
+                    {errors.primary_contact_email}
                   </p>
                 )}
               </div>
@@ -696,7 +860,7 @@ export default function SupplierForm() {
                 )}
               </div>
 
-              {/* Return Order Email */}
+              {/* Return Order Email - New field */}
               <div className="space-y-2">
                 <Label htmlFor="return_order_email">
                   Return Order Email<span className="text-red-500">*</span>
@@ -717,39 +881,94 @@ export default function SupplierForm() {
                   </p>
                 )}
               </div>
+            </div>
 
-              {/* Invoice Currency */}
-              <div className="space-y-2">
-                <Label htmlFor="invoice_currency">
-                  Invoice Currency<span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={formData.invoice_currency}
-                  onValueChange={(value) =>
-                    handleSelectChange("invoice_currency", value)
-                  }
-                >
-                  <SelectTrigger
-                    id="invoice_currency"
-                    className={errors.invoice_currency ? "border-red-500" : ""}
-                  >
-                    <SelectValue placeholder="Select a currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currencies.map((currency) => (
-                      <SelectItem key={currency.value} value={currency.value}>
-                        {currency.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.invoice_currency && (
-                  <p className="text-red-500 text-sm">
-                    {errors.invoice_currency}
-                  </p>
+            {/* Invoice Currency sections based on trading entities */}
+            {(hasAuEntities || hasNzEntities) && (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* AU Invoice Currency */}
+                {hasAuEntities && (
+                  <div className="space-y-2">
+                    <Label htmlFor="au_invoice_currency">
+                      Select the Invoice currency when trading with our
+                      Australian based entity(ies)
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={formData.au_invoice_currency || ""}
+                      onValueChange={(value) =>
+                        handleSelectChange("au_invoice_currency", value)
+                      }
+                    >
+                      <SelectTrigger
+                        id="au_invoice_currency"
+                        className={
+                          errors.au_invoice_currency ? "border-red-500" : ""
+                        }
+                      >
+                        <SelectValue placeholder="Select a currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currencies.map((currency) => (
+                          <SelectItem
+                            key={currency.value}
+                            value={currency.value}
+                          >
+                            {currency.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.au_invoice_currency && (
+                      <p className="text-red-500 text-sm">
+                        {errors.au_invoice_currency}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* NZ Invoice Currency */}
+                {hasNzEntities && (
+                  <div className="space-y-2">
+                    <Label htmlFor="nz_invoice_currency">
+                      Select the Invoice currency when trading with our NZ based
+                      entity(ies)
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={formData.nz_invoice_currency || ""}
+                      onValueChange={(value) =>
+                        handleSelectChange("nz_invoice_currency", value)
+                      }
+                    >
+                      <SelectTrigger
+                        id="nz_invoice_currency"
+                        className={
+                          errors.nz_invoice_currency ? "border-red-500" : ""
+                        }
+                      >
+                        <SelectValue placeholder="Select a currency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currencies.map((currency) => (
+                          <SelectItem
+                            key={currency.value}
+                            value={currency.value}
+                          >
+                            {currency.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.nz_invoice_currency && (
+                      <p className="text-red-500 text-sm">
+                        {errors.nz_invoice_currency}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* 2. Banking Details */}
@@ -775,7 +994,7 @@ export default function SupplierForm() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="Bepay">Bepay</SelectItem>
+                  <SelectItem value="Bpay">Bpay</SelectItem>
                 </SelectContent>
               </Select>
               {errors.payment_method && (
@@ -783,321 +1002,626 @@ export default function SupplierForm() {
               )}
             </div>
 
+            {/* BPay Fields */}
+            {formData.payment_method === "Bpay" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-md border">
+                <div className="space-y-2">
+                  <Label htmlFor="biller_code">
+                    Biller Code<span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="biller_code"
+                    name="biller_code"
+                    value={formData.biller_code || ""}
+                    onChange={handleInputChange}
+                    pattern="\\d+"
+                    inputMode="numeric"
+                    className={errors.biller_code ? "border-red-500" : ""}
+                  />
+                  {errors.biller_code && (
+                    <p className="text-red-500 text-sm">{errors.biller_code}</p>
+                  )}
+                  <p className="text-xs text-gray-500">Numbers only</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ref_code">
+                    Ref Code<span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="ref_code"
+                    name="ref_code"
+                    value={formData.ref_code || ""}
+                    onChange={handleInputChange}
+                    pattern="\\d+"
+                    inputMode="numeric"
+                    className={errors.ref_code ? "border-red-500" : ""}
+                  />
+                  {errors.ref_code && (
+                    <p className="text-red-500 text-sm">{errors.ref_code}</p>
+                  )}
+                  <p className="text-xs text-gray-500">Numbers only</p>
+                </div>
+              </div>
+            )}
+
             {/* Bank Transfer Fields */}
             {formData.payment_method === "Bank Transfer" && (
-              <>
-                {/* Australia Banking Fields */}
-                {description === "Australia" && (
-                  <div className="mb-6 bg-white p-4 rounded-md border">
-                    <h3 className="font-medium mb-4">Australia</h3>
+              <div className="space-y-6">
+                {/* AU Banking Details */}
+                {hasAuEntities && (
+                  <div className="bg-white p-4 rounded-md border">
+                    <h3 className="font-medium mb-4">
+                      Fill the banking details when trading with our Australian
+                      based entity(ies)
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="au_bank_name">
-                          Bank Name<span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="au_bank_name"
-                          name="au_bank_name"
-                          value={formData.au_bank_name || ""}
-                          onChange={handleInputChange}
-                          className={
-                            errors.au_bank_name ? "border-red-500" : ""
-                          }
-                        />
-                        {errors.au_bank_name && (
-                          <p className="text-red-500 text-sm">
-                            {errors.au_bank_name}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="au_bank_email">
-                          Bank Email<span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="au_bank_email"
-                          name="au_bank_email"
-                          type="email"
-                          value={formData.au_bank_email || ""}
-                          onChange={handleInputChange}
-                          placeholder="example@domain.com"
-                          className={
-                            errors.au_bank_email ? "border-red-500" : ""
-                          }
-                        />
-                        {errors.au_bank_email && (
-                          <p className="text-red-500 text-sm">
-                            {errors.au_bank_email}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="bsb">
-                          BSB<span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="bsb"
-                          name="bsb"
-                          value={formData.bsb || ""}
-                          onChange={handleInputChange}
-                          maxLength={6}
-                          inputMode="numeric"
-                          className={errors.bsb ? "border-red-500" : ""}
-                        />
-                        {errors.bsb && (
-                          <p className="text-red-500 text-sm">{errors.bsb}</p>
-                        )}
-                        <p className="text-xs text-gray-500">
-                          Must be exactly 6 digits
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="account">
-                          Account Number<span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="account"
-                          name="account"
-                          value={formData.account || ""}
-                          onChange={handleInputChange}
-                          maxLength={10}
-                          inputMode="numeric"
-                          className={errors.account ? "border-red-500" : ""}
-                        />
-                        {errors.account && (
-                          <p className="text-red-500 text-sm">
-                            {errors.account}
-                          </p>
-                        )}
-                        <p className="text-xs text-gray-500">
-                          Must be exactly 10 digits
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* New Zealand Banking Fields */}
-                {description === "New Zealand" && (
-                  <div className="mb-6 bg-white p-4 rounded-md border">
-                    <h3 className="font-medium mb-4">New Zealand</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="nz_bank_name">
-                          Bank Name<span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="nz_bank_name"
-                          name="nz_bank_name"
-                          value={formData.nz_bank_name || ""}
-                          onChange={handleInputChange}
-                          className={
-                            errors.nz_bank_name ? "border-red-500" : ""
-                          }
-                        />
-                        {errors.nz_bank_name && (
-                          <p className="text-red-500 text-sm">
-                            {errors.nz_bank_name}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="nz_bank_email">
-                          Bank Email<span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="nz_bank_email"
-                          name="nz_bank_email"
-                          type="email"
-                          value={formData.nz_bank_email || ""}
-                          onChange={handleInputChange}
-                          placeholder="example@domain.com"
-                          className={
-                            errors.nz_bank_email ? "border-red-500" : ""
-                          }
-                        />
-                        {errors.nz_bank_email && (
-                          <p className="text-red-500 text-sm">
-                            {errors.nz_bank_email}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="nz_BSB">
-                          BSB<span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="nz_BSB"
-                          name="nz_BSB"
-                          value={formData.nz_BSB || ""}
-                          onChange={handleInputChange}
-                          maxLength={6}
-                          minLength={6}
-                          inputMode="numeric"
-                          className={errors.nz_BSB ? "border-red-500" : ""}
-                        />
-                        {errors.nz_BSB && (
-                          <p className="text-red-500 text-sm">
-                            {errors.nz_BSB}
-                          </p>
-                        )}
-                        <p className="text-xs text-gray-500">
-                          Must be exactly 6 digits
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="nz_account">
-                          Account Number<span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="nz_account"
-                          name="nz_account"
-                          value={formData.nz_account || ""}
-                          onChange={handleInputChange}
-                          maxLength={10}
-                          minLength={10}
-                          inputMode="numeric"
-                          className={errors.nz_account ? "border-red-500" : ""}
-                        />
-                        {errors.nz_account && (
-                          <p className="text-red-500 text-sm">
-                            {errors.nz_account}
-                          </p>
-                        )}
-                        <p className="text-xs text-gray-500">
-                          Must be exactly 10 digits
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Overseas Banking Fields */}
-                {description === "Overseas" && (
-                  <div className="mb-6 bg-white p-4 rounded-md border">
-                    <h3 className="font-medium mb-4">Overseas</h3>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="IBAN_SWITCH_yn">
-                          IBAN or SWITCH<span className="text-red-500">*</span>
+                        <Label htmlFor="au_bank_country">
+                          Bank Country<span className="text-red-500">*</span>
                         </Label>
                         <Select
-                          value={formData.IBAN_SWITCH_yn || ""}
+                          value={formData.au_bank_country || ""}
                           onValueChange={(value) =>
-                            handleSelectChange("IBAN_SWITCH_yn", value)
+                            handleSelectChange("au_bank_country", value)
                           }
                         >
                           <SelectTrigger
-                            id="IBAN_SWITCH_yn"
+                            id="au_bank_country"
                             className={
-                              errors.IBAN_SWITCH_yn ? "border-red-500" : ""
+                              errors.au_bank_country ? "border-red-500" : ""
                             }
                           >
-                            <SelectValue placeholder="Select an option" />
+                            <SelectValue placeholder="Select a country" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="IBAN">IBAN</SelectItem>
-                            <SelectItem value="SWITCH">SWITCH</SelectItem>
+                            {countries.map((country) => (
+                              <SelectItem key={country} value={country}>
+                                {country}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
-                        {errors.IBAN_SWITCH_yn && (
+                        {errors.au_bank_country && (
                           <p className="text-red-500 text-sm">
-                            {errors.IBAN_SWITCH_yn}
+                            {errors.au_bank_country}
                           </p>
                         )}
                       </div>
 
-                      {showIBANField && (
-                        <>
-                          <div className="space-y-2">
-                            <Label htmlFor="overseas_bank_email">
-                              Bank Email<span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                              id="overseas_bank_email"
-                              name="overseas_bank_email"
-                              type="email"
-                              value={formData.overseas_bank_email || ""}
-                              onChange={handleInputChange}
-                              placeholder="example@domain.com"
-                              className={
-                                errors.overseas_bank_email
-                                  ? "border-red-500"
-                                  : ""
-                              }
-                            />
-                            {errors.overseas_bank_email && (
-                              <p className="text-red-500 text-sm">
-                                {errors.overseas_bank_email}
-                              </p>
-                            )}
-                          </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="au_bank_address">
+                          Bank Address<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="au_bank_address"
+                          name="au_bank_address"
+                          value={formData.au_bank_address || ""}
+                          onChange={handleInputChange}
+                          className={
+                            errors.au_bank_address ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.au_bank_address && (
+                          <p className="text-red-500 text-sm">
+                            {errors.au_bank_address}
+                          </p>
+                        )}
+                      </div>
 
-                          <div className="space-y-2">
-                            <Label htmlFor="IBAN_input">
-                              IBAN<span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                              id="IBAN_input"
-                              name="IBAN_input"
-                              value={formData.IBAN_input || ""}
-                              onChange={handleInputChange}
-                              maxLength={34}
-                              minLength={34}
-                              className={
-                                errors.IBAN_input ? "border-red-500" : ""
-                              }
-                            />
-                            {errors.IBAN_input && (
-                              <p className="text-red-500 text-sm">
-                                {errors.IBAN_input}
-                              </p>
-                            )}
-                            <p className="text-xs text-gray-500">
-                              Must be exactly 34 characters
-                            </p>
-                          </div>
-                        </>
-                      )}
+                      <div className="space-y-2">
+                        <Label htmlFor="au_bank_currency_code">
+                          Bank Currency Code
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Select
+                          value={formData.au_bank_currency_code || ""}
+                          onValueChange={(value) =>
+                            handleSelectChange("au_bank_currency_code", value)
+                          }
+                        >
+                          <SelectTrigger
+                            id="au_bank_currency_code"
+                            className={
+                              errors.au_bank_currency_code
+                                ? "border-red-500"
+                                : ""
+                            }
+                          >
+                            <SelectValue placeholder="Select a currency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {currencies.map((currency) => (
+                              <SelectItem
+                                key={currency.value}
+                                value={currency.value}
+                              >
+                                {currency.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.au_bank_currency_code && (
+                          <p className="text-red-500 text-sm">
+                            {errors.au_bank_currency_code}
+                          </p>
+                        )}
+                      </div>
 
-                      {showSWITCHField && (
+                      <div className="space-y-2">
+                        <Label htmlFor="au_bank_clearing_code">
+                          Bank Clearing Code
+                        </Label>
+                        <Input
+                          id="au_bank_clearing_code"
+                          name="au_bank_clearing_code"
+                          value={formData.au_bank_clearing_code || ""}
+                          onChange={handleInputChange}
+                          className={
+                            errors.au_bank_clearing_code ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.au_bank_clearing_code && (
+                          <p className="text-red-500 text-sm">
+                            {errors.au_bank_clearing_code}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="au_remittance_email">
+                          Remittance Email
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="au_remittance_email"
+                          name="au_remittance_email"
+                          type="email"
+                          value={formData.au_remittance_email || ""}
+                          onChange={handleInputChange}
+                          placeholder="example@domain.com"
+                          className={
+                            errors.au_remittance_email ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.au_remittance_email && (
+                          <p className="text-red-500 text-sm">
+                            {errors.au_remittance_email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* AU Domestic Banking */}
+                    {formData.au_bank_country === "Australia" && (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
                         <div className="space-y-2">
-                          <Label htmlFor="SWITCH_input">
-                            SWITCH<span className="text-red-500">*</span>
+                          <Label htmlFor="au_bsb">
+                            BSB<span className="text-red-500">*</span>
                           </Label>
                           <Input
-                            id="SWITCH_input"
-                            name="SWITCH_input"
-                            value={formData.SWITCH_input || ""}
+                            id="au_bsb"
+                            name="au_bsb"
+                            value={formData.au_bsb || ""}
                             onChange={handleInputChange}
-                            maxLength={34}
-                            minLength={34}
-                            className={
-                              errors.SWITCH_input ? "border-red-500" : ""
-                            }
+                            maxLength={6}
+                            inputMode="numeric"
+                            className={errors.au_bsb ? "border-red-500" : ""}
                           />
-                          {errors.SWITCH_input && (
+                          {errors.au_bsb && (
                             <p className="text-red-500 text-sm">
-                              {errors.SWITCH_input}
+                              {errors.au_bsb}
                             </p>
                           )}
                           <p className="text-xs text-gray-500">
-                            Must be exactly 34 characters
+                            Must be exactly 6 digits
                           </p>
                         </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="au_account">
+                            Account Number
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="au_account"
+                            name="au_account"
+                            value={formData.au_account || ""}
+                            onChange={handleInputChange}
+                            maxLength={10}
+                            inputMode="numeric"
+                            className={
+                              errors.au_account ? "border-red-500" : ""
+                            }
+                          />
+                          {errors.au_account && (
+                            <p className="text-red-500 text-sm">
+                              {errors.au_account}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            Must be exactly 10 digits
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* AU Overseas Banking */}
+                    {formData.au_bank_country &&
+                      formData.au_bank_country !== "Australia" && (
+                        <div className="mt-4 border-t pt-4">
+                          <div className="space-y-2 mb-4">
+                            <Label htmlFor="overseas_iban_switch">
+                              IBAN or SWIFT
+                              <span className="text-red-500">*</span>
+                            </Label>
+                            <Select
+                              value={formData.overseas_iban_switch || ""}
+                              onValueChange={(value) =>
+                                handleSelectChange(
+                                  "overseas_iban_switch",
+                                  value
+                                )
+                              }
+                            >
+                              <SelectTrigger
+                                id="overseas_iban_switch"
+                                className={
+                                  errors.overseas_iban_switch
+                                    ? "border-red-500"
+                                    : ""
+                                }
+                              >
+                                <SelectValue placeholder="Select an option" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="IBAN">IBAN</SelectItem>
+                                <SelectItem value="SWIFT">SWIFT</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {errors.overseas_iban_switch && (
+                              <p className="text-red-500 text-sm">
+                                {errors.overseas_iban_switch}
+                              </p>
+                            )}
+                          </div>
+
+                          {formData.overseas_iban_switch === "IBAN" && (
+                            <div className="space-y-2">
+                              <Label htmlFor="overseas_iban">
+                                IBAN<span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                id="overseas_iban"
+                                name="overseas_iban"
+                                value={formData.overseas_iban || ""}
+                                onChange={handleInputChange}
+                                className={
+                                  errors.overseas_iban ? "border-red-500" : ""
+                                }
+                              />
+                              {errors.overseas_iban && (
+                                <p className="text-red-500 text-sm">
+                                  {errors.overseas_iban}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {formData.overseas_iban_switch === "SWIFT" && (
+                            <div className="space-y-2">
+                              <Label htmlFor="overseas_swift">
+                                SWIFT<span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                id="overseas_swift"
+                                name="overseas_swift"
+                                value={formData.overseas_swift || ""}
+                                onChange={handleInputChange}
+                                className={
+                                  errors.overseas_swift ? "border-red-500" : ""
+                                }
+                              />
+                              {errors.overseas_swift && (
+                                <p className="text-red-500 text-sm">
+                                  {errors.overseas_swift}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )}
+                  </div>
+                )}
+
+                {/* NZ Banking Details */}
+                {hasNzEntities && (
+                  <div className="bg-white p-4 rounded-md border">
+                    <h3 className="font-medium mb-4">
+                      Fill banking details when trading with our NZ based
+                      entity(ies)
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nz_bank_country">
+                          Bank Country<span className="text-red-500">*</span>
+                        </Label>
+                        <Select
+                          value={formData.nz_bank_country || ""}
+                          onValueChange={(value) =>
+                            handleSelectChange("nz_bank_country", value)
+                          }
+                        >
+                          <SelectTrigger
+                            id="nz_bank_country"
+                            className={
+                              errors.nz_bank_country ? "border-red-500" : ""
+                            }
+                          >
+                            <SelectValue placeholder="Select a country" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countries.map((country) => (
+                              <SelectItem key={country} value={country}>
+                                {country}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.nz_bank_country && (
+                          <p className="text-red-500 text-sm">
+                            {errors.nz_bank_country}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="nz_bank_address">
+                          Bank Address<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="nz_bank_address"
+                          name="nz_bank_address"
+                          value={formData.nz_bank_address || ""}
+                          onChange={handleInputChange}
+                          className={
+                            errors.nz_bank_address ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.nz_bank_address && (
+                          <p className="text-red-500 text-sm">
+                            {errors.nz_bank_address}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="nz_bank_currency_code">
+                          Bank Currency Code
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Select
+                          value={formData.nz_bank_currency_code || ""}
+                          onValueChange={(value) =>
+                            handleSelectChange("nz_bank_currency_code", value)
+                          }
+                        >
+                          <SelectTrigger
+                            id="nz_bank_currency_code"
+                            className={
+                              errors.nz_bank_currency_code
+                                ? "border-red-500"
+                                : ""
+                            }
+                          >
+                            <SelectValue placeholder="Select a currency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {currencies.map((currency) => (
+                              <SelectItem
+                                key={currency.value}
+                                value={currency.value}
+                              >
+                                {currency.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.nz_bank_currency_code && (
+                          <p className="text-red-500 text-sm">
+                            {errors.nz_bank_currency_code}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="nz_bank_clearing_code">
+                          Bank Clearing Code
+                        </Label>
+                        <Input
+                          id="nz_bank_clearing_code"
+                          name="nz_bank_clearing_code"
+                          value={formData.nz_bank_clearing_code || ""}
+                          onChange={handleInputChange}
+                          className={
+                            errors.nz_bank_clearing_code ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.nz_bank_clearing_code && (
+                          <p className="text-red-500 text-sm">
+                            {errors.nz_bank_clearing_code}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="nz_remittance_email">
+                          Remittance Email
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="nz_remittance_email"
+                          name="nz_remittance_email"
+                          type="email"
+                          value={formData.nz_remittance_email || ""}
+                          onChange={handleInputChange}
+                          placeholder="example@domain.com"
+                          className={
+                            errors.nz_remittance_email ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.nz_remittance_email && (
+                          <p className="text-red-500 text-sm">
+                            {errors.nz_remittance_email}
+                          </p>
+                        )}
+                      </div>
                     </div>
+
+                    {/* NZ Domestic Banking */}
+                    {formData.nz_bank_country === "New Zealand" && (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="nz_bsb">
+                            BSB<span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="nz_bsb"
+                            name="nz_bsb"
+                            value={formData.nz_bsb || ""}
+                            onChange={handleInputChange}
+                            maxLength={6}
+                            inputMode="numeric"
+                            className={errors.nz_bsb ? "border-red-500" : ""}
+                          />
+                          {errors.nz_bsb && (
+                            <p className="text-red-500 text-sm">
+                              {errors.nz_bsb}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            Must be exactly 6 digits
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="nz_account">
+                            Account Number
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="nz_account"
+                            name="nz_account"
+                            value={formData.nz_account || ""}
+                            onChange={handleInputChange}
+                            maxLength={10}
+                            inputMode="numeric"
+                            className={
+                              errors.nz_account ? "border-red-500" : ""
+                            }
+                          />
+                          {errors.nz_account && (
+                            <p className="text-red-500 text-sm">
+                              {errors.nz_account}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            Must be exactly 10 digits
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* NZ Overseas Banking */}
+                    {formData.nz_bank_country &&
+                      formData.nz_bank_country !== "New Zealand" && (
+                        <div className="mt-4 border-t pt-4">
+                          <div className="space-y-2 mb-4">
+                            <Label htmlFor="overseas_iban_switch">
+                              IBAN or SWIFT
+                              <span className="text-red-500">*</span>
+                            </Label>
+                            <Select
+                              value={formData.overseas_iban_switch || ""}
+                              onValueChange={(value) =>
+                                handleSelectChange(
+                                  "overseas_iban_switch",
+                                  value
+                                )
+                              }
+                            >
+                              <SelectTrigger
+                                id="overseas_iban_switch"
+                                className={
+                                  errors.overseas_iban_switch
+                                    ? "border-red-500"
+                                    : ""
+                                }
+                              >
+                                <SelectValue placeholder="Select an option" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="IBAN">IBAN</SelectItem>
+                                <SelectItem value="SWIFT">SWIFT</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {errors.overseas_iban_switch && (
+                              <p className="text-red-500 text-sm">
+                                {errors.overseas_iban_switch}
+                              </p>
+                            )}
+                          </div>
+
+                          {formData.overseas_iban_switch === "IBAN" && (
+                            <div className="space-y-2">
+                              <Label htmlFor="overseas_iban">
+                                IBAN<span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                id="overseas_iban"
+                                name="overseas_iban"
+                                value={formData.overseas_iban || ""}
+                                onChange={handleInputChange}
+                                className={
+                                  errors.overseas_iban ? "border-red-500" : ""
+                                }
+                              />
+                              {errors.overseas_iban && (
+                                <p className="text-red-500 text-sm">
+                                  {errors.overseas_iban}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {formData.overseas_iban_switch === "SWIFT" && (
+                            <div className="space-y-2">
+                              <Label htmlFor="overseas_swift">
+                                SWIFT<span className="text-red-500">*</span>
+                              </Label>
+                              <Input
+                                id="overseas_swift"
+                                name="overseas_swift"
+                                value={formData.overseas_swift || ""}
+                                onChange={handleInputChange}
+                                className={
+                                  errors.overseas_swift ? "border-red-500" : ""
+                                }
+                              />
+                              {errors.overseas_swift && (
+                                <p className="text-red-500 text-sm">
+                                  {errors.overseas_swift}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                   </div>
                 )}
 
                 {/* Bank Statement Upload */}
-                <div className="space-y-2 mt-4">
+                <div className="space-y-2 mt-6">
                   <Label htmlFor="bank-statement">
                     Please attach a recent (last 3 months) bank statement - PDF
                     only
@@ -1136,47 +1660,6 @@ export default function SupplierForm() {
                     <p className="text-red-500 text-sm">{fileError}</p>
                   )}
                 </div>
-              </>
-            )}
-
-            {/* BePay Fields */}
-            {formData.payment_method === "Bepay" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-md border">
-                <div className="space-y-2">
-                  <Label htmlFor="biller_code">
-                    Biller Code<span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="biller_code"
-                    name="biller_code"
-                    value={formData.biller_code || ""}
-                    onChange={handleInputChange}
-                    pattern="\d+"
-                    inputMode="numeric"
-                    className={errors.biller_code ? "border-red-500" : ""}
-                  />
-                  {errors.biller_code && (
-                    <p className="text-red-500 text-sm">{errors.biller_code}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="ref_code">
-                    Ref Code<span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="ref_code"
-                    name="ref_code"
-                    value={formData.ref_code || ""}
-                    onChange={handleInputChange}
-                    pattern="\d+"
-                    inputMode="numeric"
-                    className={errors.ref_code ? "border-red-500" : ""}
-                  />
-                  {errors.ref_code && (
-                    <p className="text-red-500 text-sm">{errors.ref_code}</p>
-                  )}
-                </div>
               </div>
             )}
           </div>
@@ -1208,21 +1691,17 @@ export default function SupplierForm() {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <div>
-                      <input
-                        type="checkbox"
-                        id="iAgree"
-                        name="iAgree"
-                        checked={formData.iAgree}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            iAgree: e.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                    </div>
+                    <Checkbox
+                      id="iAgree"
+                      checked={formData.iAgree}
+                      onCheckedChange={(checked) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          iAgree: checked === true,
+                        }))
+                      }
+                      className={errors.iAgree ? "border-red-500" : ""}
+                    />
                     <Label htmlFor="iAgree" className="font-medium">
                       I acknowledge the terms and conditions
                       <span className="text-red-500">*</span>
@@ -1261,8 +1740,9 @@ export default function SupplierForm() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h2 className="text-xl font-semibold mb-4">
-              Would you want to proceed?
+              Would you like to proceed?
             </h2>
+            <p className="mb-4">Please confirm you want to submit this form.</p>
             <div className="flex justify-between gap-4">
               <Button
                 onClick={handleConfirmSubmit}

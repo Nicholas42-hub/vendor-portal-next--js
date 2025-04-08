@@ -1,10 +1,10 @@
+// src/components/VendorOnboardingContent.tsx
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
-import { queryBusinessData } from "@/utils/graphQL-api-Get";
-import VendorOnboardingForm from "./forms/VendorOnboardingForm";
+import { queryBusinessData } from "@/app/api/VendorOnboardingPage/route";
 import { useRouter } from "next/navigation";
 
 interface VendorOnboardingContentProps {
@@ -69,7 +69,6 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
     Declined: 0,
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  // No need for showOnboardingForm state since we're navigating to a new page
 
   // Fetch data when the component mounts
   useEffect(() => {
@@ -115,7 +114,7 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
 
   // Navigate to the vendor onboarding form page
   const handleNavigateToForm = () => {
-    window.location.href = "/vendor-onboarding/onboardingform";
+    router.push("/vendor-onboarding/onboardingform");
   };
 
   // Filter data based on current filter and search term
@@ -178,13 +177,9 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
 
   // Handle row click to navigate to vendor details
   const handleRowClick = (email: string) => {
-    window.location.href = `https://lagardereawpl-vendorportal.powerappsportals.com/Vendor-Onboarding/vendorapprovalflow/?email=${encodeURIComponent(
-      email
-    )}`;
+    // Use Next.js router for navigation instead of direct URL
+    router.push(`/vendor-approval?email=${encodeURIComponent(email)}`);
   };
-
-  // We're not conditionally rendering the form in this component anymore
-  // Instead, we'll navigate to a separate page
 
   return (
     <Card className="w-full">
@@ -352,4 +347,4 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
   );
 };
 
-export default VendorOnboardingContent; // for default export
+export default VendorOnboardingContent;
