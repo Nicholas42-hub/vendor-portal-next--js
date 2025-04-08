@@ -30,7 +30,7 @@ export default async function ApproversMatrixPage() {
 
         <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           <h1 className="text-2xl font-bold text-gray-800 mb-6">
-            Approvers Matrix Configuration
+            Approvers Matrix
           </h1>
           <p className="text-gray-600 mb-8">
             Configure approvers for each business unit in the vendor approval

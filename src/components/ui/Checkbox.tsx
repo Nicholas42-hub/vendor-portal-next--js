@@ -3,15 +3,16 @@ import { styled } from "@mui/material/styles";
 
 interface CheckboxProps {
   id: string;
-  name: string;
-  value: string;
+  name?: string;
+  value?: string;
   checked: boolean;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  label: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onCheckedChange?: (checked: boolean) => void;
+  label?: string;
+  className?: string;
   disabled?: boolean;
   required?: boolean;
 }
-
 const CheckboxContainer = styled("div")({
   display: "flex",
   alignItems: "center",
@@ -37,23 +38,30 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   value,
   checked,
   onChange,
+  onCheckedChange,
   label,
+  className,
   disabled = false,
   required = false,
 }) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onChange) onChange(e);
+    if (onCheckedChange) onCheckedChange(e.target.checked);
+  };
+
   return (
-    <CheckboxContainer className="grid-entity">
+    <CheckboxContainer className={`grid-entity ${className || ""}`}>
       <StyledInput
         type="checkbox"
         id={id}
         name={name}
         value={value}
         checked={checked}
-        onChange={onChange}
+        onChange={handleChange}
         disabled={disabled}
         required={required}
       />
-      <StyledLabel htmlFor={id}>{label}</StyledLabel>
+      {label && <StyledLabel htmlFor={id}>{label}</StyledLabel>}
     </CheckboxContainer>
   );
 };

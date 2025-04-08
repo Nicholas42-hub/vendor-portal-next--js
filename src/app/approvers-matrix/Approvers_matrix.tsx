@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
+
 // Custom alert component
 const Alert = ({
   children,
@@ -50,6 +51,8 @@ interface Approver {
 interface ApproverMatrix {
   id: string;
   businessUnit: string;
+  approver0: string;
+  approver0_name: string;
   approver1: string;
   approver1_name: string;
   approver2: string;
@@ -71,12 +74,14 @@ const businessUnitIdMap: Record<string, string> = {
 
 /**
  * ApproversMatrixDropdowns is a child component that renders dropdowns
- * for Manager, CFO, and Exco approvers based on filtering logic.
+ * for Procurement, Manager, CFO, and Exco approvers based on filtering logic.
  */
 interface ApproversMatrixDropdownsProps {
   contacts: Approver[];
   selectedBusinessUnit: string;
   formData: {
+    approver0: string;
+    approver0backup: string;
     approver1: string;
     approver1backup: string;
     approver2: string;
@@ -99,6 +104,10 @@ const ApproversMatrixDropdowns: React.FC<ApproversMatrixDropdownsProps> = ({
   isLoading,
 }) => {
   // Filter contacts based on roles
+  const procurementApprovers = contacts.filter((contact) =>
+    ["Camillus PREVOO", "Tom RYAN"].includes(contact.lastname)
+  );
+
   const cfoApprovers = contacts.filter((contact) =>
     ["Nik WEST", "Alfonso LOPEZ"].includes(contact.lastname)
   );
@@ -171,7 +180,7 @@ const ApproversMatrixDropdowns: React.FC<ApproversMatrixDropdownsProps> = ({
               </SelectItem>
             ))
           ) : (
-            <SelectItem value="" disabled>
+            <SelectItem value="no-approvers-found" disabled>
               No approvers found
             </SelectItem>
           )}
@@ -182,6 +191,26 @@ const ApproversMatrixDropdowns: React.FC<ApproversMatrixDropdownsProps> = ({
 
   return (
     <div className="space-y-6">
+      <div className="border p-4 rounded-md bg-slate-50">
+        <h3 className="font-medium text-lg mb-4">Procurement Approvers</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {renderSelect(
+            "approver0",
+            "Procurement Approver",
+            procurementApprovers,
+            formData.approver0,
+            "approver0"
+          )}
+          {renderSelect(
+            "approver0backup",
+            "Procurement Approver 2",
+            procurementApprovers,
+            formData.approver0backup,
+            "approver0backup"
+          )}
+        </div>
+      </div>
+
       <div className="border p-4 rounded-md bg-slate-50">
         <h3 className="font-medium text-lg mb-4">Manager Approvers</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -204,7 +233,7 @@ const ApproversMatrixDropdowns: React.FC<ApproversMatrixDropdownsProps> = ({
 
       <div className="border p-4 rounded-md bg-slate-50">
         <h3 className="font-medium text-lg mb-4">
-          CFO Approvers (for payment terms below 30 days)
+          CFO Approvers (for payment terms set to 20 EOM)
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {renderSelect(
@@ -248,7 +277,7 @@ const ApproversMatrixDropdowns: React.FC<ApproversMatrixDropdownsProps> = ({
 };
 
 const ApproversMatrix: React.FC = () => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   // State variables
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -269,6 +298,8 @@ const ApproversMatrix: React.FC = () => {
   const [matrixData, setMatrixData] = useState<ApproverMatrix[]>([]);
   const [formData, setFormData] = useState({
     businessUnit: "",
+    approver0: "",
+    approver0backup: "",
     approver1: "",
     approver1backup: "",
     approver2: "",
@@ -361,6 +392,7 @@ const ApproversMatrix: React.FC = () => {
                 items {
                   id
                   BusinessUnit
+                  Approver0
                   Approver1
                   Approver2
                   Approver3
@@ -381,6 +413,9 @@ const ApproversMatrix: React.FC = () => {
         if (matrixResponse?.data?.data?.approvers_matrix?.items) {
           matrixData = matrixResponse.data.data.approvers_matrix.items.map(
             (item: any) => {
+              const approver0Contact = contactsData.find(
+                (contact) => contact.email === item.Approver0
+              );
               const approver1Contact = contactsData.find(
                 (contact) => contact.email === item.Approver1
               );
@@ -394,6 +429,8 @@ const ApproversMatrix: React.FC = () => {
               return {
                 id: item.id,
                 businessUnit: item.BusinessUnit,
+                approver0: item.Approver0 || "",
+                approver0_name: approver0Contact?.name || "",
                 approver1: item.Approver1 || "",
                 approver1_name: approver1Contact?.name || "",
                 approver2: item.Approver2 || "",
@@ -433,8 +470,10 @@ const ApproversMatrix: React.FC = () => {
     if (existingMatrix) {
       setFormData({
         businessUnit: value,
+        approver0: existingMatrix.approver0 || "",
+        approver0backup: "", // These backup fields aren't in the matrix data yet
         approver1: existingMatrix.approver1 || "",
-        approver1backup: "", // These backup fields aren't in the matrix data yet
+        approver1backup: "",
         approver2: existingMatrix.approver2 || "",
         approver2backup: "",
         approver3: existingMatrix.approver3 || "",
@@ -443,6 +482,8 @@ const ApproversMatrix: React.FC = () => {
     } else {
       setFormData({
         businessUnit: value,
+        approver0: "",
+        approver0backup: "",
         approver1: "",
         approver1backup: "",
         approver2: "",
@@ -481,7 +522,10 @@ const ApproversMatrix: React.FC = () => {
 
     // At least one approver must be selected
     const hasApprovers =
-      formData.approver1 || formData.approver2 || formData.approver3;
+      formData.approver0 ||
+      formData.approver1 ||
+      formData.approver2 ||
+      formData.approver3;
 
     if (!hasApprovers) {
       alert("Please select at least one approver");
@@ -514,6 +558,16 @@ const ApproversMatrix: React.FC = () => {
                 id: "${existingMatrix.id}",
                 item: {
                   BusinessUnit: "${formData.businessUnit}"
+                  ${
+                    formData.approver0
+                      ? `Approver0: "${formData.approver0}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver0backup
+                      ? `Approver0backup: "${formData.approver0backup}"`
+                      : ""
+                  }
                   ${
                     formData.approver1
                       ? `Approver1: "${formData.approver1}"`
@@ -579,6 +633,16 @@ const ApproversMatrix: React.FC = () => {
               createapprovers_matrix(
                 item: {
                   BusinessUnit: "${formData.businessUnit}"
+                  ${
+                    formData.approver0
+                      ? `Approver0: "${formData.approver0}"`
+                      : ""
+                  }
+                  ${
+                    formData.approver0backup
+                      ? `Approver0backup: "${formData.approver0backup}"`
+                      : ""
+                  }
                   ${
                     formData.approver1
                       ? `Approver1: "${formData.approver1}"`
@@ -654,9 +718,7 @@ const ApproversMatrix: React.FC = () => {
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-md">
       <CardHeader className="pb-3 border-b">
-        <CardTitle className="text-2xl">
-          Approvers Matrix Configuration
-        </CardTitle>
+        <CardTitle className="text-2xl">Approvers Matrix</CardTitle>
       </CardHeader>
       <CardContent className="pt-6">
         {error && (
@@ -698,32 +760,32 @@ const ApproversMatrix: React.FC = () => {
               </Select>
             </div>
 
-            {/* Only show approvers dropdowns when a business unit is selected */}
-            {formData.businessUnit && (
-              <ApproversMatrixDropdowns
-                contacts={contacts}
-                selectedBusinessUnit={selectedBusinessUnit}
-                formData={formData}
-                onApproverChange={handleApproverChange}
-                isLoading={isSubmitting}
-              />
-            )}
+            {/* Always show approvers dropdowns */}
+            <ApproversMatrixDropdowns
+              contacts={contacts}
+              selectedBusinessUnit={selectedBusinessUnit}
+              formData={formData}
+              onApproverChange={handleApproverChange}
+              isLoading={isSubmitting}
+            />
 
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-lg font-semibold py-3 px-8"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
-                  Saving...
-                </>
-              ) : (
-                "Save Approvers"
-              )}
-            </Button>
+            {/* Submit Button - Centered */}
+            <div className="flex justify-center mt-6">
+              <Button
+                type="submit"
+                className="bg-green-600 hover:bg-green-700 text-lg font-semibold py-3 px-8"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
+                    Saving...
+                  </>
+                ) : (
+                  "Save Approvers"
+                )}
+              </Button>
+            </div>
           </form>
         )}
 
