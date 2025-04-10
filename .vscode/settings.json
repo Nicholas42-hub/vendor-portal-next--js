@@ -1,0 +1,19 @@
+{
+    "sqltools.connections": [
+        {
+            "connectionTimeout": 15,
+            "mssqlOptions": {
+                "appName": "SQLTools",
+                "useUTC": true,
+                "encrypt": true,
+                "trustServerCertificate": true,
+                "instanceName": "Vendor Portal"
+            },
+            "previewLimit": 50,
+            "server": "7kt2r2beorkurlvehnrzxfimly-gjelp4kjpv5uddy4b6kjbpvqpy.datawarehouse.fabric.microsoft.com",
+            "driver": "MSSQL",
+            "name": "Vendor Portal",
+            "connectString": "7kt2r2beorkurlvehnrzxfimly-gjelp4kjpv5uddy4b6kjbpvqpy.datawarehouse.fabric.microsoft.com"
+        }
+    ]
+}
