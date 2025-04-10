@@ -90,7 +90,7 @@ interface FormErrors {
 
 export default function SupplierForm() {
   const searchParams = useSearchParams();
-  const contactid = searchParams.get("contactid");
+  const email = searchParams.get("email");
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -180,16 +180,16 @@ export default function SupplierForm() {
   const fetchTradingEntities = async () => {
     try {
       setIsLoading(true);
-      if (!contactid) {
-        console.error("No contact ID available in URL");
+      if (!email) {
+        console.error("No email available in URL");
         return;
       }
 
-      const response = await axios.get(`/api/supplier/${contactid}`);
+      const response = await axios.get(`/api/supplier/${email}`);
 
-      const { vendorCountry, tradingEntities } = response.data;
+      const { vendorInfo, tradingEntities } = response.data;
 
-      console.log(vendorCountry);
+      console.log(vendorInfo);
       setTradingEntities(tradingEntities);
 
       const auEntities = tradingEntities.filter(
@@ -202,7 +202,7 @@ export default function SupplierForm() {
       setHasAuEntities(auEntities.length > 0);
       setHasNzEntities(nzEntities.length > 0);
 
-      setFormData((prev) => ({ ...prev, country: vendorCountry }));
+      setFormData((prev) => ({ ...prev, business_name: vendorInfo.fullname }));
       setVendorCountry(vendorCountry);
     } catch (error) {
       console.error("Error fetching trading entities:", error);
@@ -218,10 +218,9 @@ export default function SupplierForm() {
       if (user) {
         setFormData((prev) => ({
           ...prev,
-          business_name: user.name || "",
-          primary_contact_email: user.email || "",
-          po_email: user.email || "",
-          return_order_email: user.email || "",
+          primary_contact_email: email || "",
+          po_email: email || "",
+          return_order_email: email || "",
         }));
       }
     }
@@ -598,7 +597,7 @@ export default function SupplierForm() {
                 id="business_name"
                 name="business_name"
                 value={formData.business_name}
-                readOnly
+                onChange={handleInputChange}
                 className="bg-gray-100"
               />
             </div>
@@ -1656,7 +1655,7 @@ export default function SupplierForm() {
                         </div>
                       </div>
                     )}
-                    {formData.nz_bank_country === "Australia" && (
+                    {formData.au_bank_country === "Australia" && (
                       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
                         <div className="space-y-2">
                           <Label htmlFor="au_bsb">
