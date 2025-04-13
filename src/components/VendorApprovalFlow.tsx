@@ -123,7 +123,7 @@ export default function VendorApprovalFlow() {
   // Determine if form should be editable based on user role and status
   useEffect(() => {
     if (session?.user?.email && vendorData.crb7c_statuscode) {
-      const userEmail = session.user.email;
+      const userEmail = searchParams.get("email");
 
       // Check if user is the requester
       const isRequester = userEmail === vendorData.crb7c_poemail;
@@ -266,16 +266,15 @@ export default function VendorApprovalFlow() {
   // Fetch supplier form data
   const fetchSupplierData = async (vendorEmail: string) => {
     try {
-      // Check if contactid is available from vendorData or provided in the URL
-      const contactId = vendorData.contactid || searchParams?.get("contactid");
-
-      if (contactId) {
-        const response = await axios.get(`/api/supplier/${contactId}`);
+      if (vendorEmail) {
+        const response = await axios.get(`/api/supplier/${vendorEmail}`);
         if (response.data) {
           setSupplierData(response.data);
         }
       } else {
-        console.log("Contact ID not available, can't fetch supplier data yet");
+        console.log(
+          "Vendor email not available, can't fetch supplier data yet"
+        );
       }
     } catch (error) {
       console.error("Error fetching supplier data:", error);
@@ -336,7 +335,7 @@ export default function VendorApprovalFlow() {
       setCanApprove(false);
     }
   };
-
+  console.log(vendorData.crb7c_statuscode);
   // Helper function to check if status is in a specific state
   const isStatus = (
     status?: ApprovalStatus,
@@ -350,7 +349,22 @@ export default function VendorApprovalFlow() {
 
     return status === targetStatus;
   };
+  const statusOrder: ApprovalStatus[] = [
+    "Review",
+    "Procurement Approval",
+    "Manager Approval",
+    "Finance Approval",
+    "Exco Approval",
+    "Creation approved",
+  ];
 
+  const hasReachedStatus = (target: ApprovalStatus): boolean => {
+    if (!vendorData.crb7c_statuscode) return false;
+    return (
+      statusOrder.indexOf(vendorData.crb7c_statuscode) >=
+      statusOrder.indexOf(target)
+    );
+  };
   // Placeholder functions for the form components props
   const handleChange = (field: string, value: any) => {
     // Only allow changes if the form is editable
@@ -398,6 +412,41 @@ export default function VendorApprovalFlow() {
     setShowDeleteConfirmation(true);
   };
 
+  // Confirm deletion
+  const confirmDelete = async () => {
+    try {
+      setIsSubmitting(true);
+      setShowDeleteConfirmation(false);
+
+      // Make API call to delete the vendor
+      if (vendorData.emailaddress1) {
+        const response = await axios.delete(
+          `/api/vendors/${vendorData.emailaddress1}`
+        );
+
+        if (!response.data.success) {
+          throw new Error("Failed to delete vendor");
+        }
+      } else {
+        throw new Error("Vendor email not found");
+      }
+
+      // Show success message
+      setSuccessMessage("Vendor has been deleted successfully.");
+      setShowSuccess(true);
+
+      // Redirect to home page after a short delay
+      setTimeout(() => {
+        router.push("/");
+      }, 2000);
+    } catch (error) {
+      console.error("Error deleting vendor:", error);
+      alert("Failed to delete vendor. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Get next status in approval workflow
   const getNextStatus = (
     currentStatus: ApprovalStatus
@@ -425,7 +474,8 @@ export default function VendorApprovalFlow() {
     return null;
   };
 
-  // Confirm approval
+  // Updated confirmApproval function in VendorApprovalFlow.tsx
+
   const confirmApproval = async () => {
     try {
       setIsSubmitting(true);
@@ -438,8 +488,33 @@ export default function VendorApprovalFlow() {
         throw new Error("Invalid approval flow state");
       }
 
-      // In a real implementation, make API call to update status
-      // For now, we'll just update the local state
+      console.log(`Updating status from ${currentStatus} to ${newStatus}`);
+
+      // Make API call to update the status in Dynamics
+      if (vendorData.emailaddress1) {
+        // Use correct API endpoint structure
+        const response = await axios.patch(
+          `/api/vendors/${encodeURIComponent(vendorData.emailaddress1)}`,
+          {
+            crb7c_statuscode: newStatus,
+          }
+        );
+
+        if (!response.data.success) {
+          console.error("API error:", response.data);
+          throw new Error(
+            `Failed to update vendor status: ${
+              response.data.error || "Unknown error"
+            }`
+          );
+        }
+
+        console.log("API response:", response.data);
+      } else {
+        throw new Error("Vendor email not found");
+      }
+
+      // Update local state
       setVendorData({ ...vendorData, crb7c_statuscode: newStatus });
 
       // Show success popup
@@ -447,13 +522,17 @@ export default function VendorApprovalFlow() {
       setShowSuccess(true);
     } catch (error) {
       console.error("Error approving vendor:", error);
-      alert("Failed to approve vendor. Please try again.");
+      alert(
+        `Failed to approve vendor: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Confirm decline
+  // Similarly update confirmDecline function
   const confirmDecline = async () => {
     if (!declineComment) {
       alert("Please provide a reason for declining.");
@@ -464,8 +543,29 @@ export default function VendorApprovalFlow() {
       setIsSubmitting(true);
       setShowDeclinePopup(false);
 
-      // In a real implementation, make API call to update status
-      // For now, we'll just update the local state
+      // Make API call to update the status and decline comment in Dynamics
+      if (vendorData.emailaddress1) {
+        const response = await axios.patch(
+          `/api/vendors/${encodeURIComponent(vendorData.emailaddress1)}`,
+          {
+            crb7c_statuscode: "Declined",
+            crb7c_approvalcomment: declineComment,
+          }
+        );
+
+        if (!response.data.success) {
+          console.error("API error:", response.data);
+          throw new Error(
+            `Failed to update vendor status: ${
+              response.data.error || "Unknown error"
+            }`
+          );
+        }
+      } else {
+        throw new Error("Vendor email not found");
+      }
+
+      // Update local state
       setVendorData({
         ...vendorData,
         crb7c_statuscode: "Declined",
@@ -479,7 +579,11 @@ export default function VendorApprovalFlow() {
       setShowSuccess(true);
     } catch (error) {
       console.error("Error declining vendor:", error);
-      alert("Failed to decline vendor. Please try again.");
+      alert(
+        `Failed to decline vendor: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -497,14 +601,35 @@ export default function VendorApprovalFlow() {
     try {
       setIsLoading(true);
 
-      // In a real implementation, you would validate the form data
-      // and make an API call to update the vendor data
+      // Collect form data
+      // In a real implementation, you would gather all the updated form field values
+      const formData = {
+        // Include all form fields here
+      };
 
-      // Then update the status back to the first approval step
+      // Make API call to update the status and form data
+      if (vendorData.emailaddress1) {
+        const response = await axios.patch(
+          `/api/vendors/${vendorData.emailaddress1}`,
+          {
+            ...formData,
+            crb7c_statuscode: "Procurement Approval",
+            crb7c_approvalcomment: "", // Clear any previous decline comments
+          }
+        );
+
+        if (!response.data.success) {
+          throw new Error("Failed to update vendor data");
+        }
+      } else {
+        throw new Error("Vendor email not found");
+      }
+
+      // Update local state
       setVendorData({
         ...vendorData,
         crb7c_statuscode: "Procurement Approval",
-        crb7c_approvalcomment: "", // Clear any previous decline comments
+        crb7c_approvalcomment: "",
       });
 
       // Show success message
@@ -550,7 +675,6 @@ export default function VendorApprovalFlow() {
           Back to Vendor List
         </button>
       </div>
-
       {/* Form status notification */}
       {vendorData.crb7c_statuscode && (
         <div
@@ -637,7 +761,7 @@ export default function VendorApprovalFlow() {
 
       {/* Main content */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left column: Forms - Takes up 2/3 of the space */}
+        {/* Left column: Forms */}
         <div className="md:col-span-2">
           <div className="bg-white shadow rounded-lg p-6 mb-6">
             <h2 className="text-xl font-semibold mb-4">Vendor Details</h2>
@@ -674,7 +798,6 @@ export default function VendorApprovalFlow() {
                 opacity: isEditable ? "1" : "0.9",
               }}
             >
-              {/* Vendor Onboarding Form */}
               {activeSection === "vendorOnboardingForm" && (
                 <form onSubmit={handleRequesterSubmit}>
                   <div className="vendor-onboarding-container space-y-6">
@@ -692,7 +815,6 @@ export default function VendorApprovalFlow() {
                         onBlur={handleBlur}
                       />
                     </div>
-
                     {/* Trading Terms Section */}
                     <div className="trading-terms-container mt-6">
                       <h3 className="text-lg font-medium mb-4">
@@ -709,7 +831,6 @@ export default function VendorApprovalFlow() {
                         onBlur={handleBlur}
                       />
                     </div>
-
                     {/* Supply Terms Section */}
                     <div className="supply-terms-container mt-6">
                       <h3 className="text-lg font-medium mb-4">Supply Terms</h3>
@@ -721,7 +842,6 @@ export default function VendorApprovalFlow() {
                         onBlur={handleBlur}
                       />
                     </div>
-
                     {/* Financial Terms Section */}
                     <div className="financial-terms-container">
                       <h3 className="text-lg font-medium mb-4">
@@ -739,8 +859,6 @@ export default function VendorApprovalFlow() {
                       />
                     </div>
                   </div>
-
-                  {/* Submit button - only for requester in editable mode */}
                   {isEditable && (
                     <div className="mt-6 flex justify-end">
                       <button
@@ -780,14 +898,11 @@ export default function VendorApprovalFlow() {
                   )}
                 </form>
               )}
-
-              {/* Supplier Form */}
               {activeSection === "supplierForm" && (
                 <div className="supplier-form-container">
-                  {/* Include SupplierForm component with data and contactid */}
-                  {vendorData.contactid ? (
+                  {vendorData.emailaddress1 ? (
                     <SupplierForm
-                      contactid={vendorData.contactid}
+                      contactid={vendorData.emailaddress1}
                       initialData={supplierData}
                       readOnly={!isEditable}
                     />
@@ -804,470 +919,412 @@ export default function VendorApprovalFlow() {
           </div>
         </div>
 
- {/* Right column: Approval Flow - Takes up 1/3 of the space */}
-<div className="approval-flow bg-white shadow rounded-lg p-6">
-  <h2 className="text-xl font-semibold mb-6">Approval Flow</h2>
+        {/* Right column: Approval Flow */}
+        <div className="approval-flow bg-white shadow rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-6">Approval Flow</h2>
 
-  {vendorData.crb7c_statuscode && (
-    <div className="approval-steps space-y-8">
-      {/* Step 1: Review */}
-      <div
-        className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
-          isStatus(vendorData.crb7c_statuscode, "Review")
-            ? "border-blue-500 bg-blue-50"
-            : isStatus(vendorData.crb7c_statuscode, [
-                "Procurement Approval",
-                "Manager Approval",
-                "Finance Approval",
-                "Exco Approval",
-                "Creation approved",
-              ])
-            ? "border-green-500 bg-green-50"
-            : "border-gray-300 bg-gray-50"
-        }`}
-      >
-        <h3 className="font-medium mb-1">Step 1: Review</h3>
-        <div className="flex items-center">
-          <span>Status: </span>
-          <span
-            className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-              isStatus(vendorData.crb7c_statuscode, "Review")
-                ? "bg-blue-100 text-blue-700"
-                : isStatus(vendorData.crb7c_statuscode, [
-                    "Procurement Approval",
-                    "Manager Approval",
-                    "Finance Approval",
-                    "Exco Approval",
-                    "Creation approved",
-                  ])
-                ? "bg-green-100 text-green-700"
-                : "bg-yellow-100 text-yellow-700"
-            }`}
-          >
-            {isStatus(vendorData.crb7c_statuscode, "Review")
-              ? "In Review"
-              : isStatus(vendorData.crb7c_statuscode, [
-                  "Procurement Approval",
-                  "Manager Approval",
-                  "Finance Approval",
-                  "Exco Approval",
-                  "Creation approved",
-                ])
-              ? "Approved"
-              : "Pending"}
-          </span>
-        </div>
-        {isStatus(vendorData.crb7c_statuscode, "Review") && (
-          <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2">
-            <div className="w-0 h-0 border-l-[8px] border-l-transparent border-t-[8px] border-t-gray-300 border-r-[8px] border-r-transparent"></div>
-          </div>
-        )}
-      </div>
+          {vendorData.crb7c_statuscode && (
+            <div className="approval-steps space-y-8">
+              {/* Only show statuses that are current or have been reached */}
 
-      {/* Step 2: Procurement Approval */}
-      <div
-        className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
-          isStatus(vendorData.crb7c_statuscode, "Procurement Approval")
-            ? "border-blue-500 bg-blue-50"
-            : isStatus(vendorData.crb7c_statuscode, [
-                "Manager Approval",
-                "Finance Approval",
-                "Exco Approval",
-                "Creation approved",
-              ])
-            ? "border-green-500 bg-green-50"
-            : isStatus(vendorData.crb7c_statuscode, "Review")
-            ? "border-gray-300 bg-gray-50"
-            : "hidden"
-        }`}
-      >
-        <h3 className="font-medium mb-1">
-          Step 2: Procurement Approval
-        </h3>
-        <div className="flex items-center">
-          <span>Status: </span>
-          <span
-            className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-              isStatus(
-                vendorData.crb7c_statuscode,
-                "Procurement Approval"
-              )
-                ? "bg-blue-100 text-blue-700"
-                : isStatus(vendorData.crb7c_statuscode, [
-                    "Manager Approval",
-                    "Finance Approval",
-                    "Exco Approval",
-                    "Creation approved",
-                  ])
-                ? "bg-green-100 text-green-700"
-                : isStatus(vendorData.crb7c_statuscode, "Review")
-                ? "bg-yellow-100 text-yellow-700"
-                : "bg-gray-100 text-gray-700"
-            }`}
-          >
-            {isStatus(
-              vendorData.crb7c_statuscode,
-              "Procurement Approval"
-            )
-              ? "Pending Approval"
-              : isStatus(vendorData.crb7c_statuscode, [
-                  "Manager Approval",
-                  "Finance Approval",
-                  "Exco Approval",
-                  "Creation approved",
-                ])
-              ? "Approved"
-              : isStatus(vendorData.crb7c_statuscode, "Review")
-              ? "Pending"
-              : "Not Started"}
-          </span>
-        </div>
-        {isStatus(vendorData.crb7c_statuscode, "Procurement Approval") && (
-          <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2">
-            <div className="w-0 h-0 border-l-[8px] border-l-transparent border-t-[8px] border-t-gray-300 border-r-[8px] border-r-transparent"></div>
-          </div>
-        )}
-      </div>
+              {/* Step 1: Review */}
+              <div
+                className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
+                  isStatus(vendorData.crb7c_statuscode, "Review")
+                    ? "border-blue-500 bg-blue-50" // Current status
+                    : hasReachedStatus("Procurement Approval")
+                    ? "border-green-500 bg-green-50" // Past status
+                    : "hidden" // Future status - hidden
+                }`}
+              >
+                <h3 className="font-medium mb-1">Step 1: Review</h3>
+                <div className="flex items-center">
+                  <span>Status: </span>
+                  <span
+                    className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
+                      isStatus(vendorData.crb7c_statuscode, "Review")
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-green-100 text-green-800"
+                    }`}
+                  >
+                    {isStatus(vendorData.crb7c_statuscode, "Review")
+                      ? "In Progress"
+                      : "Completed"}
+                  </span>
+                </div>
+              </div>
 
-      {/* Step 3: Manager Approval */}
-      <div
-        className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
-          isStatus(vendorData.crb7c_statuscode, "Manager Approval")
-            ? "border-blue-500 bg-blue-50"
-            : isStatus(vendorData.crb7c_statuscode, [
-                "Finance Approval",
-                "Exco Approval",
-                "Creation approved",
-              ])
-            ? "border-green-500 bg-green-50"
-            : isStatus(vendorData.crb7c_statuscode, ["Review", "Procurement Approval"])
-            ? "border-gray-300 bg-gray-50"
-            : "hidden"
-        }`}
-      >
-        <h3 className="font-medium mb-1">Step 3: Manager Approval</h3>
-        <div className="flex items-center">
-          <span>Status: </span>
-          <span
-            className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-              isStatus(vendorData.crb7c_statuscode, "Manager Approval")
-                ? "bg-blue-100 text-blue-700"
-                : isStatus(vendorData.crb7c_statuscode, [
-                    "Finance Approval",
-                    "Exco Approval",
-                    "Creation approved",
-                  ])
-                ? "bg-green-100 text-green-700"
-                : isStatus(vendorData.crb7c_statuscode, [
-                    "Review",
-                    "Procurement Approval",
-                  ])
-                ? "bg-yellow-100 text-yellow-700"
-                : "bg-gray-100 text-gray-700"
-            }`}
-          >
-            {isStatus(vendorData.crb7c_statuscode, "Manager Approval")
-              ? "Pending Approval"
-              : isStatus(vendorData.crb7c_statuscode, [
-                  "Finance Approval",
-                  "Exco Approval",
-                  "Creation approved",
-                ])
-              ? "Approved"
-              : isStatus(vendorData.crb7c_statuscode, [
-                  "Review",
-                  "Procurement Approval",
-                ])
-              ? "Pending"
-              : "Not Started"}
-          </span>
-        </div>
-        {isStatus(vendorData.crb7c_statuscode, "Manager Approval") && (
-          <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2">
-            <div className="w-0 h-0 border-l-[8px] border-l-transparent border-t-[8px] border-t-gray-300 border-r-[8px] border-r-transparent"></div>
-          </div>
-        )}
-      </div>
+              {/* Step 2: Procurement Approval */}
+              <div
+                className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
+                  isStatus(vendorData.crb7c_statuscode, "Procurement Approval")
+                    ? "border-blue-500 bg-blue-50" // Current status
+                    : hasReachedStatus("Manager Approval")
+                    ? "border-green-500 bg-green-50" // Past status
+                    : !hasReachedStatus("Procurement Approval")
+                    ? "hidden" // Future status - hidden
+                    : "border-gray-300 bg-gray-50" // Upcoming status (showing only the next one)
+                }`}
+              >
+                <h3 className="font-medium mb-1">
+                  Step 2: Procurement Approval
+                </h3>
+                <div className="flex items-center">
+                  <span>Status: </span>
+                  <span
+                    className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
+                      isStatus(
+                        vendorData.crb7c_statuscode,
+                        "Procurement Approval"
+                      )
+                        ? "bg-blue-100 text-blue-800"
+                        : hasReachedStatus("Manager Approval")
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {isStatus(
+                      vendorData.crb7c_statuscode,
+                      "Procurement Approval"
+                    )
+                      ? "In Progress"
+                      : hasReachedStatus("Manager Approval")
+                      ? "Completed"
+                      : "Pending"}
+                  </span>
+                </div>
+              </div>
 
-      {/* Step 4: Finance Approval - conditional based on payment terms */}
-      {requiresFinanceApproval && (
-        <div
-          className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
-            isStatus(vendorData.crb7c_statuscode, "Finance Approval")
-              ? "border-blue-500 bg-blue-50"
-              : isStatus(vendorData.crb7c_statuscode, [
-                  "Exco Approval",
-                  "Creation approved",
-                ])
-              ? "border-green-500 bg-green-50"
-              : isStatus(vendorData.crb7c_statuscode, [
-                  "Review", 
-                  "Procurement Approval",
-                  "Manager Approval"
-                ])
-              ? "border-gray-300 bg-gray-50"
-              : "hidden"
-          }`}
-        >
-          <h3 className="font-medium mb-1">Step 4: Finance Approval</h3>
-          <div className="flex items-center">
-            <span>Status: </span>
-            <span
-              className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                isStatus(
-                  vendorData.crb7c_statuscode,
-                  "Finance Approval"
-                )
-                  ? "bg-blue-100 text-blue-700"
-                  : isStatus(vendorData.crb7c_statuscode, [
-                      "Exco Approval",
-                      "Creation approved",
-                    ])
-                  ? "bg-green-100 text-green-700"
-                  : isStatus(vendorData.crb7c_statuscode, [
-                      "Review",
-                      "Procurement Approval",
-                      "Manager Approval",
-                    ])
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-gray-100 text-gray-700"
-              }`}
-            >
-              {isStatus(vendorData.crb7c_statuscode, "Finance Approval")
-                ? "Pending Approval"
-                : isStatus(vendorData.crb7c_statuscode, [
-                    "Exco Approval",
-                    "Creation approved",
-                  ])
-                ? "Approved"
-                : isStatus(vendorData.crb7c_statuscode, [
-                    "Review",
-                    "Procurement Approval",
-                    "Manager Approval",
-                  ])
-                ? "Pending"
-                : "Not Started"}
-            </span>
-          </div>
-          {isStatus(vendorData.crb7c_statuscode, "Finance Approval") && (
-            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2">
-              <div className="w-0 h-0 border-l-[8px] border-l-transparent border-t-[8px] border-t-gray-300 border-r-[8px] border-r-transparent"></div>
+              {/* Step 3: Manager Approval */}
+              <div
+                className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
+                  isStatus(vendorData.crb7c_statuscode, "Manager Approval")
+                    ? "border-blue-500 bg-blue-50" // Current status
+                    : hasReachedStatus("Finance Approval") ||
+                      (hasReachedStatus("Exco Approval") &&
+                        !requiresFinanceApproval)
+                    ? "border-green-500 bg-green-50" // Past status
+                    : !hasReachedStatus("Manager Approval")
+                    ? "hidden" // Future status - hidden
+                    : "border-gray-300 bg-gray-50" // Upcoming status (showing only the next one)
+                }`}
+              >
+                <h3 className="font-medium mb-1">Step 3: Manager Approval</h3>
+                <div className="flex items-center">
+                  <span>Status: </span>
+                  <span
+                    className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
+                      isStatus(vendorData.crb7c_statuscode, "Manager Approval")
+                        ? "bg-blue-100 text-blue-800"
+                        : hasReachedStatus("Finance Approval") ||
+                          (hasReachedStatus("Exco Approval") &&
+                            !requiresFinanceApproval)
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {isStatus(vendorData.crb7c_statuscode, "Manager Approval")
+                      ? "In Progress"
+                      : hasReachedStatus("Finance Approval") ||
+                        (hasReachedStatus("Exco Approval") &&
+                          !requiresFinanceApproval)
+                      ? "Completed"
+                      : "Pending"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Step 4: Finance Approval - Only show if required */}
+              {requiresFinanceApproval && (
+                <div
+                  className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
+                    isStatus(vendorData.crb7c_statuscode, "Finance Approval")
+                      ? "border-blue-500 bg-blue-50" // Current status
+                      : hasReachedStatus("Exco Approval")
+                      ? "border-green-500 bg-green-50" // Past status
+                      : !hasReachedStatus("Finance Approval")
+                      ? "hidden" // Future status - hidden
+                      : "border-gray-300 bg-gray-50" // Upcoming status (showing only the next one)
+                  }`}
+                >
+                  <h3 className="font-medium mb-1">Step 4: Finance Approval</h3>
+                  <div className="flex items-center">
+                    <span>Status: </span>
+                    <span
+                      className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
+                        isStatus(
+                          vendorData.crb7c_statuscode,
+                          "Finance Approval"
+                        )
+                          ? "bg-blue-100 text-blue-800"
+                          : hasReachedStatus("Exco Approval")
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {isStatus(vendorData.crb7c_statuscode, "Finance Approval")
+                        ? "In Progress"
+                        : hasReachedStatus("Exco Approval")
+                        ? "Completed"
+                        : "Pending"}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 5: Exco Approval */}
+              <div
+                className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
+                  isStatus(vendorData.crb7c_statuscode, "Exco Approval")
+                    ? "border-blue-500 bg-blue-50" // Current status
+                    : hasReachedStatus("Creation approved")
+                    ? "border-green-500 bg-green-50" // Past status
+                    : !hasReachedStatus("Exco Approval")
+                    ? "hidden" // Future status - hidden
+                    : "border-gray-300 bg-gray-50" // Upcoming status (showing only the next one)
+                }`}
+              >
+                <h3 className="font-medium mb-1">
+                  Step {requiresFinanceApproval ? "5" : "4"}: Exco Approval
+                </h3>
+                <div className="flex items-center">
+                  <span>Status: </span>
+                  <span
+                    className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
+                      isStatus(vendorData.crb7c_statuscode, "Exco Approval")
+                        ? "bg-blue-100 text-blue-800"
+                        : hasReachedStatus("Creation approved")
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {isStatus(vendorData.crb7c_statuscode, "Exco Approval")
+                      ? "In Progress"
+                      : hasReachedStatus("Creation approved")
+                      ? "Completed"
+                      : "Pending"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Final Step: Completed */}
+              <div
+                className={`approval-step p-4 border-l-4 rounded shadow-sm ${
+                  isStatus(vendorData.crb7c_statuscode, "Creation approved")
+                    ? "border-green-500 bg-green-50" // Current/final status
+                    : !hasReachedStatus("Creation approved")
+                    ? "hidden" // Future status - hidden
+                    : "border-gray-300 bg-gray-50" // Upcoming status (showing only the next one)
+                }`}
+              >
+                <h3 className="font-medium mb-1">
+                  Step {requiresFinanceApproval ? "6" : "5"}: Completed
+                </h3>
+                <div className="flex items-center">
+                  <span>Status: </span>
+                  <span
+                    className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
+                      isStatus(vendorData.crb7c_statuscode, "Creation approved")
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {isStatus(vendorData.crb7c_statuscode, "Creation approved")
+                      ? "Completed"
+                      : "Pending"}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
+          {/* Status-specific displays and action buttons */}
+          {vendorData.crb7c_statuscode === "Declined" && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded mt-6">
+              <h3 className="text-red-700 font-medium">Declined</h3>
+              <p className="text-sm text-gray-700 mt-2">Reason for decline:</p>
+              <p className="text-sm italic mt-1">
+                {vendorData.crb7c_approvalcomment || "No reason provided"}
+              </p>
+            </div>
+          )}
+
+          {canApprove &&
+            vendorData.crb7c_statuscode &&
+            !isStatus(vendorData.crb7c_statuscode, ["Creation approved"]) && (
+              <div className="mt-8 grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md font-medium flex items-center justify-center"
+                  onClick={handleApprove}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                  ) : null}
+                  {isSubmitting ? "Processing..." : "Approve"}
+                </button>
+                <button
+                  type="button"
+                  className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md font-medium"
+                  onClick={handleDecline}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Processing..." : "Decline"}
+                </button>
+              </div>
+            )}
+
+          {isEditable && vendorData.crb7c_statuscode === "Declined" && (
+            <button
+              type="button"
+              className="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium"
+              onClick={() =>
+                document
+                  .querySelector("form")
+                  ?.dispatchEvent(
+                    new Event("submit", { cancelable: true, bubbles: true })
+                  )
+              }
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Processing..." : "Re-submit"}
+            </button>
+          )}
+
+          {vendorData.crb7c_statuscode === "Invitation sent" && (
+            <button
+              type="button"
+              className="mt-8 w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md font-medium"
+              onClick={handleDelete}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Processing..." : "Delete"}
+            </button>
+          )}
+        </div>
+      </div>
+      {showConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-auto">
+            <h2 className="text-xl font-semibold mb-4">
+              Would you like to proceed?
+            </h2>
+            <p className="mb-6">
+              Are you sure you want to approve this vendor?
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
+                onClick={() => setShowConfirmation(false)}
+              >
+                No
+              </button>
+              <button
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                onClick={confirmApproval}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Step 5/4: Exco Approval */}
-      <div
-        className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
-          isStatus(vendorData.crb7c_statuscode, "Exco Approval")
-            ? "border-blue-500 bg-blue-50"
-            : isStatus(vendorData.crb7c_statuscode, "Creation approved")
-            ? "border-green-500 bg-green-50"
-            : isStatus(vendorData.crb7c_statuscode, [
-                "Review", 
-                "Procurement Approval",
-                "Manager Approval",
-                "Finance Approval"
-              ])
-            ? "border-gray-300 bg-gray-50"
-            : "hidden"
-        }`}
-      >
-        <h3 className="font-medium mb-1">
-          Step {requiresFinanceApproval ? "5" : "4"}: Exco Approval
-        </h3>
-        <div className="flex items-center">
-          <span>Status: </span>
-          <span
-            className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-              isStatus(vendorData.crb7c_statuscode, "Exco Approval")
-                ? "bg-blue-100 text-blue-700"
-                : isStatus(
-                    vendorData.crb7c_statuscode,
-                    "Creation approved"
-                  )
-                ? "bg-green-100 text-green-700"
-                : isStatus(vendorData.crb7c_statuscode, [
-                    "Review",
-                    "Procurement Approval",
-                    "Manager Approval",
-                    "Finance Approval",
-                  ])
-                ? "bg-yellow-100 text-yellow-700"
-                : "bg-gray-100 text-gray-700"
-            }`}
-          >
-            {isStatus(vendorData.crb7c_statuscode, "Exco Approval")
-              ? "Pending Approval"
-              : isStatus(
-                  vendorData.crb7c_statuscode,
-                  "Creation approved"
-                )
-              ? "Approved"
-              : isStatus(vendorData.crb7c_statuscode, [
-                  "Review",
-                  "Procurement Approval",
-                  "Manager Approval",
-                  "Finance Approval",
-                ])
-              ? "Pending"
-              : "Not Started"}
-          </span>
-        </div>
-        {isStatus(vendorData.crb7c_statuscode, "Exco Approval") && (
-          <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2">
-            <div className="w-0 h-0 border-l-[8px] border-l-transparent border-t-[8px] border-t-gray-300 border-r-[8px] border-r-transparent"></div>
+      {showDeclinePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-auto">
+            <h2 className="text-xl font-semibold mb-4">
+              Are you sure you want to decline?
+            </h2>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Please provide a reason:
+              </label>
+              <textarea
+                className="w-full p-2 border border-gray-300 rounded-md h-24"
+                value={declineComment}
+                onChange={(e) => setDeclineComment(e.target.value)}
+                placeholder="Enter your comment here..."
+              ></textarea>
+            </div>
+            <div className="flex justify-end space-x-4">
+              <button
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
+                onClick={() => setShowDeclinePopup(false)}
+              >
+                No
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                onClick={confirmDecline}
+              >
+                Yes
+              </button>
+            </div>
           </div>
-        )}
-      </div>
-
-      {/* Final Step: Completed */}
-      <div
-        className={`approval-step p-4 border-l-4 rounded shadow-sm ${
-          isStatus(vendorData.crb7c_statuscode, "Creation approved")
-            ? "border-green-500 bg-green-50"
-            : isStatus(vendorData.crb7c_statuscode, [
-                "Review", 
-                "Procurement Approval",
-                "Manager Approval",
-                "Finance Approval",
-                "Exco Approval"
-              ])
-            ? "border-gray-300 bg-gray-50"
-            : "hidden"
-        }`}
-      >
-        <h3 className="font-medium mb-1">
-          Step {requiresFinanceApproval ? "6" : "5"}: Completed
-        </h3>
-        <div className="flex items-center">
-          <span>Status: </span>
-          <span
-            className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-              isStatus(vendorData.crb7c_statuscode, "Creation approved")
-                ? "bg-green-100 text-green-700"
-                : "bg-gray-100 text-gray-700"
-            }`}
-          >
-            {isStatus(vendorData.crb7c_statuscode, "Creation approved")
-              ? "Completed"
-              : "Pending"}
-          </span>
         </div>
-      </div>
+      )}
+      {showDeleteConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-auto">
+            <h2 className="text-xl font-semibold mb-4">
+              Are you sure you want to DELETE this request?
+            </h2>
+            <div className="flex justify-end space-x-4">
+              <button
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
+                onClick={() => setShowDeleteConfirmation(false)}
+              >
+                No
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                onClick={() => {
+                  setShowDeleteConfirmation(false);
+                  setSuccessMessage("Vendor has been deleted successfully.");
+                  setShowSuccess(true);
+                }}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showSuccess && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md mx-auto">
+            <h2 className="text-xl font-semibold mb-4">Thank you!</h2>
+            <p className="mb-6">{successMessage}</p>
+            <div className="flex justify-center">
+              <button
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                onClick={handleSuccessClose}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  )}
-
-  {/* Show decline message when status is Declined */}
-  {vendorData.crb7c_statuscode === "Declined" && (
-    <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded mt-6">
-      <h3 className="text-red-700 font-medium">Declined</h3>
-      <p className="text-sm text-gray-700 mt-2">Reason for decline:</p>
-      <p className="text-sm italic mt-1">
-        {vendorData.crb7c_approvalcomment || "No reason provided"}
-      </p>
-    </div>
-  )}
-
-  {/* Current status highlight box */}
-  {vendorData.crb7c_statuscode && 
-   vendorData.crb7c_statuscode !== "Declined" &&
-   vendorData.crb7c_statuscode !== "Creation approved" && (
-    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mt-6">
-      <h3 className="text-blue-700 font-medium">Current Status</h3>
-      <p className="text-sm mt-1">
-        {vendorData.crb7c_statuscode === "Review" ? "Under Review" :
-         vendorData.crb7c_statuscode === "Procurement Approval" ? "Pending Procurement Approval" :
-         vendorData.crb7c_statuscode === "Manager Approval" ? "Pending Manager Approval" :
-         vendorData.crb7c_statuscode === "Finance Approval" ? "Pending Finance Approval" :
-         vendorData.crb7c_statuscode === "Exco Approval" ? "Pending Exco Approval" :
-         vendorData.crb7c_statuscode}
-      </p>
-    </div>
-  )}
-
-  {/* Action buttons based on status and permissions */}
-  {canApprove &&
-    vendorData.crb7c_statuscode &&
-    !isStatus(vendorData.crb7c_statuscode, [
-      "Creation approved",
-      // "Declined",
-      // "Invitation sent",
-      // "Review",
-    ]) && (
-      <div className="mt-8 grid grid-cols-2 gap-4">
-        <button
-          type="button"
-          className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md font-medium flex items-center justify-center"
-          onClick={handleApprove}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <svg
-              className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-          ) : null}
-          {isSubmitting ? "Processing..." : "Approve"}
-        </button>
-        <button
-          type="button"
-          className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md font-medium"
-          onClick={handleDecline}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Processing..." : "Decline"}
-        </button>
-      </div>
-    )}
-
-  {/* Resubmit button for declined status */}
-  {isEditable && vendorData.crb7c_statuscode === "Declined" && (
-    <button
-      type="button"
-      className="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium"
-      onClick={() =>
-        document
-          .querySelector("form")
-          ?.dispatchEvent(
-            new Event("submit", { cancelable: true, bubbles: true })
-          )
-      }
-      disabled={isSubmitting}
-    >
-      {isSubmitting ? "Processing..." : "Re-submit"}
-    </button>
-  )}
-
-  {/* Delete button for Invitation sent status */}
-  {vendorData.crb7c_statuscode === "Invitation sent" && (
-    <button
-      type="button"
-      className="mt-8 w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md font-medium"
-      onClick={handleDelete}
-      disabled={isSubmitting}
-    >
-      {isSubmitting ? "Processing..." : "Delete"}
-    </button>
-  )}
-</div>
-
   );
 }

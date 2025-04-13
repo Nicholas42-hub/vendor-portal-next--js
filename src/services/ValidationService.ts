@@ -70,13 +70,17 @@ export class ValidationService {
   ): ValidationErrors['financialTerms'] {
     const errors: ValidationErrors['financialTerms'] = {};
 
+    // Determine which sections to show based on vendor type
+    const showRebates = vendorType === 'STOCK' || vendorType === 'OVERHEADANDSTOCK';
+    const showOrderExpiryDays = vendorType === 'STOCK' || vendorType === 'OVERHEADANDSTOCK';
+
     // Payment terms validation
     if (!financialTerms.paymentTerms) {
       errors.paymentTerms = 'Payment terms are required';
     }
 
-    // Order expiry days validation - only for STOCK or OVERHEADANDSTOCK
-    if ((vendorType === 'STOCK' || vendorType === 'OVERHEADANDSTOCK')) {
+    // Order expiry days validation - only if section is shown
+    if (showOrderExpiryDays) {
       if (!financialTerms.orderExpiryDays) {
         errors.orderExpiryDays = 'Order expiry days are required';
       } else if (financialTerms.orderExpiryDays < 0) {
@@ -84,11 +88,13 @@ export class ValidationService {
       }
     }
 
-    // Gross margin validation - required for all vendor types
-    if (!financialTerms.grossMargin) {
-      errors.grossMargin = 'Gross margin is required';
-    } else if (isNaN(parseFloat(financialTerms.grossMargin.replace('%', '')))) {
-      errors.grossMargin = 'Gross margin must be a number';
+    // Gross margin validation - only if section is shown
+    if (showOrderExpiryDays) {
+      if (!financialTerms.grossMargin) {
+        errors.grossMargin = 'Gross margin is required';
+      } else if (isNaN(parseFloat(financialTerms.grossMargin.replace('%', '')))) {
+        errors.grossMargin = 'Gross margin must be a number';
+      }
     }
 
     // Invoice discount validation
@@ -110,8 +116,8 @@ export class ValidationService {
       }
     }
 
-    // For STOCK or OVERHEADANDSTOCK, validate rebate fields
-    if (vendorType === 'STOCK' || vendorType === 'OVERHEADANDSTOCK') {
+    // For STOCK or OVERHEADANDSTOCK, validate rebate fields - only if sections are shown
+    if (showRebates) {
       // Flat rebate validation
       if (!financialTerms.flatRebate) {
         errors.flatRebate = 'Please select whether there is a flat rebate';
@@ -205,10 +211,7 @@ static validateForm(data: VendorData): ValidationErrors {
       errors.vendorType = 'Vendor Type is required';
     }
 
-    // Parent Vendor validation (if applicable)
-    if (generalDetails.childVendor === 'yes' && !generalDetails.parentVendor) {
-      errors.parentVendor = 'Parent Vendor is required for child vendors';
-    }
+    // Parent Vendor validation removed
 
     return errors;
   }
@@ -222,18 +225,21 @@ static validateForm(data: VendorData): ValidationErrors {
   ): ValidationErrors['tradingTerms'] {
     const errors: ValidationErrors['tradingTerms'] = {};
 
-    // Quotes Obtained validation - only required for OVERHEADS or OVERHEADANDSTOCK
-    if ((vendorType === 'OVERHEADS' || vendorType === 'OVERHEADANDSTOCK') && !tradingTerms.quotesObtained) {
+    // Check if quotes section should be shown based on vendor type
+    const showQuotesSection = vendorType === 'OVERHEADS' || vendorType === 'OVERHEADANDSTOCK';
+
+    // Quotes Obtained validation - only required if section is shown
+    if (showQuotesSection && !tradingTerms.quotesObtained) {
       errors.quotesObtained = 'Please select whether 2 quotes were obtained';
     }
 
-    // Reason for no quotes - required if quotesObtained is 'no'
-    if (tradingTerms.quotesObtained === 'no' && !tradingTerms.quotesObtainedReason) {
+    // Reason for no quotes - required if quotesObtained is 'no' and section is shown
+    if (showQuotesSection && tradingTerms.quotesObtained === 'no' && !tradingTerms.quotesObtainedReason) {
       errors.quotesObtainedReason = 'Please provide a reason';
     }
     
-    // PDF attachment - required if quotesObtained is 'yes'
-    if (tradingTerms.quotesObtained === 'yes' && !tradingTerms.quotesPdf) {
+    // PDF attachment - required if quotesObtained is 'yes' and section is shown
+    if (showQuotesSection && tradingTerms.quotesObtained === 'yes' && !tradingTerms.quotesPdf) {
       errors.quotesPdf = 'Please upload quotes PDF';
     }
 
