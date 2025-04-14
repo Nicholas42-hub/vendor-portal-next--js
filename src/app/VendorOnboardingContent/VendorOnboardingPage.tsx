@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import VendorOnboardingContent from "@/components/VendorOnboardingContent";
+import VendorOnboardingContent from "@/app/VendorOnboardingContent/VendorOnboardingContent";
 import axios from "axios";
 const VendorOnboardingPage: React.FC = () => {
   const { data: session, status } = useSession();

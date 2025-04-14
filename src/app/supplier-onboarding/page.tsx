@@ -1,2 +1,1 @@
-// src/app/supplier-onboarding/page.tsx
-export { default } from "@/app/pages/SupplierFormPage";
+export { default } from "./SupplierFormPage";

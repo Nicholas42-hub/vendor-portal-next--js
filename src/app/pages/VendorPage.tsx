@@ -3,7 +3,7 @@
 
 import React, { useEffect } from "react";
 import { useSession } from "next-auth/react";
-import VendorOnboardingPage from "@/app/pages/VendorOnboardingPage";
+import VendorOnboardingPage from "@/app/VendorOnboardingContent/VendorOnboardingPage";
 
 // This component will be the main entry point for the vendor onboarding page
 export default function VendorPage() {

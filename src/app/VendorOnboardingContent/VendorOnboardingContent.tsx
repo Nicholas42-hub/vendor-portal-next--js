@@ -4,10 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
-interface VendorOnboardingContentProps {
-  // Add any props the component needs
-}
 
 interface StatusFilterProps {
   id: string;
@@ -48,7 +44,30 @@ const StatusFilter: React.FC<StatusFilterProps> = ({
   );
 };
 
-const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
+// Helper function to format date as yyyymmdd
+const formatDateAsYYYYMMDD = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn("Invalid date:", dateString);
+      return dateString; // Return original if invalid
+    }
+
+    const year = date.getFullYear();
+    // Add leading zero if month or day is less than 10
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return dateString; // Return original on error
+  }
+};
+
+const VendorOnboardingContent: React.FC = () => {
   const { data: session } = useSession();
   const router = useRouter();
   const [tableData, setTableData] = useState<VendorData[]>([]);
@@ -57,7 +76,7 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({
     all: 0,
-    "Invitation sent": 0,
+    "Invitation Sent": 0,
     "Pending Manager Approval": 0,
     "Pending Exco Approval": 0,
     "Pending CFO Approval": 0,
@@ -65,6 +84,7 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
     Declined: 0,
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch data when the component mounts
   useEffect(() => {
@@ -72,22 +92,49 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
       if (session?.accessToken) {
         try {
           setIsLoading(true);
+          setError(null);
 
-          const result = await axios.get("/api/vendoronboardingcontent");
-          if (result.data) {
-            setTableData(result.data);
-            setFilteredData(result.data);
-            updateCounts(result.data);
-            filterData(result.data, currentFilter, searchTerm);
+          const result = await fetch("/api/vendoronboardingcontent");
+
+          if (!result.ok) {
+            throw new Error(
+              `API returned ${result.status}: ${result.statusText}`
+            );
+          }
+
+          const responseData = await result.json();
+
+          if (!responseData.success) {
+            throw new Error(responseData.message || "Failed to fetch data");
+          }
+
+          console.log("API Response:", responseData);
+
+          // Check if data is available and is an array
+          if (responseData.data && Array.isArray(responseData.data)) {
+            // Format the date in each item to yyyymmdd
+            const formattedData = responseData.data.map((item: VendorData) => ({
+              ...item,
+              createdon_formatted: formatDateAsYYYYMMDD(
+                item.createdon_formatted
+              ),
+            }));
+
+            setTableData(formattedData);
+            setFilteredData(formattedData);
+            updateCounts(formattedData);
           } else {
-            console.error("Error fetching data:");
+            console.warn("Response data is not an array:", responseData.data);
             setTableData([]);
             setFilteredData([]);
+            updateCounts([]);
           }
         } catch (error) {
           console.error("Error fetching data:", error);
+          setError(error instanceof Error ? error.message : String(error));
           setTableData([]);
           setFilteredData([]);
+          updateCounts([]);
         } finally {
           setIsLoading(false);
         }
@@ -104,6 +151,12 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
 
   // Filter data based on current filter and search term
   const filterData = (data: VendorData[], filter: string, search: string) => {
+    // Ensure data is an array before filtering
+    if (!Array.isArray(data)) {
+      console.warn("filterData received non-array data:", data);
+      return;
+    }
+
     const filtered = data.filter((row) => {
       const matchesFilter = filter === "all" || row.originalStatus === filter;
       const businessName = row.crb7c_businessname
@@ -118,9 +171,26 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
 
   // Update the counts for each status
   const updateCounts = (data: VendorData[]) => {
+    // Ensure data is an array before processing
+    if (!Array.isArray(data)) {
+      console.warn("updateCounts received non-array data:", data);
+
+      // Set default counts to 0
+      setStatusCounts({
+        all: 0,
+        "Invitation Sent": 0,
+        "Pending Manager Approval": 0,
+        "Pending Exco Approval": 0,
+        "Pending CFO Approval": 0,
+        "Creation approved": 0,
+        Declined: 0,
+      });
+      return;
+    }
+
     const counts = {
       all: data.length,
-      "Invitation sent": 0,
+      "Invitation Sent": 0,
       "Pending Manager Approval": 0,
       "Pending Exco Approval": 0,
       "Pending CFO Approval": 0,
@@ -182,11 +252,11 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
 
           {/* Invitation Sent Filter */}
           <StatusFilter
-            id="invitation-sent"
-            dataStatus="Invitation sent"
-            label="Invitation sent"
-            count={statusCounts["Invitation sent"]}
-            isActive={currentFilter === "Invitation sent"}
+            id="invitation-Sent"
+            dataStatus="Invitation Sent"
+            label="Invitation Sent"
+            count={statusCounts["Invitation Sent"]}
+            isActive={currentFilter === "Invitation Sent"}
             onClick={handleFilterChange}
           />
 
@@ -270,6 +340,13 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
           </Button>
         </div>
 
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            <p className="font-bold">Error</p>
+            <p>{error}</p>
+          </div>
+        )}
+
         <div id="POContainer" className="POContainer mt-8">
           {isLoading ? (
             <div className="flex justify-center py-10">
@@ -301,9 +378,9 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
               </thead>
               <tbody id="crmDataTableBody">
                 {filteredData.length > 0 ? (
-                  filteredData.map((row) => (
+                  filteredData.map((row, index) => (
                     <tr
-                      key={row.crb7c_poemail}
+                      key={`${row.crb7c_poemail}-${index}`}
                       className="border-b hover:bg-gray-50 cursor-pointer"
                       onClick={() => handleRowClick(row.crb7c_poemail)}
                     >

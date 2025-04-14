@@ -20,22 +20,29 @@ export async function GET(req: NextRequest) {
     const workspaceId = process.env.NEXT_PUBLIC_FABRIC_WORKSPACE_ID;
     const graphqlId = process.env.NEXT_PUBLIC_GRAPHQL_ID;
     const graphqlEndpoint = `https://${workspaceId}.zaa.graphql.fabric.microsoft.com/v1/workspaces/${workspaceId}/graphqlapis/${graphqlId}/graphql`;
-    const query = `query {
-  vendorOnboardings(
-    filter: { status_code: { neq: "Creation approved" } }
-    first: 1000
-  ) {
-    items {
-      email
-      business_name
-      created_on
-      created_by
-      status_code
-    }
-  }
-}`;
+
+    // Format the GraphQL query properly
+    const queryData = {
+      query: `
+        query {
+          vendorOnboardings(
+            filter: { status_code: { neq: "Creation approved" } }
+            first: 1000
+          ) {
+            items {
+              email
+              business_name
+              created_on
+              created_by
+              status_code
+            }
+          }
+        }
+      `,
+    };
+
     // Make the GraphQL request
-    const response = await axios.post(graphqlEndpoint, query, {
+    const response = await axios.post(graphqlEndpoint, queryData, {
       headers: {
         Authorization: `Bearer ${session.accessToken}`,
         "Content-Type": "application/json",
@@ -50,7 +57,11 @@ export async function GET(req: NextRequest) {
         message: `Connection failed with status: ${response.status}`,
       });
     }
-    // Extract vendor onboardings  from the response
+
+    // Log response for debugging
+    console.log("GraphQL Response:", JSON.stringify(response.data, null, 2));
+
+    // Extract vendor onboardings from the response
     const data = response.data.data;
     if (!data || !data.vendorOnboardings || !data.vendorOnboardings.items) {
       return NextResponse.json({
@@ -59,10 +70,20 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Transform the data if needed
+    const formattedData = data.vendorOnboardings.items.map((item: any) => ({
+      crb7c_poemail: item.email || "",
+      crb7c_businessname: item.business_name || "",
+      adx_createdbyusername: item.created_by || "",
+      createdon_formatted: item.created_on || "",
+      statecodename: item.status_code || "",
+      originalStatus: item.status_code || "",
+    }));
+
     // Return the vendor onboardings
     return NextResponse.json({
       success: true,
-      data: data.vendorOnboardings.items,
+      data: formattedData,
     });
   } catch (error) {
     console.error("Error fetching vendor onboardings:", error);

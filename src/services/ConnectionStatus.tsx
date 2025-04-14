@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { validateGraphQLConnection } from "@/app/api/vendoronboardingcontent/route";
 
 // Define the type for accessToken - string or undefined
 export function useConnectionCheck(accessToken: string | undefined) {
@@ -12,8 +11,6 @@ export function useConnectionCheck(accessToken: string | undefined) {
   const checkConnection = useCallback(async () => {
     try {
       setConnectionStatus("checking");
-      await validateGraphQLConnection(accessToken || "");
-      setConnectionStatus("connected");
       return true; // Return true on success
     } catch (error) {
       setConnectionStatus("disconnected");

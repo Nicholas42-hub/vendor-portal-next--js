@@ -1,29 +1,29 @@
 // src/hooks/useForm.ts
 import { useState, useCallback } from "react";
+import { VendorData } from "../models/VendorTypes";
 
 // This type represents a section of the form with key-value pairs
-export interface FormSection {
-  [key: string]: string | number | boolean | string[] | File | null | undefined;
-}
+type FormSection = {
+  [key: string]: any;
+};
 
 // This type represents the entire form data structure
-export interface FormData {
-  [section: string]: FormSection;
-}
+// Now compatible with VendorData to allow passing to validation
+type FormData = VendorData;
 
 // This type represents the errors object structure
 // Note: using string | undefined allows us to clear errors
-export interface ErrorsType {
-  [section: string]: {
+type ErrorsType = {
+  [K in keyof VendorData]: {
     [field: string]: string | undefined;
   };
-}
+};
 
 // Type for the validation function passed to useForm
-export type ValidateFunction = (data: FormData) => ErrorsType;
+type ValidateFunction = (data: FormData) => ErrorsType;
 
 // Type for the submission function passed to useForm
-export type SubmitFunction = (data: FormData) => Promise<boolean>;
+type SubmitFunction = (data: FormData) => Promise<boolean>;
 
 /**
  * Custom hook for form handling with validation and submission
@@ -34,11 +34,11 @@ export type SubmitFunction = (data: FormData) => Promise<boolean>;
 export const useForm = (
   validateFn: ValidateFunction,
   submitFn: SubmitFunction,
-  initialData: FormData = {} as FormData
+  initialData: FormData
 ) => {
   // State for form data and validation
   const [formData, setFormData] = useState<FormData>(initialData);
-  const [errors, setErrors] = useState<ErrorsType>({});
+  const [errors, setErrors] = useState<ErrorsType>({} as ErrorsType);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValid, setIsValid] = useState(true);
@@ -58,15 +58,11 @@ export const useForm = (
   }, [formData, validateFn]);
 
   // Handle input changes in form fields
-  const handleChange = (
-    section: string, 
-    field: string, 
-    value: string | number | boolean | string[] | File | null
-  ) => {
+  const handleChange = (section: keyof FormData, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [section]: {
-        ...prev[section],
+        ...(prev[section] as unknown as Record<string, any>),
         [field]: value
       }
     }));
@@ -76,63 +72,74 @@ export const useForm = (
       setErrors(prev => ({
         ...prev,
         [section]: {
-          ...prev[section],
+          ...(prev[section] as unknown as Record<string, any>),
           [field]: undefined
         }
       }));
     }
   };
-
-  // Special handler for checkbox inputs
-  const handleCheckboxChange = (
-    section: string,
-    field: string,
-    value: string,
-    checked: boolean
-  ) => {
-    setFormData(prev => {
-      const currentValues = [...(prev[section][field] || [])];
-      
-      if (checked) {
-        // Add value if checked and not already in array
-        if (!currentValues.includes(value)) {
-          currentValues.push(value);
-        }
-      } else {
-        // Remove value if unchecked
-        const index = currentValues.indexOf(value);
-        if (index !== -1) {
-          currentValues.splice(index, 1);
-        }
+// Special handler for checkbox inputs
+const handleCheckboxChange = (
+  section: keyof FormData,
+  field: string,
+  value: string,
+  checked: boolean
+) => {
+  setFormData(prev => {
+    // Create a safe copy of the section
+    const sectionData = { ...prev[section] } as Record<string, any>;
+    
+    // Create a safe copy of the current array values
+    const currentValues = Array.isArray(sectionData[field]) 
+      ? [...sectionData[field]] 
+      : [];
+    
+    if (checked) {
+      // Add value if checked and not already in array
+      if (!currentValues.includes(value)) {
+        currentValues.push(value);
       }
+    } else {
+      // Remove value if unchecked
+      const index = currentValues.indexOf(value);
+      if (index !== -1) {
+        currentValues.splice(index, 1);
+      }
+    }
+    
+    // Return the updated form data
+    return {
+      ...prev,
+      [section]: {
+        ...sectionData,
+        [field]: currentValues
+      }
+    };
+  });
+
+  // Clear error when field is changed
+  if (errors[section]?.[field]) {
+    setErrors(prev => {
+      // Create a safe copy of the error section
+      const sectionErrors = { ...(prev[section] || {}) } as Record<string, any>;
+      
+      // Set the field error to undefined
+      sectionErrors[field] = undefined;
       
       return {
         ...prev,
-        [section]: {
-          ...prev[section],
-          [field]: currentValues
-        }
+        [section]: sectionErrors
       };
     });
-
-    // Clear error when field is changed
-    if (errors[section]?.[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [field]: undefined
-        }
-      }));
-    }
-  };
+  }
+};
 
   // Special handler for file inputs
-  const handleFileChange = (section: string, field: string, file: File | null) => {
+  const handleFileChange = (section: keyof FormData, field: string, file: File | null) => {
     setFormData(prev => ({
       ...prev,
       [section]: {
-        ...prev[section],
+        ...(prev[section] as unknown as Record<string, any>),
         [field]: file
       }
     }));
@@ -142,7 +149,7 @@ export const useForm = (
       setErrors(prev => ({
         ...prev,
         [section]: {
-          ...prev[section],
+          ...(prev[section] as unknown as Record<string, any>),
           [field]: undefined
         }
       }));
@@ -150,10 +157,10 @@ export const useForm = (
   };
   
   // Mark field as touched when it loses focus
-  const handleBlur = (section: string, field: string) => {
+  const handleBlur = (section: keyof FormData, field: string) => {
     setTouched(prev => ({
       ...prev,
-      [`${section}.${field}`]: true
+      [`${String(section)}.${field}`]: true
     }));
   };
   
@@ -180,7 +187,8 @@ export const useForm = (
     const allTouched: Record<string, boolean> = {};
     
     Object.keys(formData).forEach(section => {
-      Object.keys(formData[section]).forEach(field => {
+      const sectionData = (formData[section as keyof FormData] as Record<string, any>);
+      Object.keys(sectionData).forEach(field => {
         allTouched[`${section}.${field}`] = true;
       });
     });
@@ -192,7 +200,7 @@ export const useForm = (
   // Reset form to initial state
   const resetForm = () => {
     setFormData(initialData);
-    setErrors({});
+    setErrors({}as ErrorsType);
     setTouched({});
     setIsSubmitting(false);
     setIsValid(true);

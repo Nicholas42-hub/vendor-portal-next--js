@@ -549,7 +549,10 @@ export default function SupplierForm() {
 
     try {
       // Submit form data to the API
-      const response = await axios.post("/api/supplier-onboarding", formData);
+      const response = await axios.post(
+        `/api/supplier-onboarding/${email}`,
+        formData
+      );
 
       if (response.data.success) {
         setShowSuccess(true);
