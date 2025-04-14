@@ -46,6 +46,7 @@ interface SupplierFormData {
   po_email: string;
   return_order_email: string;
   trading_entities: string[];
+  has_tax_id: string;
   ANB_GST: string;
   // Payment method
   payment_method: string;
@@ -122,6 +123,7 @@ export default function SupplierForm() {
     trading_entities: [],
     payment_method: "Bank Transfer",
     iAgree: false,
+    has_tax_id: "",
     ANB_GST: "",
   });
 
@@ -202,7 +204,10 @@ export default function SupplierForm() {
       setHasAuEntities(auEntities.length > 0);
       setHasNzEntities(nzEntities.length > 0);
 
-      setFormData((prev) => ({ ...prev, business_name: vendorInfo.fullname }));
+      setFormData((prev) => ({
+        ...prev,
+        business_name: vendorInfo.business_name,
+      }));
       setVendorCountry(vendorCountry);
     } catch (error) {
       console.error("Error fetching trading entities:", error);
@@ -615,7 +620,7 @@ export default function SupplierForm() {
                 <Input
                   id="trading_name"
                   name="trading_name"
-                  value={formData.trading_name}
+                  value={formData.trading_name || ""}
                   onChange={handleInputChange}
                   required
                   className={errors.trading_name ? "border-red-500" : ""}
@@ -625,6 +630,17 @@ export default function SupplierForm() {
                 )}
               </div>
 
+              {/* Website - Moved here as requested */}
+              <div className="space-y-2">
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  name="website"
+                  value={formData.website || ""}
+                  onChange={handleInputChange}
+                  placeholder="https://example.com"
+                />
+              </div>
               {/* Country */}
               <div className="space-y-2">
                 <Label htmlFor="country">
@@ -655,7 +671,7 @@ export default function SupplierForm() {
                 )}
               </div>
 
-              {/* GST Registered - New field */}
+              {/* GST Registered */}
               <div className="space-y-2">
                 <Label htmlFor="gst_registered">
                   Registered for GST?<span className="text-red-500">*</span>
@@ -683,14 +699,48 @@ export default function SupplierForm() {
                   </p>
                 )}
               </div>
-              {/* ABN or GST*/}
-              {/* ABN or GST */}
+              {/* Has tax id */}
               {formData.country &&
                 formData.country !== "New Zealand" &&
                 formData.country !== "Australia" && (
                   <div className="space-y-2">
+                    <Label htmlFor="has_tax_id">
+                      If you have an ABN or NZ GST, please provide your details
+                      below.
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Select
+                      value={formData.has_tax_id}
+                      onValueChange={(value) =>
+                        handleSelectChange("has_tax_id", value)
+                      }
+                    >
+                      <SelectTrigger
+                        id="has_tax_id"
+                        className={errors.has_tax_id ? "border-red-500" : ""}
+                      >
+                        <SelectValue placeholder="Select Yes or No" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Yes">Yes</SelectItem>
+                        <SelectItem value="No">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.has_tax_id && (
+                      <p className="text-red-500 text-sm">
+                        {errors.has_tax_id}
+                      </p>
+                    )}
+                  </div>
+                )}
+              {/* ABN or GST */}
+              {formData.country &&
+                formData.country !== "New Zealand" &&
+                formData.country !== "Australia" &&
+                formData.has_tax_id === "Yes" && (
+                  <div className="space-y-2">
                     <Label htmlFor="ANB_GST">
-                      Do you have ABN or GST
+                      ABN or GST
                       <span className="text-red-500">*</span>
                     </Label>
                     <Select
@@ -715,6 +765,7 @@ export default function SupplierForm() {
                     )}
                   </div>
                 )}
+
               {/* GST - Only for New Zealand */}
               {(formData.country === "New Zealand" ||
                 (formData.country !== "New Zealand" &&
@@ -761,27 +812,6 @@ export default function SupplierForm() {
                 </div>
               )}
 
-              {/* GST - Only for New Zealand */}
-              {formData.country === "New Zealand" && (
-                <div className="space-y-2">
-                  <Label htmlFor="gst">
-                    New Zealand Goods & Services Tax Number (GST)
-                    <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="gst"
-                    name="gst"
-                    value={formData.gst || ""}
-                    onChange={handleInputChange}
-                    inputMode="numeric"
-                    className={errors.gst ? "border-red-500" : ""}
-                  />
-                  {errors.gst && (
-                    <p className="text-red-500 text-sm">{errors.gst}</p>
-                  )}
-                </div>
-              )}
-
               {/* Address - with 100 character limit */}
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
@@ -797,18 +827,6 @@ export default function SupplierForm() {
                 <p className="text-xs text-gray-500">
                   {formData.address.length}/100 characters
                 </p>
-              </div>
-
-              {/* Website */}
-              <div className="space-y-2">
-                <Label htmlFor="website">Website</Label>
-                <Input
-                  id="website"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleInputChange}
-                  placeholder="https://example.com"
-                />
               </div>
 
               {/* City */}

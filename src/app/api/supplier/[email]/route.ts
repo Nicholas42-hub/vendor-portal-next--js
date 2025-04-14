@@ -37,10 +37,10 @@ export async function GET(req: NextRequest, context: { params: { email: string }
               TradingEntityId
             }
           }
-          contacts(filter: { emailaddress1: { eq: $email } }) {
+          vendorOnboardings(filter: { email: { eq: $email } }) {
             items {
-              emailaddress1
-              fullname
+              email
+              business_name
             }
           }
         }
@@ -61,11 +61,11 @@ export async function GET(req: NextRequest, context: { params: { email: string }
     }
 
     const responseData = response.data.data || {};
-    const contacts = responseData.contacts?.items || [];
+    const contacts = responseData.vendorOnboardings?.items || [];
     const entities = responseData.vendorTradingEntities?.items || [];
 
     const vendorInfo = contacts[0];
-    console.log(contacts)
+    
     // Use a more robust method to determine payment country
     const determinePaymentCountry = (entityId: string) => {
       if (!entityId) return "Unknown";
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest, context: { params: { email: string }
         TradingEntityId: e.TradingEntityId,
         paymentCountry: determinePaymentCountry(e.TradingEntityId)
       }));
-
+      console.log(relatedEntities)
     return NextResponse.json({ email, vendorInfo, tradingEntities: relatedEntities });
   } catch (error: any) {
     console.error("Error fetching vendor data:", error);
