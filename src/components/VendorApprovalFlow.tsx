@@ -12,7 +12,7 @@ import SupplierForm from "@/components/forms/SupplierForm";
 
 // Define types for approval states
 type ApprovalStatus =
-  | "Review"
+  | "Requester review"
   | "Procurement Approval"
   | "Manager Approval"
   | "Finance Approval"
@@ -23,14 +23,93 @@ type ApprovalStatus =
 
 // Type definitions for VendorData
 interface VendorData {
-  contactid?: string;
-  crb7c_tradingname?: string;
-  crb7c_statuscode?: ApprovalStatus;
-  crb7c_approvalcomment?: string;
-  generalDetails?: any;
-  supplyTerms?: any;
-  tradingTerms?: any;
-  financialTerms?: any;
+  vendor_onboarding_id?: string;
+  created_on?: string;
+  created_by?: string;
+  modified_on?: string;
+  modified_by?: string;
+  vendor_home_country?: string;
+  primary_trading_business_unit?: string;
+  email?: string;
+  business_name?: string;
+  trading_name?: string;
+  vendor_type?: string;
+  contact_person?: string;
+  contact_phone?: string;
+  website_url?: string;
+  postal_address?: string;
+  city?: string;
+  state?: string;
+  postcode?: string;
+  is_gst_registered?: boolean;
+  abn?: string;
+  gst?: string;
+  quotes_obtained?: boolean;
+  quotes_obtained_reason?: string;
+  quotes_pdf_url?: string;
+  back_order?: boolean;
+  exclusive_supply?: boolean;
+  sale_or_return?: boolean;
+  auth_required?: boolean;
+  delivery_notice?: number;
+  min_order_value?: number;
+  min_order_quantity?: number;
+  max_order_value?: number;
+  other_comments?: string;
+  payment_terms?: string;
+  order_expiry_days?: number;
+  gross_margin?: string;
+  invoice_discount?: boolean;
+  invoice_discount_value?: string;
+  settlement_discount?: boolean;
+  settlement_discount_value?: string;
+  settlement_discount_days?: string;
+  flat_rebate?: boolean;
+  flat_rebate_percent?: string;
+  flat_rebate_dollar?: string;
+  flat_rebate_term?: string;
+  growth_rebate?: boolean;
+  growth_rebate_percent?: string;
+  growth_rebate_dollar?: string;
+  growth_rebate_term?: string;
+  marketing_rebate?: boolean;
+  marketing_rebate_percent?: string;
+  marketing_rebate_dollar?: string;
+  marketing_rebate_term?: string;
+  promotional_fund?: boolean;
+  promotional_fund_value?: string;
+  au_invoice_currency?: string;
+  au_bank_country?: string;
+  au_bank_name?: string;
+  au_bank_address?: string;
+  au_bank_currency_code?: string;
+  au_bank_clearing_code?: string;
+  au_remittance_email?: string;
+  au_bsb?: string;
+  au_account?: string;
+  nz_invoice_currency?: string;
+  nz_bank_country?: string;
+  nz_bank_name?: string;
+  nz_bank_address?: string;
+  nz_bank_currency_code?: string;
+  nz_bank_clearing_code?: string;
+  nz_remittance_email?: string;
+  nz_bsb?: string;
+  nz_account?: string;
+  overseas_iban_switch?: boolean;
+  overseas_iban?: string;
+  overseas_swift?: string;
+  biller_code?: string;
+  ref_code?: string;
+  vendor_setup_status?: string;
+  status_code?: ApprovalStatus;
+  status_code_record?: string;
+  status_update_time?: string;
+  approval_comment?: string;
+  current_approver?: string;
+  current_approver_name?: string;
+  next_approver?: string;
+  next_approver_name?: string;
   [key: string]: any;
 }
 
@@ -45,51 +124,87 @@ export default function VendorApprovalFlow() {
   const [formattedVendorData, setFormattedVendorData] = useState({
     generalDetails: {
       tradingEntities: [],
-      vendorHomeCountry: "",
-      primaryTradingBusinessUnit: "",
+      vendor_home_country: "",
+      primary_trading_business_unit: "",
       email: "",
-      businessName: "",
-      vendorType: "",
+      business_name: "",
+      trading_name: "",
+      vendor_type: "",
+      contact_person: "",
+      contact_phone: "",
+      website_url: "",
+      postal_address: "",
+      city: "",
+      state: "",
+      postcode: "",
+      is_gst_registered: false,
+      abn: "",
+      gst: "",
     },
     supplyTerms: {
-      exclusiveSupply: "",
-      saleOrReturn: "",
-      authRequired: "",
-      deliveryNotice: 0,
-      minOrderValue: 0,
-      minOrderQuantity: 0,
-      maxOrderValue: 0,
-      otherComments: "",
+      exclusive_supply: false,
+      sale_or_return: false,
+      auth_required: false,
+      delivery_notice: 0,
+      min_order_value: 0,
+      min_order_quantity: 0,
+      max_order_value: 0,
+      other_comments: "",
     },
     tradingTerms: {
-      quotesObtained: "",
-      quotesObtainedReason: "",
-      quotesPdf: null,
-      backOrder: "",
+      quotes_obtained: false,
+      quotes_obtained_reason: "",
+      quotes_pdf_url: "",
+      back_order: false,
     },
     financialTerms: {
-      paymentTerms: "",
-      orderExpiryDays: 0,
-      grossMargin: "",
-      invoiceDiscount: "",
-      invoiceDiscountValue: "",
-      settlementDiscount: "",
-      settlementDiscountValue: "",
-      settlementDiscountDays: "",
-      flatRebate: "",
-      flatRebatePercent: "",
-      flatRebateDollar: "",
-      flatRebateTerm: "",
-      growthRebate: "",
-      growthRebatePercent: "",
-      growthRebateDollar: "",
-      growthRebateTerm: "",
-      marketingRebate: "",
-      marketingRebatePercent: "",
-      marketingRebateDollar: "",
-      marketingRebateTerm: "",
-      promotionalFund: "",
-      promotionalFundValue: "",
+      payment_terms: "",
+      order_expiry_days: 0,
+      gross_margin: "",
+      invoice_discount: false,
+      invoice_discount_value: "",
+      settlement_discount: false,
+      settlement_discount_value: "",
+      settlement_discount_days: "",
+      flat_rebate: false,
+      flat_rebate_percent: "",
+      flat_rebate_dollar: "",
+      flat_rebate_term: "",
+      growth_rebate: false,
+      growth_rebate_percent: "",
+      growth_rebate_dollar: "",
+      growth_rebate_term: "",
+      marketing_rebate: false,
+      marketing_rebate_percent: "",
+      marketing_rebate_dollar: "",
+      marketing_rebate_term: "",
+      promotional_fund: false,
+      promotional_fund_value: "",
+    },
+    bankDetails: {
+      au_invoice_currency: "",
+      au_bank_country: "",
+      au_bank_name: "",
+      au_bank_address: "",
+      au_bank_currency_code: "",
+      au_bank_clearing_code: "",
+      au_remittance_email: "",
+      au_bsb: "",
+      au_account: "",
+      nz_invoice_currency: "",
+      nz_bank_country: "",
+      nz_bank_name: "",
+      nz_bank_address: "",
+      nz_bank_currency_code: "",
+      nz_bank_clearing_code: "",
+      nz_remittance_email: "",
+      nz_bsb: "",
+      nz_account: "",
+      overseas_iban_switch: false,
+      overseas_iban: "",
+      overseas_swift: "",
+      biller_code: "",
+      ref_code: "",
     },
   });
 
@@ -122,17 +237,17 @@ export default function VendorApprovalFlow() {
 
   // Determine if form should be editable based on user role and status
   useEffect(() => {
-    if (session?.user?.email && vendorData.crb7c_statuscode) {
+    if (session?.user?.email && vendorData.status_code) {
       const userEmail = searchParams.get("email");
 
       // Check if user is the requester
-      const isRequester = userEmail === vendorData.crb7c_poemail;
+      const isRequester = userEmail === vendorData.email;
 
       // Only allow editing if user is requester and status is Review or Declined
       const canEdit =
         isRequester &&
-        (vendorData.crb7c_statuscode === "Review" ||
-          vendorData.crb7c_statuscode === "Declined");
+        (vendorData.status_code === "Requester review" ||
+          vendorData.status_code === "Declined");
 
       setIsEditable(canEdit);
 
@@ -157,105 +272,131 @@ export default function VendorApprovalFlow() {
   const fetchVendorData = async (vendorEmail: string) => {
     try {
       setIsLoading(true);
-      const response = await axios.get(
-        `/api/vendors?email=${encodeURIComponent(vendorEmail)}`
+      const email = searchParams.get("email");
+      const response = await axios.get(`/api/vendor-approval/${email}`);
+
+      const { vendor, tradingEntities_data } = response.data;
+
+      // Payment terms that require Finance approval
+      const financeApprovalTerms = [
+        "1 DAY",
+        "10 DAYS",
+        "13 DAYS",
+        "14 DAYS",
+        "15 DAYS",
+        "20 DAYS",
+        "21 DAYS",
+        "20 EOM",
+      ];
+      console.log("check the vendor data structure", vendor);
+      const needsFinanceApproval = financeApprovalTerms.includes(
+        vendor.payment_terms?.toUpperCase()
       );
+      setRequiresFinanceApproval(needsFinanceApproval);
 
-      if (response.data && response.data.length > 0) {
-        const vendor = response.data[0];
+      // Set vendor data
+      setVendorData(vendor);
 
-        // Payment terms that require Finance approval
-        const financeApprovalTerms = [
-          "1 DAY",
-          "10 DAYS",
-          "13 DAYS",
-          "14 DAYS",
-          "15 DAYS",
-          "20 DAYS",
-          "21 DAYS",
-          "20 EOM",
-        ];
-
-        const needsFinanceApproval = financeApprovalTerms.includes(
-          vendor.crb7c_paymentterms?.toUpperCase()
-        );
-        setRequiresFinanceApproval(needsFinanceApproval);
-
-        // Set vendor data
-        setVendorData(vendor);
-
-        // Format the data for form sections
-        const tradingEntities = [];
-        if (vendor.crb7c_tradingentities) {
-          // Assuming crb7c_tradingentities is a comma-separated string or an array
-          const entitiesArray = Array.isArray(vendor.crb7c_tradingentities)
-            ? vendor.crb7c_tradingentities
-            : vendor.crb7c_tradingentities
-                .split(",")
-                .map((item: string) => item.trim());
-
-          tradingEntities.push(...entitiesArray);
-        }
-
-        // Format data for all form sections
-        setFormattedVendorData({
-          generalDetails: {
-            tradingEntities: tradingEntities,
-            vendorHomeCountry: vendor.description || "",
-            primaryTradingBusinessUnit:
-              vendor.crb7c_primarytradingbusinessunit || "",
-            email: vendor.emailaddress1 || "",
-            businessName: vendor.crb7c_tradingname || "",
-            vendorType: vendor.crb7c_purchasetype || "",
-          },
-          supplyTerms: {
-            exclusiveSupply: vendor.crb7c_exclusivesupply || "",
-            saleOrReturn: vendor.crb7c_salesorreturn || "",
-            authRequired: vendor.crb7c_salesorexchange || "",
-            deliveryNotice: parseInt(vendor.crb7c_delivery_notice || "0"),
-            minOrderValue: parseInt(vendor.crb7c_min_order_value || "0"),
-            minOrderQuantity: parseInt(vendor.crb7c_min_order_value || "0"), // Using min_order_value as a fallback
-            maxOrderValue: parseInt(vendor.crb7c_max_order_value || "0"),
-            otherComments: vendor.description || "",
-          },
-          tradingTerms: {
-            quotesObtained: vendor.crb7c_quoteschecked || "",
-            quotesObtainedReason: vendor.crb7c_approvalcomment || "",
-            quotesPdf: null,
-            backOrder: vendor.crb7c_backorderallowed || "",
-          },
-          financialTerms: {
-            paymentTerms: vendor.crb7c_paymentterms || "",
-            orderExpiryDays: parseInt(vendor.crb7c_orderexpirydays || "0"),
-            grossMargin: vendor.crb7c_grossmargin || "",
-            invoiceDiscount: vendor.crb7c_invoicediscount || "",
-            invoiceDiscountValue: vendor.crb7c_invoicediscountvalue || "",
-            settlementDiscount: vendor.crb7c_settlementdiscount || "",
-            settlementDiscountValue: vendor.crb7c_settlementdiscountvalue || "",
-            settlementDiscountDays: vendor.crb7c_settlementdiscountdays || "",
-            flatRebate: vendor.crb7c_flatrebate || "",
-            flatRebatePercent: vendor.crb7c_flatrebatepercent || "",
-            flatRebateDollar: vendor.crb7c_flatrebatedollar || "",
-            flatRebateTerm: vendor.crb7c_flatrebateterm || "",
-            growthRebate: vendor.crb7c_growthrebate || "",
-            growthRebatePercent: vendor.crb7c_growthrebatepercent || "",
-            growthRebateDollar: vendor.crb7c_growthrebatedollar || "",
-            growthRebateTerm: vendor.crb7c_growthrebateterm || "",
-            marketingRebate: vendor.crb7c_marketingrebate || "",
-            marketingRebatePercent: vendor.crb7c_marketingrebatepercent || "",
-            marketingRebateDollar: vendor.crb7c_marketingrebatedollar || "",
-            marketingRebateTerm: vendor.crb7c_marketingrebateterm || "",
-            promotionalFund: vendor.crb7c_promotionalfund || "",
-            promotionalFundValue: vendor.crb7c_promotionalfundvalue || "",
-          },
-        });
-
-        // Validate approver access
-        validateApproverAccess(
-          vendor.crb7c_statuscode,
-          vendor.crb7c_primarytradingbusinessunit
-        );
+      // Format the data for form sections
+      const tradingEntities = [];
+      if (vendor.trading_name) {
+        tradingEntities.push(vendor.trading_name);
       }
+
+      // Format data for all form sections
+      setFormattedVendorData({
+        generalDetails: {
+          tradingEntities: tradingEntities,
+          vendor_home_country: vendor.vendor_home_country || "",
+          primary_trading_business_unit:
+            vendor.primary_trading_business_unit || "",
+          email: vendor.email || "",
+          business_name: vendor.business_name || "",
+          trading_name: vendor.trading_name || "",
+          vendor_type: vendor.vendor_type || "",
+          contact_person: vendor.contact_person || "",
+          contact_phone: vendor.contact_phone || "",
+          website_url: vendor.website_url || "",
+          postal_address: vendor.postal_address || "",
+          city: vendor.city || "",
+          state: vendor.state || "",
+          postcode: vendor.postcode || "",
+          is_gst_registered: vendor.is_gst_registered || false,
+          abn: vendor.abn || "",
+          gst: vendor.gst || "",
+        },
+        supplyTerms: {
+          exclusive_supply: vendor.exclusive_supply || false,
+          sale_or_return: vendor.sale_or_return || false,
+          auth_required: vendor.auth_required || false,
+          delivery_notice: parseInt(vendor.delivery_notice || "0"),
+          min_order_value: parseInt(vendor.min_order_value || "0"),
+          min_order_quantity: parseInt(vendor.min_order_quantity || "0"),
+          max_order_value: parseInt(vendor.max_order_value || "0"),
+          other_comments: vendor.other_comments || "",
+        },
+        tradingTerms: {
+          quotes_obtained: vendor.quotes_obtained || false,
+          quotes_obtained_reason: vendor.quotes_obtained_reason || "",
+          quotes_pdf_url: vendor.quotes_pdf_url || "",
+          back_order: vendor.back_order || false,
+        },
+        financialTerms: {
+          payment_terms: vendor.payment_terms || "",
+          order_expiry_days: parseInt(vendor.order_expiry_days || "0"),
+          gross_margin: vendor.gross_margin || "",
+          invoice_discount: vendor.invoice_discount || false,
+          invoice_discount_value: vendor.invoice_discount_value || "",
+          settlement_discount: vendor.settlement_discount || false,
+          settlement_discount_value: vendor.settlement_discount_value || "",
+          settlement_discount_days: vendor.settlement_discount_days || "",
+          flat_rebate: vendor.flat_rebate || false,
+          flat_rebate_percent: vendor.flat_rebate_percent || "",
+          flat_rebate_dollar: vendor.flat_rebate_dollar || "",
+          flat_rebate_term: vendor.flat_rebate_term || "",
+          growth_rebate: vendor.growth_rebate || false,
+          growth_rebate_percent: vendor.growth_rebate_percent || "",
+          growth_rebate_dollar: vendor.growth_rebate_dollar || "",
+          growth_rebate_term: vendor.growth_rebate_term || "",
+          marketing_rebate: vendor.marketing_rebate || false,
+          marketing_rebate_percent: vendor.marketing_rebate_percent || "",
+          marketing_rebate_dollar: vendor.marketing_rebate_dollar || "",
+          marketing_rebate_term: vendor.marketing_rebate_term || "",
+          promotional_fund: vendor.promotional_fund || false,
+          promotional_fund_value: vendor.promotional_fund_value || "",
+        },
+        bankDetails: {
+          au_invoice_currency: vendor.au_invoice_currency || "",
+          au_bank_country: vendor.au_bank_country || "",
+          au_bank_name: vendor.au_bank_name || "",
+          au_bank_address: vendor.au_bank_address || "",
+          au_bank_currency_code: vendor.au_bank_currency_code || "",
+          au_bank_clearing_code: vendor.au_bank_clearing_code || "",
+          au_remittance_email: vendor.au_remittance_email || "",
+          au_bsb: vendor.au_bsb || "",
+          au_account: vendor.au_account || "",
+          nz_invoice_currency: vendor.nz_invoice_currency || "",
+          nz_bank_country: vendor.nz_bank_country || "",
+          nz_bank_name: vendor.nz_bank_name || "",
+          nz_bank_address: vendor.nz_bank_address || "",
+          nz_bank_currency_code: vendor.nz_bank_currency_code || "",
+          nz_bank_clearing_code: vendor.nz_bank_clearing_code || "",
+          nz_remittance_email: vendor.nz_remittance_email || "",
+          nz_bsb: vendor.nz_bsb || "",
+          nz_account: vendor.nz_account || "",
+          overseas_iban_switch: vendor.overseas_iban_switch || false,
+          overseas_iban: vendor.overseas_iban || "",
+          overseas_swift: vendor.overseas_swift || "",
+          biller_code: vendor.biller_code || "",
+          ref_code: vendor.ref_code || "",
+        },
+      });
+
+      // Validate approver access
+      validateApproverAccess(
+        vendor.status_code,
+        vendor.primary_trading_business_unit
+      );
     } catch (error) {
       console.error("Error fetching vendor data:", error);
     } finally {
@@ -267,7 +408,9 @@ export default function VendorApprovalFlow() {
   const fetchSupplierData = async (vendorEmail: string) => {
     try {
       if (vendorEmail) {
-        const response = await axios.get(`/api/supplier/${vendorEmail}`);
+        const response = await axios.get(
+          `/api/supplier-onboarding/${vendorEmail}`
+        );
         if (response.data) {
           setSupplierData(response.data);
         }
@@ -307,9 +450,9 @@ export default function VendorApprovalFlow() {
       let hasApprovalRights = false;
 
       switch (statusCode) {
-        case "Review":
+        case "Requester review":
           // Only requester can see/edit in this status
-          hasApprovalRights = false;
+          hasApprovalRights = userEmail === userEmail;
           break;
         case "Procurement Approval":
           hasApprovalRights = userEmail === userEmail;
@@ -335,7 +478,7 @@ export default function VendorApprovalFlow() {
       setCanApprove(false);
     }
   };
-  console.log(vendorData.crb7c_statuscode);
+  console.log(vendorData.status_code);
   // Helper function to check if status is in a specific state
   const isStatus = (
     status?: ApprovalStatus,
@@ -350,7 +493,7 @@ export default function VendorApprovalFlow() {
     return status === targetStatus;
   };
   const statusOrder: ApprovalStatus[] = [
-    "Review",
+    "Requester review",
     "Procurement Approval",
     "Manager Approval",
     "Finance Approval",
@@ -359,10 +502,9 @@ export default function VendorApprovalFlow() {
   ];
 
   const hasReachedStatus = (target: ApprovalStatus): boolean => {
-    if (!vendorData.crb7c_statuscode) return false;
+    if (!vendorData.status_code) return false;
     return (
-      statusOrder.indexOf(vendorData.crb7c_statuscode) >=
-      statusOrder.indexOf(target)
+      statusOrder.indexOf(vendorData.status_code) >= statusOrder.indexOf(target)
     );
   };
   // Placeholder functions for the form components props
@@ -419,10 +561,8 @@ export default function VendorApprovalFlow() {
       setShowDeleteConfirmation(false);
 
       // Make API call to delete the vendor
-      if (vendorData.emailaddress1) {
-        const response = await axios.delete(
-          `/api/vendors/${vendorData.emailaddress1}`
-        );
+      if (vendorData.email) {
+        const response = await axios.delete(`/api/vendors/${vendorData.email}`);
 
         if (!response.data.success) {
           throw new Error("Failed to delete vendor");
@@ -452,7 +592,7 @@ export default function VendorApprovalFlow() {
     currentStatus: ApprovalStatus
   ): ApprovalStatus | null => {
     const statusFlow: ApprovalStatus[] = [
-      "Review",
+      "Requester review",
       "Procurement Approval",
       "Manager Approval",
       "Finance Approval", // Only included if needed
@@ -481,7 +621,7 @@ export default function VendorApprovalFlow() {
       setIsSubmitting(true);
       setShowConfirmation(false);
 
-      const currentStatus = vendorData.crb7c_statuscode as ApprovalStatus;
+      const currentStatus = vendorData.status_code as ApprovalStatus;
       const newStatus = getNextStatus(currentStatus);
 
       if (!newStatus) {
@@ -491,12 +631,12 @@ export default function VendorApprovalFlow() {
       console.log(`Updating status from ${currentStatus} to ${newStatus}`);
 
       // Make API call to update the status in Dynamics
-      if (vendorData.emailaddress1) {
+      if (vendorData.email) {
         // Use correct API endpoint structure
-        const response = await axios.patch(
-          `/api/vendors/${encodeURIComponent(vendorData.emailaddress1)}`,
+        const response = await axios.put(
+          `/api/vendor-approval/${encodeURIComponent(vendorData.email)}`,
           {
-            crb7c_statuscode: newStatus,
+            status_code: newStatus,
           }
         );
 
@@ -515,7 +655,7 @@ export default function VendorApprovalFlow() {
       }
 
       // Update local state
-      setVendorData({ ...vendorData, crb7c_statuscode: newStatus });
+      setVendorData({ ...vendorData, status_code: newStatus });
 
       // Show success popup
       setSuccessMessage(`Vendor successfully moved to ${newStatus} status.`);
@@ -544,12 +684,12 @@ export default function VendorApprovalFlow() {
       setShowDeclinePopup(false);
 
       // Make API call to update the status and decline comment in Dynamics
-      if (vendorData.emailaddress1) {
+      if (vendorData.email) {
         const response = await axios.patch(
-          `/api/vendors/${encodeURIComponent(vendorData.emailaddress1)}`,
+          `/api/vendors/${encodeURIComponent(vendorData.email)}`,
           {
-            crb7c_statuscode: "Declined",
-            crb7c_approvalcomment: declineComment,
+            status_code: "Declined",
+            approval_comment: declineComment,
           }
         );
 
@@ -568,8 +708,8 @@ export default function VendorApprovalFlow() {
       // Update local state
       setVendorData({
         ...vendorData,
-        crb7c_statuscode: "Declined",
-        crb7c_approvalcomment: declineComment,
+        status_code: "Declined",
+        approval_comment: declineComment,
       });
 
       // Show success popup
@@ -608,15 +748,12 @@ export default function VendorApprovalFlow() {
       };
 
       // Make API call to update the status and form data
-      if (vendorData.emailaddress1) {
-        const response = await axios.patch(
-          `/api/vendors/${vendorData.emailaddress1}`,
-          {
-            ...formData,
-            crb7c_statuscode: "Procurement Approval",
-            crb7c_approvalcomment: "", // Clear any previous decline comments
-          }
-        );
+      if (vendorData.email) {
+        const response = await axios.patch(`/api/vendors/${vendorData.email}`, {
+          ...formData,
+          status_code: "Procurement Approval",
+          approval_comment: "", // Clear any previous decline comments
+        });
 
         if (!response.data.success) {
           throw new Error("Failed to update vendor data");
@@ -628,8 +765,8 @@ export default function VendorApprovalFlow() {
       // Update local state
       setVendorData({
         ...vendorData,
-        crb7c_statuscode: "Procurement Approval",
-        crb7c_approvalcomment: "",
+        status_code: "Procurement Approval",
+        approval_comment: "",
       });
 
       // Show success message
@@ -676,19 +813,19 @@ export default function VendorApprovalFlow() {
         </button>
       </div>
       {/* Form status notification */}
-      {vendorData.crb7c_statuscode && (
+      {vendorData.status_code && (
         <div
           className={`mb-6 p-4 rounded-lg ${
-            vendorData.crb7c_statuscode === "Declined"
+            vendorData.status_code === "Declined"
               ? "bg-red-50 border-l-4 border-red-500"
-              : vendorData.crb7c_statuscode === "Creation approved"
+              : vendorData.status_code === "Creation approved"
               ? "bg-green-50 border-l-4 border-green-500"
               : "bg-blue-50 border-l-4 border-blue-500"
           }`}
         >
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              {vendorData.crb7c_statuscode === "Declined" ? (
+              {vendorData.status_code === "Declined" ? (
                 <svg
                   className="h-5 w-5 text-red-400"
                   xmlns="http://www.w3.org/2000/svg"
@@ -701,7 +838,7 @@ export default function VendorApprovalFlow() {
                     clipRule="evenodd"
                   />
                 </svg>
-              ) : vendorData.crb7c_statuscode === "Creation approved" ? (
+              ) : vendorData.status_code === "Creation approved" ? (
                 <svg
                   className="h-5 w-5 text-green-400"
                   xmlns="http://www.w3.org/2000/svg"
@@ -732,20 +869,20 @@ export default function VendorApprovalFlow() {
             <div className="ml-3">
               <h3
                 className={`text-sm font-medium ${
-                  vendorData.crb7c_statuscode === "Declined"
+                  vendorData.status_code === "Declined"
                     ? "text-red-800"
-                    : vendorData.crb7c_statuscode === "Creation approved"
+                    : vendorData.status_code === "Creation approved"
                     ? "text-green-800"
                     : "text-blue-800"
                 }`}
               >
-                Current Status: {vendorData.crb7c_statuscode}
+                Current Status: {vendorData.status_code}
               </h3>
               <div className="mt-2 text-sm">
-                {vendorData.crb7c_statuscode === "Declined" &&
-                  vendorData.crb7c_approvalcomment && (
+                {vendorData.status_code === "Declined" &&
+                  vendorData.approval_comment && (
                     <p className="text-red-700">
-                      Decline reason: {vendorData.crb7c_approvalcomment}
+                      Decline reason: {vendorData.approval_comment}
                     </p>
                   )}
                 {isEditable && (
@@ -823,7 +960,7 @@ export default function VendorApprovalFlow() {
                       <TradingTermsSection
                         data={formattedVendorData.tradingTerms}
                         vendorType={
-                          formattedVendorData.generalDetails.vendorType
+                          formattedVendorData.generalDetails.vendor_type
                         }
                         errors={errors}
                         touched={touched}
@@ -850,7 +987,7 @@ export default function VendorApprovalFlow() {
                       <FinancialTermsSection
                         data={formattedVendorData.financialTerms}
                         vendorType={
-                          formattedVendorData.generalDetails.vendorType
+                          formattedVendorData.generalDetails.vendor_type
                         }
                         errors={errors}
                         touched={touched}
@@ -900,12 +1037,8 @@ export default function VendorApprovalFlow() {
               )}
               {activeSection === "supplierForm" && (
                 <div className="supplier-form-container">
-                  {vendorData.emailaddress1 ? (
-                    <SupplierForm
-                      contactid={vendorData.emailaddress1}
-                      initialData={supplierData}
-                      readOnly={!isEditable}
-                    />
+                  {vendorData.email ? (
+                    <SupplierForm />
                   ) : (
                     <div className="p-6 text-center">
                       <p className="text-gray-500">
@@ -923,31 +1056,31 @@ export default function VendorApprovalFlow() {
         <div className="approval-flow bg-white shadow rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-6">Approval Flow</h2>
 
-          {vendorData.crb7c_statuscode && (
+          {vendorData.status_code && (
             <div className="approval-steps space-y-8">
               {/* Only show statuses that are current or have been reached */}
 
               {/* Step 1: Review */}
               <div
                 className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
-                  isStatus(vendorData.crb7c_statuscode, "Review")
+                  isStatus(vendorData.status_code, "Requester review")
                     ? "border-blue-500 bg-blue-50" // Current status
                     : hasReachedStatus("Procurement Approval")
                     ? "border-green-500 bg-green-50" // Past status
                     : "hidden" // Future status - hidden
                 }`}
               >
-                <h3 className="font-medium mb-1">Step 1: Review</h3>
+                <h3 className="font-medium mb-1">Step 1: Requester review</h3>
                 <div className="flex items-center">
                   <span>Status: </span>
                   <span
                     className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                      isStatus(vendorData.crb7c_statuscode, "Review")
+                      isStatus(vendorData.status_code, "Requester review")
                         ? "bg-blue-100 text-blue-800"
                         : "bg-green-100 text-green-800"
                     }`}
                   >
-                    {isStatus(vendorData.crb7c_statuscode, "Review")
+                    {isStatus(vendorData.status_code, "Requester review")
                       ? "In Progress"
                       : "Completed"}
                   </span>
@@ -957,7 +1090,7 @@ export default function VendorApprovalFlow() {
               {/* Step 2: Procurement Approval */}
               <div
                 className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
-                  isStatus(vendorData.crb7c_statuscode, "Procurement Approval")
+                  isStatus(vendorData.status_code, "Procurement Approval")
                     ? "border-blue-500 bg-blue-50" // Current status
                     : hasReachedStatus("Manager Approval")
                     ? "border-green-500 bg-green-50" // Past status
@@ -973,20 +1106,14 @@ export default function VendorApprovalFlow() {
                   <span>Status: </span>
                   <span
                     className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                      isStatus(
-                        vendorData.crb7c_statuscode,
-                        "Procurement Approval"
-                      )
+                      isStatus(vendorData.status_code, "Procurement Approval")
                         ? "bg-blue-100 text-blue-800"
                         : hasReachedStatus("Manager Approval")
                         ? "bg-green-100 text-green-800"
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {isStatus(
-                      vendorData.crb7c_statuscode,
-                      "Procurement Approval"
-                    )
+                    {isStatus(vendorData.status_code, "Procurement Approval")
                       ? "In Progress"
                       : hasReachedStatus("Manager Approval")
                       ? "Completed"
@@ -998,7 +1125,7 @@ export default function VendorApprovalFlow() {
               {/* Step 3: Manager Approval */}
               <div
                 className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
-                  isStatus(vendorData.crb7c_statuscode, "Manager Approval")
+                  isStatus(vendorData.status_code, "Manager Approval")
                     ? "border-blue-500 bg-blue-50" // Current status
                     : hasReachedStatus("Finance Approval") ||
                       (hasReachedStatus("Exco Approval") &&
@@ -1014,7 +1141,7 @@ export default function VendorApprovalFlow() {
                   <span>Status: </span>
                   <span
                     className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                      isStatus(vendorData.crb7c_statuscode, "Manager Approval")
+                      isStatus(vendorData.status_code, "Manager Approval")
                         ? "bg-blue-100 text-blue-800"
                         : hasReachedStatus("Finance Approval") ||
                           (hasReachedStatus("Exco Approval") &&
@@ -1023,7 +1150,7 @@ export default function VendorApprovalFlow() {
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {isStatus(vendorData.crb7c_statuscode, "Manager Approval")
+                    {isStatus(vendorData.status_code, "Manager Approval")
                       ? "In Progress"
                       : hasReachedStatus("Finance Approval") ||
                         (hasReachedStatus("Exco Approval") &&
@@ -1038,7 +1165,7 @@ export default function VendorApprovalFlow() {
               {requiresFinanceApproval && (
                 <div
                   className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
-                    isStatus(vendorData.crb7c_statuscode, "Finance Approval")
+                    isStatus(vendorData.status_code, "Finance Approval")
                       ? "border-blue-500 bg-blue-50" // Current status
                       : hasReachedStatus("Exco Approval")
                       ? "border-green-500 bg-green-50" // Past status
@@ -1052,17 +1179,14 @@ export default function VendorApprovalFlow() {
                     <span>Status: </span>
                     <span
                       className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                        isStatus(
-                          vendorData.crb7c_statuscode,
-                          "Finance Approval"
-                        )
+                        isStatus(vendorData.status_code, "Finance Approval")
                           ? "bg-blue-100 text-blue-800"
                           : hasReachedStatus("Exco Approval")
                           ? "bg-green-100 text-green-800"
                           : "bg-gray-100 text-gray-800"
                       }`}
                     >
-                      {isStatus(vendorData.crb7c_statuscode, "Finance Approval")
+                      {isStatus(vendorData.status_code, "Finance Approval")
                         ? "In Progress"
                         : hasReachedStatus("Exco Approval")
                         ? "Completed"
@@ -1075,7 +1199,7 @@ export default function VendorApprovalFlow() {
               {/* Step 5: Exco Approval */}
               <div
                 className={`approval-step p-4 border-l-4 rounded shadow-sm relative ${
-                  isStatus(vendorData.crb7c_statuscode, "Exco Approval")
+                  isStatus(vendorData.status_code, "Exco Approval")
                     ? "border-blue-500 bg-blue-50" // Current status
                     : hasReachedStatus("Creation approved")
                     ? "border-green-500 bg-green-50" // Past status
@@ -1091,14 +1215,14 @@ export default function VendorApprovalFlow() {
                   <span>Status: </span>
                   <span
                     className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                      isStatus(vendorData.crb7c_statuscode, "Exco Approval")
+                      isStatus(vendorData.status_code, "Exco Approval")
                         ? "bg-blue-100 text-blue-800"
                         : hasReachedStatus("Creation approved")
                         ? "bg-green-100 text-green-800"
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {isStatus(vendorData.crb7c_statuscode, "Exco Approval")
+                    {isStatus(vendorData.status_code, "Exco Approval")
                       ? "In Progress"
                       : hasReachedStatus("Creation approved")
                       ? "Completed"
@@ -1110,7 +1234,7 @@ export default function VendorApprovalFlow() {
               {/* Final Step: Completed */}
               <div
                 className={`approval-step p-4 border-l-4 rounded shadow-sm ${
-                  isStatus(vendorData.crb7c_statuscode, "Creation approved")
+                  isStatus(vendorData.status_code, "Creation approved")
                     ? "border-green-500 bg-green-50" // Current/final status
                     : !hasReachedStatus("Creation approved")
                     ? "hidden" // Future status - hidden
@@ -1124,12 +1248,12 @@ export default function VendorApprovalFlow() {
                   <span>Status: </span>
                   <span
                     className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                      isStatus(vendorData.crb7c_statuscode, "Creation approved")
+                      isStatus(vendorData.status_code, "Creation approved")
                         ? "bg-green-100 text-green-800"
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {isStatus(vendorData.crb7c_statuscode, "Creation approved")
+                    {isStatus(vendorData.status_code, "Creation approved")
                       ? "Completed"
                       : "Pending"}
                   </span>
@@ -1138,7 +1262,7 @@ export default function VendorApprovalFlow() {
             </div>
           )}
           {/* Status-specific displays and action buttons */}
-          {vendorData.crb7c_statuscode === "Declined" && (
+          {vendorData.status_code === "Declined" && (
             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded mt-6">
               <h3 className="text-red-700 font-medium">Declined</h3>
               <p className="text-sm text-gray-700 mt-2">Reason for decline:</p>
@@ -1149,8 +1273,8 @@ export default function VendorApprovalFlow() {
           )}
 
           {canApprove &&
-            vendorData.crb7c_statuscode &&
-            !isStatus(vendorData.crb7c_statuscode, ["Creation approved"]) && (
+            vendorData.status_code &&
+            !isStatus(vendorData.status_code, ["Creation approved"]) && (
               <div className="mt-8 grid grid-cols-2 gap-4">
                 <button
                   type="button"
@@ -1193,7 +1317,7 @@ export default function VendorApprovalFlow() {
               </div>
             )}
 
-          {isEditable && vendorData.crb7c_statuscode === "Declined" && (
+          {isEditable && vendorData.status_code === "Declined" && (
             <button
               type="button"
               className="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium"
@@ -1210,7 +1334,7 @@ export default function VendorApprovalFlow() {
             </button>
           )}
 
-          {vendorData.crb7c_statuscode === "Invitation sent" && (
+          {vendorData.status_code === "Invitation sent" && (
             <button
               type="button"
               className="mt-8 w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md font-medium"

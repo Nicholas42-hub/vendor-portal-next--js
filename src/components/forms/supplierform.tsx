@@ -23,7 +23,6 @@ import axios from "axios";
 
 // Define interfaces for trading entities
 interface TradingEntity {
-  contactid: string;
   TradingEntityId: string;
   entityName: string;
   entityCountry: string;
@@ -188,7 +187,7 @@ export default function SupplierForm() {
         return;
       }
 
-      const response = await axios.get(`/api/supplier/${email}`);
+      const response = await axios.get(`/api/supplier-onboarding/${email}`);
 
       const { vendorInfo, tradingEntities } = response.data;
 

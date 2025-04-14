@@ -123,19 +123,18 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
 
     // First, check if vendor record exists with this email
     const checkEmailQuery = {
-      query: `
-        query {
-          vendorOnboardings(filter: {email: {eq: "${email}"}}) {
-            items {
-              vendor_onboarding_id
-              email
-              status_code
+        query: `
+          query($email: String!) {
+            vendorOnboardings(filter: { email: { eq: $email } }) {
+              items {
+                email
+                business_name
+              }
             }
-          }
-        }
-      `
-    };
-    
+    }
+        `,
+        variables: { email },
+      };
     // Check if vendor exists with this email
     const emailCheckResponse = await axios.post(graphqlEndpoint, checkEmailQuery, {
       headers: {
@@ -150,7 +149,7 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
     if (existingVendors.length === 0) {
       return NextResponse.json({
         success: false,
-        message: `No vendor record found with email "${formData.email}". Please ensure the vendor is onboarded first.`
+        message: `No vendor record found with email "${email}". Please ensure the vendor is onboarded first.`
       }, { status: 404 });
     }
     
@@ -168,9 +167,11 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
         mutation {
           updateVendorOnboarding(
             email: "${email}"
-            item: {         
+            item: {
+              
               business_name: "${formData.business_name || ""}"
-
+              trading_name: "${formData.trading_name || ""}"
+              status_code: "Requester review"
             }
           ) {
             result
