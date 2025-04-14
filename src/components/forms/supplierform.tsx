@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Label } from "@/components/ui/label";
+import { Popup } from "../ui/Popup";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -540,11 +541,11 @@ export default function SupplierForm() {
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (validateForm()) {
-      setShowConfirmation(true);
-    }
+    console.log("Form submitted");
+
+    setShowConfirmation(true);
   };
 
   // Handle confirmation
@@ -554,7 +555,7 @@ export default function SupplierForm() {
 
     try {
       // Submit form data to the API
-      const response = await axios.post(
+      const response = await axios.put(
         `/api/supplier-onboarding/${email}`,
         formData
       );
@@ -1921,12 +1922,20 @@ export default function SupplierForm() {
                     <Checkbox
                       id="iAgree"
                       checked={formData.iAgree}
-                      onCheckedChange={(checked) =>
+                      onCheckedChange={(checked: boolean | "indeterminate") => {
                         setFormData((prev) => ({
                           ...prev,
                           iAgree: checked === true,
-                        }))
-                      }
+                        }));
+                        // Clear error when checked
+                        if (checked && errors.iAgree) {
+                          setErrors((prev) => {
+                            const newErrors = { ...prev };
+                            delete newErrors.iAgree;
+                            return newErrors;
+                          });
+                        }
+                      }}
                       className={errors.iAgree ? "border-red-500" : ""}
                     />
                     <Label htmlFor="iAgree" className="font-medium">
@@ -1963,30 +1972,19 @@ export default function SupplierForm() {
       </CardContent>
 
       {/* Confirmation Popup */}
-      {showConfirmation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-semibold mb-4">
-              Would you like to proceed?
-            </h2>
-            <p className="mb-4">Please confirm you want to submit this form.</p>
-            <div className="flex justify-between gap-4">
-              <Button
-                onClick={handleConfirmSubmit}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Yes
-              </Button>
-              <Button
-                onClick={() => setShowConfirmation(false)}
-                variant="destructive"
-              >
-                No
-              </Button>
-            </div>
-          </div>
+      <Popup
+        isOpen={showConfirmation}
+        title="Would you like to proceed?"
+        confirmText="Yes"
+        cancelText="No"
+        onConfirm={handleConfirmSubmit}
+        onCancel={() => setShowConfirmation(false)}
+        isConfirmation={true}
+      >
+        <div style={{ margin: "15px 0" }}>
+          <p>Please confirm you want to submit this form.</p>
         </div>
-      )}
+      </Popup>
 
       {/* Success Popup */}
       {showSuccess && (
