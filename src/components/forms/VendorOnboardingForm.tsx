@@ -1,3 +1,4 @@
+// src/components/forms/VendorOnboardingForm.tsx
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { styled } from "@mui/material/styles";
@@ -7,19 +8,20 @@ import {
   BusinessUnit,
   VendorType,
   SimilarVendor,
+  GeneralDetailsData,
+  TradingTermsData,
+  SupplyTermsData,
+  FinancialTermsData,
 } from "../../models/VendorTypes";
 import { GeneralDetailsSection } from "./GeneralDetailSection";
 import { TradingTermsSection } from "./TradingTermSection";
 import { SupplyTermsSection } from "./SupplyTermSection";
 import { FinancialTermsSection } from "./FinancialTermSection";
-import { useForm } from "../../hooks/useForm";
+import useForm from "../../hooks/useForm";
 import { ValidationService } from "../../services/ValidationService";
 import { Popup } from "../ui/Popup";
 import { SubmitButton } from "../ui/SubmitButton";
-
-// Create services
-const validationService = new ValidationService();
-const fabricService = new FabricService();
+import axios from "axios"; // Add axios import
 
 // Define styled components
 const FormContainer = styled("div")({
@@ -48,6 +50,11 @@ const ErrorMessage = styled("div")({
 
 interface VendorOnboardingFormProps {}
 
+// Helper function for type-safe property access
+function getSectionErrors(sectionErrors: Record<string, string | undefined>) {
+  return Object.values(sectionErrors).some((error) => !!error);
+}
+
 export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
@@ -63,22 +70,59 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
   const supplyTermsRef = useRef<HTMLDivElement>(null);
   const financialTermsRef = useRef<HTMLDivElement>(null);
 
-  // Initialize form with validation
-  const {
-    formData,
-    errors,
-    touched,
-    isValid,
-    handleChange,
-    handleCheckboxChange,
-    handleFileChange,
-    handleBlur,
-    handleSubmit,
-    resetForm,
-    validateFormData,
-  } = useForm(ValidationService.validateForm, submitVendorData);
+  // Initialize form with empty data
+  const initialFormData: VendorData = {
+    generalDetails: {
+      tradingEntities: [],
+      vendorHomeCountry: "",
+      primaryTradingBusinessUnit: "",
+      email: "",
+      businessName: "",
+      vendorType: "",
+    },
+    tradingTerms: {
+      quotesObtained: "",
+      quotesObtainedReason: "",
+      quotesPdf: null,
+      backOrder: "",
+    },
+    supplyTerms: {
+      exclusiveSupply: "",
+      saleOrReturn: "",
+      authRequired: "",
+      deliveryNotice: 0,
+      minOrderValue: 0,
+      minOrderQuantity: 0,
+      maxOrderValue: 0,
+      otherComments: "",
+    },
+    financialTerms: {
+      paymentTerms: "",
+      orderExpiryDays: 0,
+      grossMargin: "",
+      invoiceDiscount: "",
+      invoiceDiscountValue: "",
+      settlementDiscount: "",
+      settlementDiscountValue: "",
+      settlementDiscountDays: "",
+      flatRebate: "",
+      flatRebatePercent: "",
+      flatRebateDollar: "",
+      flatRebateTerm: "",
+      growthRebate: "",
+      growthRebatePercent: "",
+      growthRebateDollar: "",
+      growthRebateTerm: "",
+      marketingRebate: "",
+      marketingRebatePercent: "",
+      marketingRebateDollar: "",
+      marketingRebateTerm: "",
+      promotionalFund: "",
+      promotionalFundValue: "",
+    },
+  };
 
-  // Submit vendor data to Fabric
+  // Submit vendor data to API
   async function submitVendorData(data: VendorData): Promise<boolean> {
     setIsLoading(true);
     try {
@@ -118,31 +162,44 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
         return false;
       }
 
+      // Check if email exists before proceeding
+      const email = data.generalDetails.email;
+      if (email) {
+        try {
+          const emailCheckResponse = await axios.get(
+            `/api/vendor-onboarding-form/?email=${encodeURIComponent(email)}`
+          );
+
+          if (emailCheckResponse.data && emailCheckResponse.data.exists) {
+            setIsLoading(false);
+
+            // Email exists, show validation error
+            setValidationError(
+              `A vendor with email "${email}" already exists. Please use a different email.`
+            );
+
+            // Scroll to email field
+            if (generalDetailsRef.current) {
+              generalDetailsRef.current.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }
+
+            return false;
+          }
+        } catch (emailCheckError) {
+          console.error(
+            "Error checking email before submission:",
+            emailCheckError
+          );
+          // Continue with form submission even if email check fails
+          // The server will perform final validation
+        }
+      }
+
       // Clear any previous validation error
       setValidationError(null);
-
-      // Skip vendor similarity check since the API doesn't support it currently
-      console.log("Skipping vendor similarity check");
-
-      /* 
-      // Original code - will be re-enabled once API supports it
-      try {
-        // Check for similar vendors - but don't block submission if this fails
-        const similarityResult = await fabricService.checkSimilarVendors(
-          data.generalDetails
-        );
-
-        if (similarityResult.hasSimilarVendors) {
-          setSimilarVendors(similarityResult.similarVendors);
-          setShowSimilarityWarning(true);
-          setIsLoading(false);
-          return false;
-        }
-      } catch (similarityError) {
-        console.error("Error checking for similar vendors:", similarityError);
-        // Continue with form submission even if similarity check fails
-      }
-      */
 
       // Show confirmation popup
       setShowConfirmation(true);
@@ -165,6 +222,25 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
       return false;
     }
   }
+
+  // Initialize form with validation
+  const {
+    formData,
+    errors,
+    touched,
+    isValid,
+    handleChange,
+    handleCheckboxChange,
+    handleFileChange,
+    handleBlur,
+    handleSubmit,
+    resetForm,
+    validateFormData,
+  } = useForm(
+    ValidationService.validateForm,
+    submitVendorData,
+    initialFormData
+  );
 
   // Helper function to get all form field paths
   const getAllFieldsArray = (): Array<[keyof VendorData, string]> => {
@@ -195,15 +271,44 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
 
   // Helper function to check if there are any validation errors
   const hasValidationErrors = (validationErrors: any): boolean => {
-    return Object.values(validationErrors).some(
-      (sectionErrors) => Object.keys(sectionErrors as object).length > 0
-    );
+    // Type-safe checking of validation errors
+    if (
+      validationErrors.generalDetails &&
+      getSectionErrors(validationErrors.generalDetails)
+    ) {
+      return true;
+    }
+
+    if (
+      validationErrors.tradingTerms &&
+      getSectionErrors(validationErrors.tradingTerms)
+    ) {
+      return true;
+    }
+
+    if (
+      validationErrors.supplyTerms &&
+      getSectionErrors(validationErrors.supplyTerms)
+    ) {
+      return true;
+    }
+
+    if (
+      validationErrors.financialTerms &&
+      getSectionErrors(validationErrors.financialTerms)
+    ) {
+      return true;
+    }
+
+    return false;
   };
 
   // Helper function to scroll to the first section with errors
   const scrollToFirstError = (validationErrors: any): void => {
+    // Type-safe checking to find first section with errors
     if (
-      Object.keys(validationErrors.generalDetails).length > 0 &&
+      validationErrors.generalDetails &&
+      getSectionErrors(validationErrors.generalDetails) &&
       generalDetailsRef.current
     ) {
       generalDetailsRef.current.scrollIntoView({
@@ -214,7 +319,8 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
     }
 
     if (
-      Object.keys(validationErrors.tradingTerms).length > 0 &&
+      validationErrors.tradingTerms &&
+      getSectionErrors(validationErrors.tradingTerms) &&
       tradingTermsRef.current
     ) {
       tradingTermsRef.current.scrollIntoView({
@@ -225,7 +331,8 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
     }
 
     if (
-      Object.keys(validationErrors.supplyTerms).length > 0 &&
+      validationErrors.supplyTerms &&
+      getSectionErrors(validationErrors.supplyTerms) &&
       supplyTermsRef.current
     ) {
       supplyTermsRef.current.scrollIntoView({
@@ -236,7 +343,8 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
     }
 
     if (
-      Object.keys(validationErrors.financialTerms).length > 0 &&
+      validationErrors.financialTerms &&
+      getSectionErrors(validationErrors.financialTerms) &&
       financialTermsRef.current
     ) {
       financialTermsRef.current.scrollIntoView({
@@ -253,37 +361,52 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
     setShowConfirmation(false);
 
     try {
-      console.log("Submitting form data");
+      console.log("Submitting form data:", formData);
 
-      // Always show success in demo mode
-      const demoMode = true;
+      // Format the data for API submission
+      const submissionData = {
+        generalDetails: formData.generalDetails,
+        tradingTerms: formData.tradingTerms,
+        supplyTerms: formData.supplyTerms,
+        financialTerms: formData.financialTerms,
+      };
 
-      if (demoMode) {
-        // In demo mode, wait a bit to simulate API processing
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log("Demo mode: showing success without API call");
-        setShowSuccess(true);
-        resetForm();
-        setIsLoading(false);
-        return true;
-      }
+      // Make the API call to submit the form
+      const response = await axios.post(
+        "/api/vendor-onboarding-form",
+        submissionData
+      );
 
-      // This is the actual API call that would be used in production
-      const result = await fabricService.submitVendorData(formData);
-
-      if (result) {
-        console.log("Form submitted successfully");
+      if (response.data.success) {
+        console.log("Form submitted successfully:", response.data);
         setShowSuccess(true);
         resetForm();
       } else {
-        console.warn("Form submission returned false");
-        setValidationError(
-          "There was an issue submitting the form. Please try again or contact support."
-        );
+        console.warn("Form submission returned error:", response.data.message);
+
+        // Check if this is an email already exists error
+        if (response.data.existingVendor) {
+          // Set the error with more specific information about the existing vendor
+          setValidationError(
+            `${response.data.message} (Vendor: ${response.data.existingVendor.business_name})`
+          );
+
+          // Scroll to the email field in the general details section
+          if (generalDetailsRef.current) {
+            generalDetailsRef.current.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }
+        } else {
+          setValidationError(
+            `There was an issue submitting the form: ${response.data.message}`
+          );
+        }
 
         setTimeout(() => {
           setValidationError(null);
-        }, 5000);
+        }, 7000); // Give more time to read email duplication errors
       }
 
       setIsLoading(false);
@@ -291,8 +414,17 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
     } catch (error) {
       console.error("Error submitting form:", error);
 
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+
+      setValidationError(`Failed to submit the form: ${errorMessage}`);
+
+      setTimeout(() => {
+        setValidationError(null);
+      }, 5000);
+
       setIsLoading(false);
-      return true;
+      return false;
     }
   };
 
@@ -306,6 +438,43 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
   // Handle general details section changes
   const handleGeneralDetailsChange = (field: string, value: any) => {
     handleChange("generalDetails", field, value);
+
+    // Check if email exists when email field is changed
+    if (field === "email" && value && ValidationService.isValidEmail(value)) {
+      checkEmailExists(value);
+    }
+  };
+
+  // Check if email already exists in the database
+  const checkEmailExists = async (email: string) => {
+    try {
+      const response = await axios.get(
+        `/api/vendor-onboarding-form/?email=${encodeURIComponent(email)}`
+      );
+
+      if (response.data && response.data.exists) {
+        // Email exists, show validation error
+        setValidationError(
+          `A vendor with email "${email}" already exists. Please use a different email.`
+        );
+
+        // Scroll to the email field
+        if (generalDetailsRef.current) {
+          generalDetailsRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      } else {
+        // Clear validation error if it was an email error
+        if (validationError && validationError.includes("vendor with email")) {
+          setValidationError(null);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking email:", error);
+      // Don't set error - we'll catch it during submission if it still exists
+    }
   };
 
   // Handle trading terms section changes
@@ -402,13 +571,20 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
       {/* Confirmation Popup */}
       <Popup
         isOpen={showConfirmation}
-        title="Would you want to proceed?"
+        title="Would you like to proceed?"
         confirmText="Yes"
         cancelText="No"
         onConfirm={handleConfirmSubmit}
         onCancel={() => setShowConfirmation(false)}
         isConfirmation={true}
-      />
+      >
+        <div style={{ margin: "15px 0" }}>
+          <p>
+            This will send an invitation to the vendor to complete their
+            onboarding process. Are you sure you want to continue?
+          </p>
+        </div>
+      </Popup>
 
       {/* Success Popup */}
       <Popup

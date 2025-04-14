@@ -1,57 +1,62 @@
-export type TradingEntity = 
-  | 'ALAW' 
-  | 'AUDF' 
-  | 'AUTE' 
-  | 'NZAW' 
-  | 'AUPG' 
-  | 'AUAW' 
-  | 'NZDF' 
-  | 'NZTE' 
-  | 'LSAP';
+// src/models/VendorTypes.ts
 
-export type Country = string;
+// Type for trading entities
+export type TradingEntity = string;
 
+// Type for business units
 export type BusinessUnit = 
-  | 'Travel Essentials' 
-  | 'Food Services' 
-  | 'Specialty' 
-  | 'Duty Free'
-  | 'Finance'
-  | 'IT';
+  | "Travel Essentials"
+  | "Food Services"
+  | "Specialty"
+  | "Duty Free"
+  | "Finance"
+  | "IT";
 
-export type VendorType = 'STOCK' | 'OVERHEADS' | 'OVERHEADANDSTOCK';
+// Type for vendor types
+export type VendorType = 
+  | "STOCK" 
+  | "OVERHEADS" 
+  | "OVERHEADANDSTOCK"
+  | "";
 
-export type YesNo = 'yes' | 'no' | '';
+// Type for yes/no answers
+export type YesNo = "yes" | "no" | "";
 
+// Type for payment terms
 export type PaymentTerms = 
-  | '20 EOM' 
-  | '30 DAYS' 
-  | '60 DAYS' 
-  | '90 DAYS' 
-  | '30 EOM' 
-  | '60 EOM' 
-  | '90 EOM'
-  | '';
+  | "20 EOM"
+  | "30 DAYS"
+  | "60 DAYS"
+  | "90 DAYS"
+  | "30 EOM"
+  | "60 EOM"
+  | "90 EOM"
+  | "";
 
-export type TimePeriod = 'month' | 'quarter' | 'year' | '';
+// Type for rebate time periods
+export type TimePeriod = "month" | "quarter" | "year" | "";
 
-export interface GeneralDetails {
+// Type for General Details section
+export interface GeneralDetailsData {
   tradingEntities: TradingEntity[];
-  vendorHomeCountry: Country;
-  primaryTradingBusinessUnit: BusinessUnit;
+  vendorHomeCountry: string;
+  primaryTradingBusinessUnit: string;
   email: string;
   businessName: string;
-  vendorType: VendorType;
+  tradingName?: string;
+  vendorType: string;
 }
 
-export interface TradingTerms {
+// Type for Trading Terms section
+export interface TradingTermsData {
   quotesObtained: YesNo;
   quotesObtainedReason?: string;
-  quotesPdf?: File | null;
-  backOrder?: YesNo;
+  quotesPdf: File | null;
+  backOrder: YesNo;
 }
 
-export interface SupplyTerms {
+// Type for Supply Terms section
+export interface SupplyTermsData {
   exclusiveSupply: YesNo;
   saleOrReturn: YesNo;
   authRequired: YesNo;
@@ -62,8 +67,9 @@ export interface SupplyTerms {
   otherComments?: string;
 }
 
-export interface FinancialTerms {
-  paymentTerms: PaymentTerms;
+// Type for Financial Terms section
+export interface FinancialTermsData {
+  paymentTerms: string;
   orderExpiryDays: number;
   grossMargin: string;
   invoiceDiscount: YesNo;
@@ -87,16 +93,18 @@ export interface FinancialTerms {
   promotionalFundValue?: string;
 }
 
+// Type for the complete vendor data form
 export interface VendorData {
-  generalDetails: GeneralDetails;
-  tradingTerms: TradingTerms;
-  supplyTerms: SupplyTerms;
-  financialTerms: FinancialTerms;
+  generalDetails: GeneralDetailsData;
+  tradingTerms: TradingTermsData;
+  supplyTerms: SupplyTermsData;
+  financialTerms: FinancialTermsData;
 }
 
+// Type for similar vendor warning
 export interface SimilarVendor {
   businessName: string;
   email: string;
-  similarity: number;
+  similarity: number; // 0.0 to 1.0
   matchedCriteria: string[];
 }

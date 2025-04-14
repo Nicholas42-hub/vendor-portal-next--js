@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { validateGraphQLConnection } from "@/app/api/VendorOnboardingPage/route";
+import { validateGraphQLConnection } from "@/app/api/vendoronboardingcontent/route";
 
 // Define the type for accessToken - string or undefined
 export function useConnectionCheck(accessToken: string | undefined) {

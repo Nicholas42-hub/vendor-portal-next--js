@@ -3,10 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import VendorOnboardingContent from "@/components/VendorOnboardingContent";
-import {
-  fetchVendorsData,
-  validateGraphQLConnection,
-} from "../api/VendorOnboardingPage/route";
+import axios from "axios";
 const VendorOnboardingPage: React.FC = () => {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
@@ -87,33 +84,35 @@ const VendorOnboardingPage: React.FC = () => {
           setConnectionError(null);
 
           // Validate the connection using non-null assertion for accessToken
-          const connectionResult = await validateGraphQLConnection(
-            session.accessToken!
-          );
+          if (session?.accessToken) {
+            try {
+              setIsLoading(true);
 
-          if (connectionResult.success) {
-            // Fetch vendor data using non-null assertion for accessToken
-            const vendorResult = await fetchVendorsData(session.accessToken!);
-            if (vendorResult.success) {
-              console.log("Vendor data loaded successfully");
-              setDataLoaded(true);
-            } else {
-              console.error(
-                "Failed to load vendor data:",
-                vendorResult.message
+              const vendorResult = await axios.get(
+                "/api/vendoronboardingcontent"
               );
+              if (vendorResult.data?.success) {
+                console.log("Vendor data loaded successfully");
+                setDataLoaded(true);
+              } else {
+                console.error(
+                  "Failed to load vendor data:",
+                  vendorResult.data?.message
+                );
+                setConnectionError(
+                  vendorResult.data?.message || "Failed to load vendor data"
+                );
+              }
+            } catch (error) {
+              console.error("Error loading vendor data:", error);
               setConnectionError(
-                vendorResult.message || "Failed to load vendor data"
+                error instanceof Error
+                  ? error.message
+                  : "An unknown error occurred"
               );
+            } finally {
+              setIsLoading(false);
             }
-          } else {
-            console.error(
-              "Failed to connect to GraphQL API:",
-              connectionResult.message
-            );
-            setConnectionError(
-              connectionResult.message || "Failed to connect to GraphQL API"
-            );
           }
         } catch (error) {
           console.error("Error loading vendor data:", error);

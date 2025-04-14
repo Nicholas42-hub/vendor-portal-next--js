@@ -1,12 +1,10 @@
-// src/components/VendorOnboardingContent.tsx
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
-import { queryBusinessData } from "@/app/api/VendorOnboardingPage/route";
 import { useRouter } from "next/navigation";
-
+import axios from "axios";
 interface VendorOnboardingContentProps {
   // Add any props the component needs
 }
@@ -21,10 +19,8 @@ interface StatusFilterProps {
 }
 
 interface VendorData {
-  crb7c_accountcontact: string;
   crb7c_poemail: string;
   crb7c_businessname: string;
-  createdon: string;
   adx_createdbyusername: string;
   createdon_formatted: string;
   statecodename: string;
@@ -77,25 +73,14 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
         try {
           setIsLoading(true);
 
-          // Use the actual API call instead of dummy data
-          const result = await queryBusinessData(session.accessToken);
-          if (result.success && result.data) {
-            // Get vendors data from localStorage (populated by queryBusinessData)
-            const vendorsData = localStorage.getItem("vendor_data");
-            if (vendorsData) {
-              const parsedData = JSON.parse(vendorsData);
-              const vendors = parsedData.items || [];
-
-              setTableData(vendors);
-              updateCounts(vendors);
-              filterData(vendors, currentFilter, searchTerm);
-            } else {
-              console.warn("No vendor data found in localStorage");
-              setTableData([]);
-              setFilteredData([]);
-            }
+          const result = await axios.get("/api/vendoronboardingcontent");
+          if (result.data) {
+            setTableData(result.data);
+            setFilteredData(result.data);
+            updateCounts(result.data);
+            filterData(result.data, currentFilter, searchTerm);
           } else {
-            console.error("Error fetching data:", result.message);
+            console.error("Error fetching data:");
             setTableData([]);
             setFilteredData([]);
           }
@@ -318,7 +303,7 @@ const VendorOnboardingContent: React.FC<VendorOnboardingContentProps> = () => {
                 {filteredData.length > 0 ? (
                   filteredData.map((row) => (
                     <tr
-                      key={row.crb7c_accountcontact}
+                      key={row.crb7c_poemail}
                       className="border-b hover:bg-gray-50 cursor-pointer"
                       onClick={() => handleRowClick(row.crb7c_poemail)}
                     >
