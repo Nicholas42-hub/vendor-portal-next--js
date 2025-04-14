@@ -685,8 +685,8 @@ export default function VendorApprovalFlow() {
 
       // Make API call to update the status and decline comment in Dynamics
       if (vendorData.email) {
-        const response = await axios.patch(
-          `/api/vendors/${encodeURIComponent(vendorData.email)}`,
+        const response = await axios.put(
+          `/api/vendor-approval/${encodeURIComponent(vendorData.email)}`,
           {
             status_code: "Declined",
             approval_comment: declineComment,

@@ -175,6 +175,7 @@ export async function GET(req: NextRequest, context: { params: { email: string }
     );
   }
 }
+
 export async function PUT(req: NextRequest, context: { params: { email: string } }) {
   try {
     // Authenticate the request
@@ -214,10 +215,11 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
                 status_code
               }
             }
-    }
+          }
         `,
         variables: { email },
       };
+    
     // Check if vendor exists with this email
     const emailCheckResponse = await axios.post(graphqlEndpoint, checkEmailQuery, {
       headers: {
@@ -237,8 +239,7 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
     }
     
     const existingVendor = existingVendors[0];
-    const vendorId = existingVendor.vendor_onboarding_id;
-    console.log(`Found existing vendor with ID: ${vendorId} and email: ${existingVendor.email}`);
+    console.log(`Found existing vendor email: ${existingVendor.email}`);
 
     // Current timestamp for modified_on
     const currentTimestamp = new Date().toISOString();
@@ -248,23 +249,36 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
       // This is an approval action - only update status fields
       console.log(`Updating approval status to: ${formData.status_code}`);
       
-      const updateStatusMutation = {
-        query: `
-          mutation {
-            updateVendorOnboarding(
-              email: "${email}"
-              item: {
-                status_code: "${formData.status_code}"
-                status_update_time: "${currentTimestamp}"
-                ${formData.approval_comment ? `approval_comment: "${formData.approval_comment}"` : ''}
-                ${formData.status_code === "Creation approved" ? 'vendor_setup_status: "Active"' : ''}
-              }
-            ) {
-              result
-            }
-          }
-        `
-      };
+      // Handle vendor setup status based on status code
+      let vendorSetupStatus = "Pending";
+      if (formData.status_code === "Creation approved") {
+        vendorSetupStatus = "Active";
+      } else if (formData.status_code === "Declined") {
+        vendorSetupStatus = "Declined";
+      }
+      
+      // If declined, set status to "Requester review" to send it back to requester
+      // Otherwise use the provided status code
+      const effectiveStatusCode = formData.status_code === "Declined" 
+        ? "Requester review" 
+        : formData.status_code;
+      
+// For status updates, use a minimal mutation
+const updateStatusMutation = {
+  query: `
+        mutation {
+          updateVendorOnboarding(
+            email: "${email}"
+            item: {
+          status_code: "${formData.status_code}"
+          status_update_time: "${currentTimestamp}"
+        }
+      ) {
+        result
+      }
+    }
+  `
+};
 
       // Make the GraphQL request to update the vendor status
       const updateResponse = await axios.post(graphqlEndpoint, updateStatusMutation, {
@@ -272,7 +286,7 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
           Authorization: `Bearer ${session.accessToken}`,
           "Content-Type": "application/json",
         },
-        timeout: 30000, // 30 seconds timeout
+        timeout: 50000, // 30 seconds timeout
       });
 
       // Check for GraphQL errors
@@ -284,14 +298,20 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
         }, { status: 400 });
       }
 
-      // Return success response
+      // Return success response with appropriate message based on status
+      let messageText = `Vendor approval status updated to ${formData.status_code} successfully`;
+      if (formData.status_code === "Declined") {
+        messageText = "Vendor has been declined. It has been sent back to the requester for review.";
+      } else if (formData.status_code === "Creation approved") {
+        messageText = "Vendor has been fully approved. Setup is now complete.";
+      }
+
       return NextResponse.json({
         success: true,
-        message: `Vendor approval status updated to ${formData.status_code} successfully`,
+        message: messageText,
         data: {
-          vendorId: vendorId,
           email: email,
-          status: formData.status_code,
+          status: formData.status_code === "Declined" ? "Requester review" : formData.status_code,
           result: updateResponse.data.data?.updateVendorOnboarding?.result
         },
       });
@@ -350,9 +370,10 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
                 ref_code: "${formData.ref_code || ""}"
                 
                 // Update status fields
-                status_code: "Requester review"
+                status_code: "Procurement Approval"
                 status_update_time: "${currentTimestamp}"
                 vendor_setup_status: "Pending"
+                approval_comment: ""
               }
             ) {
               result
@@ -361,7 +382,7 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
         `
       };
 
-      console.log(`Updating vendor form data for ID: ${vendorId}`);
+      console.log(`Updating vendor form data for email: ${email}`);
 
       // Make the GraphQL request to update the vendor
       const updateResponse = await axios.post(graphqlEndpoint, updateVendorMutation, {
@@ -369,7 +390,7 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
           Authorization: `Bearer ${session.accessToken}`,
           "Content-Type": "application/json",
         },
-        timeout: 30000, // 30 seconds timeout
+        timeout: 50000, // 50 seconds timeout
       });
 
       // Check for GraphQL errors
@@ -384,9 +405,8 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
       // Return success response
       return NextResponse.json({
         success: true,
-        message: "Supplier form submitted and vendor record updated successfully",
+        message: "Vendor form updated and resubmitted for approval successfully",
         data: {
-          vendorId: vendorId,
           email: email,
           result: updateResponse.data.data?.updateVendorOnboarding?.result
         },

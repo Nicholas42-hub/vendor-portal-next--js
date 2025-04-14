@@ -26,7 +26,6 @@ export async function GET(req: NextRequest) {
       query: `
         query {
           vendorOnboardings(
-            filter: { status_code: { neq: "Creation approved" } }
             first: 1000
           ) {
             items {

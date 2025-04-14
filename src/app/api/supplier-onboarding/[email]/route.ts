@@ -188,7 +188,7 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
         Authorization: `Bearer ${session.accessToken}`,
         "Content-Type": "application/json",
       },
-      timeout: 30000, // 30 seconds timeout
+      timeout: 50000, // 30 seconds timeout
     });
 
     // Check for GraphQL errors
