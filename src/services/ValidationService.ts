@@ -1,243 +1,250 @@
-import { VendorData } from '../models/VendorTypes';
+// src/services/ValidationService.ts
+import { VendorData, VendorType } from "../models/VendorTypes";
+import { ErrorsType, ValidateFunction } from "../hooks/useForm";
 
-type ValidationErrors = {
-  [K in keyof VendorData]: {
-    [Field in keyof VendorData[K]]?: string;
-  };
-};
+// Reexport the ErrorsType from useForm
+export type ValidationErrors = ErrorsType;
 
 export class ValidationService {
-  /**
-   * Validate supply terms section
-   */
-  private static validateSupplyTerms(supplyTerms: VendorData['supplyTerms']): ValidationErrors['supplyTerms'] {
-    const errors: ValidationErrors['supplyTerms'] = {};
+  // Main validation method for the entire form that implements ValidateFunction
+  static validateForm: ValidateFunction = (data: any): ValidationErrors => {
+    const vendorData = data as unknown as VendorData;
+    const errors: ValidationErrors = {
+      generalDetails: {},
+      tradingTerms: {},
+      supplyTerms: {},
+      financialTerms: {},
+    };
 
-    // Exclusive supply validation
-    if (!supplyTerms.exclusiveSupply) {
-      errors.exclusiveSupply = 'Please select whether this is an exclusive supply';
+    // Validate General Details if defined
+    if (vendorData.generalDetails) {
+      ValidationService.validateGeneralDetails(vendorData.generalDetails, errors.generalDetails);
     }
 
-    // Sale or return validation
-    if (!supplyTerms.saleOrReturn) {
-      errors.saleOrReturn = 'Please select whether this is sale or return';
+    // Validate Trading Terms based on vendor type if defined
+    if (vendorData.tradingTerms && vendorData.generalDetails?.vendorType) {
+      ValidationService.validateTradingTerms(
+        vendorData.tradingTerms, 
+        vendorData.generalDetails.vendorType as VendorType, 
+        errors.tradingTerms
+      );
     }
 
-    // Auth required for returns validation
-    if (!supplyTerms.authRequired) {
-      errors.authRequired = 'Please select whether authorization is required for returns';
+    // Validate Supply Terms if defined
+    if (vendorData.supplyTerms) {
+      ValidationService.validateSupplyTerms(vendorData.supplyTerms, errors.supplyTerms);
     }
 
-    // Delivery notice validation
-    if (!supplyTerms.deliveryNotice) {
-      errors.deliveryNotice = 'Lead time is required';
-    } else if (supplyTerms.deliveryNotice < 0) {
-      errors.deliveryNotice = 'Lead time cannot be negative';
-    }
-
-    // Min order value validation
-    if (!supplyTerms.minOrderValue) {
-      errors.minOrderValue = 'Minimum order value is required';
-    } else if (supplyTerms.minOrderValue < 0) {
-      errors.minOrderValue = 'Minimum order value cannot be negative';
-    }
-
-    // Min order quantity validation
-    if (!supplyTerms.minOrderQuantity) {
-      errors.minOrderQuantity = 'Minimum order quantity is required';
-    } else if (supplyTerms.minOrderQuantity < 0) {
-      errors.minOrderQuantity = 'Minimum order quantity cannot be negative';
-    }
-
-    // Max order value validation
-    if (!supplyTerms.maxOrderValue) {
-      errors.maxOrderValue = 'Maximum order value is required';
-    } else if (supplyTerms.maxOrderValue < 0) {
-      errors.maxOrderValue = 'Maximum order value cannot be negative';
-    } else if (supplyTerms.maxOrderValue < supplyTerms.minOrderValue) {
-      errors.maxOrderValue = 'Maximum order value must be greater than minimum order value';
+    // Validate Financial Terms based on vendor type if defined
+    if (vendorData.financialTerms && vendorData.generalDetails?.vendorType) {
+      ValidationService.validateFinancialTerms(
+        vendorData.financialTerms, 
+        vendorData.generalDetails.vendorType as VendorType, 
+        errors.financialTerms
+      );
     }
 
     return errors;
   }
 
-  /**
-   * Validate financial terms section
-   */
-  private static validateFinancialTerms(
-    financialTerms: VendorData['financialTerms'],
-    vendorType: VendorData['generalDetails']['vendorType']
-  ): ValidationErrors['financialTerms'] {
-    const errors: ValidationErrors['financialTerms'] = {};
-
-    // Payment terms validation
-    if (!financialTerms.paymentTerms) {
-      errors.paymentTerms = 'Payment terms are required';
+  // Validate General Details section
+  private static validateGeneralDetails(
+    data: VendorData["generalDetails"], 
+    errors: { [field: string]: string | undefined }
+  ) {
+    // Required fields
+    if (!data.vendorHomeCountry) {
+      errors.vendorHomeCountry = "Vendor Home Country is required";
     }
 
-    // Order expiry days validation - only for STOCK or OVERHEADANDSTOCK
-    if ((vendorType === 'STOCK' || vendorType === 'OVERHEADANDSTOCK')) {
-      if (!financialTerms.orderExpiryDays) {
-        errors.orderExpiryDays = 'Order expiry days are required';
-      } else if (financialTerms.orderExpiryDays < 0) {
-        errors.orderExpiryDays = 'Order expiry days cannot be negative';
-      }
+    if (!data.primaryTradingBusinessUnit) {
+      errors.primaryTradingBusinessUnit = "Primary Trading Business Unit is required";
     }
 
-    // Gross margin validation - required for all vendor types
-    if (!financialTerms.grossMargin) {
-      errors.grossMargin = 'Gross margin is required';
-    } else if (isNaN(parseFloat(financialTerms.grossMargin.replace('%', '')))) {
-      errors.grossMargin = 'Gross margin must be a number';
+    if (!data.email) {
+      errors.email = "Email is required";
+    } else if (!ValidationService.isValidEmail(data.email)) {
+      errors.email = "Please enter a valid email address";
     }
 
-    // Invoice discount validation
-    if (!financialTerms.invoiceDiscount) {
-      errors.invoiceDiscount = 'Please select whether there is an invoice discount';
-    } else if (financialTerms.invoiceDiscount === 'yes' && !financialTerms.invoiceDiscountValue) {
-      errors.invoiceDiscountValue = 'Please enter the invoice discount value';
+    if (!data.businessName) {
+      errors.businessName = "Business Name is required";
     }
 
-    // Settlement discount validation
-    if (!financialTerms.settlementDiscount) {
-      errors.settlementDiscount = 'Please select whether there is a settlement discount';
-    } else if (financialTerms.settlementDiscount === 'yes') {
-      if (!financialTerms.settlementDiscountValue) {
-        errors.settlementDiscountValue = 'Please enter the settlement discount value';
-      }
-      if (!financialTerms.settlementDiscountDays) {
-        errors.settlementDiscountDays = 'Please enter the settlement discount days';
-      }
+    if (!data.vendorType) {
+      errors.vendorType = "Vendor Type is required";
     }
 
-    // For STOCK or OVERHEADANDSTOCK, validate rebate fields
-    if (vendorType === 'STOCK' || vendorType === 'OVERHEADANDSTOCK') {
-      // Flat rebate validation
-      if (!financialTerms.flatRebate) {
-        errors.flatRebate = 'Please select whether there is a flat rebate';
-      } else if (financialTerms.flatRebate === 'yes') {
-        // At least one of percent or dollar must be provided
-        if (!financialTerms.flatRebatePercent && !financialTerms.flatRebateDollar) {
-          errors.flatRebatePercent = 'Please enter either a percentage or dollar value';
-        }
-        if (!financialTerms.flatRebateTerm) {
-          errors.flatRebateTerm = 'Please select a time period';
-        }
-      }
-
-      // Growth rebate validation
-      if (!financialTerms.growthRebate) {
-        errors.growthRebate = 'Please select whether there is a growth rebate';
-      } else if (financialTerms.growthRebate === 'yes') {
-        // At least one of percent or dollar must be provided
-        if (!financialTerms.growthRebatePercent && !financialTerms.growthRebateDollar) {
-          errors.growthRebatePercent = 'Please enter either a percentage or dollar value';
-        }
-        if (!financialTerms.growthRebateTerm) {
-          errors.growthRebateTerm = 'Please select a time period';
-        }
-      }
-
-      // Marketing rebate validation
-      if (!financialTerms.marketingRebate) {
-        errors.marketingRebate = 'Please select whether there is a marketing rebate';
-      } else if (financialTerms.marketingRebate === 'yes') {
-        // At least one of percent or dollar must be provided
-        if (!financialTerms.marketingRebatePercent && !financialTerms.marketingRebateDollar) {
-          errors.marketingRebatePercent = 'Please enter either a percentage or dollar value';
-        }
-        if (!financialTerms.marketingRebateTerm) {
-          errors.marketingRebateTerm = 'Please select a time period';
-        }
-      }
+    // Trading entities (at least one must be selected)
+    if (data.tradingEntities.length === 0) {
+      errors.tradingEntities = "At least one Trading Entity must be selected";
     }
-
-    return errors;
   }
 
-
-/**
-* Validate the entire vendor form
-*/
-static validateForm(data: VendorData): ValidationErrors {
-  return {
-    generalDetails: ValidationService.validateGeneralDetails(data.generalDetails),
-    tradingTerms: ValidationService.validateTradingTerms(data.tradingTerms, data.generalDetails.vendorType),
-    supplyTerms: ValidationService.validateSupplyTerms(data.supplyTerms),
-    financialTerms: ValidationService.validateFinancialTerms(data.financialTerms, data.generalDetails.vendorType),
-  };
-}
-  /**
-   * Validate general details section
-   */
-  private static validateGeneralDetails(generalDetails: VendorData['generalDetails']): ValidationErrors['generalDetails'] {
-    const errors: ValidationErrors['generalDetails'] = {};
-
-    // Trading Entities validation
-    if (!generalDetails.tradingEntities || generalDetails.tradingEntities.length === 0) {
-      errors.tradingEntities = 'Please select at least one trading entity';
-    }
-
-    // Vendor Home Country validation
-    if (!generalDetails.vendorHomeCountry) {
-      errors.vendorHomeCountry = 'Vendor Home Country is required';
-    }
-
-    // Primary Trading Business Unit validation
-    if (!generalDetails.primaryTradingBusinessUnit) {
-      errors.primaryTradingBusinessUnit = 'Primary Trading Business Unit is required';
-    }
-
-    // Email validation
-    if (!generalDetails.email) {
-      errors.email = 'Email is required';
-    } else if (!/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/.test(generalDetails.email)) {
-      errors.email = 'Please enter a valid email address';
-    }
-
-    // Business Name validation
-    if (!generalDetails.businessName) {
-      errors.businessName = 'Business Name is required';
-    }
-
-    // Vendor Type validation
-    if (!generalDetails.vendorType) {
-      errors.vendorType = 'Vendor Type is required';
-    }
-
-    // Parent Vendor validation (if applicable)
-    if (generalDetails.childVendor === 'yes' && !generalDetails.parentVendor) {
-      errors.parentVendor = 'Parent Vendor is required for child vendors';
-    }
-
-    return errors;
-  }
-
-  /**
-   * Validate trading terms section
-   */
+  // Validate Trading Terms section
   private static validateTradingTerms(
-    tradingTerms: VendorData['tradingTerms'], 
-    vendorType: VendorData['generalDetails']['vendorType']
-  ): ValidationErrors['tradingTerms'] {
-    const errors: ValidationErrors['tradingTerms'] = {};
-
-    // Quotes Obtained validation - only required for OVERHEADS or OVERHEADANDSTOCK
-    if ((vendorType === 'OVERHEADS' || vendorType === 'OVERHEADANDSTOCK') && !tradingTerms.quotesObtained) {
-      errors.quotesObtained = 'Please select whether 2 quotes were obtained';
+    data: VendorData["tradingTerms"], 
+    vendorType: VendorType, 
+    errors: { [field: string]: string | undefined }
+  ) {
+    // Validate quotes only for OVERHEADS or OVERHEADANDSTOCK
+    if (vendorType === "OVERHEADS" || vendorType === "OVERHEADANDSTOCK") {
+      if (!data.quotesObtained) {
+        errors.quotesObtained = "Please specify if quotes were obtained";
+      } else if (data.quotesObtained === "yes") {
+        // If quotes were obtained, the PDF should be provided
+        if (!data.quotesPdf) {
+          errors.quotesPdf = "Please upload quotes PDF";
+        }
+      } else if (data.quotesObtained === "no") {
+        // If quotes were not obtained, a reason should be provided
+        if (!data.quotesObtainedReason) {
+          errors.quotesObtainedReason = "Please provide a reason why quotes were not obtained";
+        }
+      }
     }
 
-    // Reason for no quotes - required if quotesObtained is 'no'
-    if (tradingTerms.quotesObtained === 'no' && !tradingTerms.quotesObtainedReason) {
-      errors.quotesObtainedReason = 'Please provide a reason';
+    // Back Order validation for STOCK or OVERHEADANDSTOCK
+    if (vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK") {
+      if (!data.backOrder) {
+        errors.backOrder = "Please specify if back orders are allowed";
+      }
     }
-    
-    // PDF attachment - required if quotesObtained is 'yes'
-    if (tradingTerms.quotesObtained === 'yes' && !tradingTerms.quotesPdf) {
-      errors.quotesPdf = 'Please upload quotes PDF';
-    }
-
-    return errors;
   }
 
+  // Validate Supply Terms section
+  private static validateSupplyTerms(
+    data: VendorData["supplyTerms"], 
+    errors: { [field: string]: string | undefined }
+  ) {
+    // Required fields
+    if (!data.exclusiveSupply) {
+      errors.exclusiveSupply = "Please specify if this is an exclusive supply";
+    }
+
+    if (!data.saleOrReturn) {
+      errors.saleOrReturn = "Please specify if this is a sale or return";
+    }
+
+    if (!data.authRequired) {
+      errors.authRequired = "Please specify if authorization is required for returns";
+    }
+
+    // Numeric fields
+    if (data.deliveryNotice < 0) {
+      errors.deliveryNotice = "Delivery notice cannot be negative";
+    }
+
+    if (data.minOrderValue < 0) {
+      errors.minOrderValue = "Minimum order value cannot be negative";
+    }
+
+    if (data.minOrderQuantity < 0) {
+      errors.minOrderQuantity = "Minimum order quantity cannot be negative";
+    }
+
+    if (data.maxOrderValue < 0) {
+      errors.maxOrderValue = "Maximum order value cannot be negative";
+    }
+
+    // Validate maxOrderValue > minOrderValue if both are provided
+    if (data.maxOrderValue > 0 && data.minOrderValue > 0 && data.maxOrderValue < data.minOrderValue) {
+      errors.maxOrderValue = "Maximum order value must be greater than minimum order value";
+    }
+  }
+
+  // Validate Financial Terms section
+  private static validateFinancialTerms(
+    data: VendorData["financialTerms"], 
+    vendorType: VendorType, 
+    errors: { [field: string]: string | undefined }
+  ) {
+    // Required fields
+    if (!data.paymentTerms) {
+      errors.paymentTerms = "Payment terms are required";
+    }
+
+    // Order Expiry Days - only for STOCK or OVERHEADANDSTOCK
+    if (vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK") {
+      if (data.orderExpiryDays <= 0) {
+        errors.orderExpiryDays = "Order expiry days must be greater than 0";
+      }
+
+      if (!data.grossMargin) {
+        errors.grossMargin = "Gross margin is required for stock vendors";
+      }
+    }
+
+    // Invoice Discount
+    if (!data.invoiceDiscount) {
+      errors.invoiceDiscount = "Please specify if there is an invoice discount";
+    } else if (data.invoiceDiscount === "yes" && !data.invoiceDiscountValue) {
+      errors.invoiceDiscountValue = "Invoice discount value is required";
+    }
+
+    // Settlement Discount
+    if (!data.settlementDiscount) {
+      errors.settlementDiscount = "Please specify if there is a settlement discount";
+    } else if (data.settlementDiscount === "yes") {
+      if (!data.settlementDiscountValue) {
+        errors.settlementDiscountValue = "Settlement discount value is required";
+      }
+      if (!data.settlementDiscountDays) {
+        errors.settlementDiscountDays = "Settlement discount days are required";
+      }
+    }
+
+    // Rebates - only for STOCK or OVERHEADANDSTOCK
+    if (vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK") {
+      // Flat Rebate
+      if (!data.flatRebate) {
+        errors.flatRebate = "Please specify if there is a flat rebate";
+      } else if (data.flatRebate === "yes") {
+        if (!data.flatRebatePercent && !data.flatRebateDollar) {
+          errors.flatRebatePercent = "Either percent or dollar value is required";
+          errors.flatRebateDollar = "Either percent or dollar value is required";
+        }
+        if (!data.flatRebateTerm) {
+          errors.flatRebateTerm = "Flat rebate term is required";
+        }
+      }
+
+      // Growth Rebate
+      if (!data.growthRebate) {
+        errors.growthRebate = "Please specify if there is a growth rebate";
+      } else if (data.growthRebate === "yes") {
+        if (!data.growthRebatePercent && !data.growthRebateDollar) {
+          errors.growthRebatePercent = "Either percent or dollar value is required";
+          errors.growthRebateDollar = "Either percent or dollar value is required";
+        }
+        if (!data.growthRebateTerm) {
+          errors.growthRebateTerm = "Growth rebate term is required";
+        }
+      }
+
+      // Marketing Rebate
+      if (!data.marketingRebate) {
+        errors.marketingRebate = "Please specify if there is a marketing rebate";
+      } else if (data.marketingRebate === "yes") {
+        if (!data.marketingRebatePercent && !data.marketingRebateDollar) {
+          errors.marketingRebatePercent = "Either percent or dollar value is required";
+          errors.marketingRebateDollar = "Either percent or dollar value is required";
+        }
+        if (!data.marketingRebateTerm) {
+          errors.marketingRebateTerm = "Marketing rebate term is required";
+        }
+      }
+    }
+
+    // Promotional Fund
+    if (data.promotionalFund === "yes" && !data.promotionalFundValue) {
+      errors.promotionalFundValue = "Promotional fund value is required";
+    }
+  }
+
+  // Helper method to validate email format
+  static isValidEmail(email: string): boolean {
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+    return emailRegex.test(email);
+  }
 }

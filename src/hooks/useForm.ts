@@ -1,211 +1,226 @@
-import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { VendorData, GeneralDetails, TradingTerms, SupplyTerms, FinancialTerms } from '../models/VendorTypes';
+// src/hooks/useForm.ts
+import { useState, useCallback } from "react";
+import { VendorData } from "../models/VendorTypes";
 
-// Initial state for the form
-const initialVendorData: VendorData = {
-  generalDetails: {
-    tradingEntities: [],
-    vendorHomeCountry: '',
-    primaryTradingBusinessUnit: '' as any,
-    email: '',
-    businessName: '',
-    vendorType: '' as any,
-  },
-  tradingTerms: {
-    quotesObtained: '',
-    quotesObtainedReason: '',
-    quotesPdf: null,
-    backOrder: '',
-  },
-  supplyTerms: {
-    exclusiveSupply: '',
-    saleOrReturn: '',
-    authRequired: '',
-    deliveryNotice: 0,
-    minOrderValue: 0,
-    minOrderQuantity: 0,
-    maxOrderValue: 0,
-    otherComments: '',
-  },
-  financialTerms: {
-    paymentTerms: '',
-    orderExpiryDays: 0,
-    grossMargin: '',
-    invoiceDiscount: '',
-    invoiceDiscountValue: '',
-    settlementDiscount: '',
-    settlementDiscountValue: '',
-    settlementDiscountDays: '',
-    flatRebate: '',
-    flatRebatePercent: '',
-    flatRebateDollar: '',
-    flatRebateTerm: '',
-    growthRebate: '',
-    growthRebatePercent: '',
-    growthRebateDollar: '',
-    growthRebateTerm: '',
-    marketingRebate: '',
-    marketingRebatePercent: '',
-    marketingRebateDollar: '',
-    marketingRebateTerm: '',
-    promotionalFund: '',
-    promotionalFundValue: '',
-  },
+// This type represents a section of the form with key-value pairs
+type FormSection = {
+  [key: string]: any;
 };
 
-// Validation errors type
-type ValidationErrors = {
+// This type represents the entire form data structure
+// Now compatible with VendorData to allow passing to validation
+type FormData = VendorData;
+
+// This type represents the errors object structure
+// Note: using string | undefined allows us to clear errors
+type ErrorsType = {
   [K in keyof VendorData]: {
-    [Field in keyof VendorData[K]]?: string;
+    [field: string]: string | undefined;
   };
 };
 
-interface UseFormReturn {
-  formData: VendorData;
-  errors: ValidationErrors;
-  touched: { [key: string]: boolean };
-  isValid: boolean;
-  handleChange: (section: keyof VendorData, field: string, value: any) => void;
-  handleCheckboxChange: (section: keyof VendorData, field: string, value: string, checked: boolean) => void;
-  handleFileChange: (section: keyof VendorData, field: string, file: File | null) => void;
-  handleBlur: (section: keyof VendorData, field: string) => void;
-  handleSubmit: (e: FormEvent) => Promise<boolean>;
-  resetForm: () => void;
-  validateFormData: () => ValidationErrors; // Added this function
-}
+// Type for the validation function passed to useForm
+type ValidateFunction = (data: FormData) => ErrorsType;
 
-export const useForm = (validateForm: (data: VendorData) => ValidationErrors, onSubmit: (data: VendorData) => Promise<boolean>): UseFormReturn => {
-  const [formData, setFormData] = useState<VendorData>(initialVendorData);
-  const [errors, setErrors] = useState<ValidationErrors>({
-    generalDetails: {},
-    tradingTerms: {},
-    supplyTerms: {},
-    financialTerms: {},
-  });
-  const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
-  const [isValid, setIsValid] = useState(false);
+// Type for the submission function passed to useForm
+type SubmitFunction = (data: FormData) => Promise<boolean>;
 
-  // Validate form whenever formData changes
-  useEffect(() => {
-    const validationErrors = validateForm(formData);
+/**
+ * Custom hook for form handling with validation and submission
+ * @param validateFn Function to validate the form data
+ * @param submitFn Function to submit the form data when valid
+ * @param initialData Initial form data
+ */
+export const useForm = (
+  validateFn: ValidateFunction,
+  submitFn: SubmitFunction,
+  initialData: FormData
+) => {
+  // State for form data and validation
+  const [formData, setFormData] = useState<FormData>(initialData);
+  const [errors, setErrors] = useState<ErrorsType>({} as ErrorsType);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isValid, setIsValid] = useState(true);
+
+  // Validate form data and update errors
+  const validateFormData = useCallback(() => {
+    const validationErrors = validateFn(formData);
     setErrors(validationErrors);
     
-    // Check if form is valid (no errors)
+    // Determine if form is valid (no errors in any section)
     const hasErrors = Object.values(validationErrors).some(
-      sectionErrors => Object.keys(sectionErrors).length > 0
+      sectionErrors => Object.values(sectionErrors).some(error => !!error)
     );
+    
     setIsValid(!hasErrors);
-  }, [formData, validateForm]);
-
-  // Function to manually validate the form data
-  const validateFormData = (): ValidationErrors => {
-    const validationErrors = validateForm(formData);
-    setErrors(validationErrors);
     return validationErrors;
-  };
+  }, [formData, validateFn]);
 
-  // Handle changes to form fields
-  const handleChange = (section: keyof VendorData, field: string, value: any) => {
-    setFormData(prevData => ({
-      ...prevData,
+  // Handle input changes in form fields
+  const handleChange = (section: keyof FormData, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
       [section]: {
-        ...prevData[section],
-        [field]: value,
-      },
-    }));
-  };
-
-  // Handle checkbox changes specifically (checkboxes can be multi-select)
-  const handleCheckboxChange = (section: keyof VendorData, field: string, value: string, checked: boolean) => {
-    setFormData(prevData => {
-      if (field === 'tradingEntities') {
-        const currentEntities = [...(prevData.generalDetails.tradingEntities || [])];
-        if (checked) {
-          currentEntities.push(value as any);
-        } else {
-          const index = currentEntities.indexOf(value as any);
-          if (index > -1) {
-            currentEntities.splice(index, 1);
-          }
-        }
-        
-        return {
-          ...prevData,
-          generalDetails: {
-            ...prevData.generalDetails,
-            tradingEntities: currentEntities,
-          },
-        };
+        ...(prev[section] as unknown as Record<string, any>),
+        [field]: value
       }
+    }));
+
+    // Clear error when field is changed
+    if (errors[section]?.[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [section]: {
+          ...(prev[section] as unknown as Record<string, any>),
+          [field]: undefined
+        }
+      }));
+    }
+  };
+// Special handler for checkbox inputs
+const handleCheckboxChange = (
+  section: keyof FormData,
+  field: string,
+  value: string,
+  checked: boolean
+) => {
+  setFormData(prev => {
+    // Create a safe copy of the section
+    const sectionData = { ...prev[section] } as Record<string, any>;
+    
+    // Create a safe copy of the current array values
+    const currentValues = Array.isArray(sectionData[field]) 
+      ? [...sectionData[field]] 
+      : [];
+    
+    if (checked) {
+      // Add value if checked and not already in array
+      if (!currentValues.includes(value)) {
+        currentValues.push(value);
+      }
+    } else {
+      // Remove value if unchecked
+      const index = currentValues.indexOf(value);
+      if (index !== -1) {
+        currentValues.splice(index, 1);
+      }
+    }
+    
+    // Return the updated form data
+    return {
+      ...prev,
+      [section]: {
+        ...sectionData,
+        [field]: currentValues
+      }
+    };
+  });
+
+  // Clear error when field is changed
+  if (errors[section]?.[field]) {
+    setErrors(prev => {
+      // Create a safe copy of the error section
+      const sectionErrors = { ...(prev[section] || {}) } as Record<string, any>;
       
-      return prevData;
+      // Set the field error to undefined
+      sectionErrors[field] = undefined;
+      
+      return {
+        ...prev,
+        [section]: sectionErrors
+      };
     });
+  }
+};
+
+  // Special handler for file inputs
+  const handleFileChange = (section: keyof FormData, field: string, file: File | null) => {
+    setFormData(prev => ({
+      ...prev,
+      [section]: {
+        ...(prev[section] as unknown as Record<string, any>),
+        [field]: file
+      }
+    }));
+    
+    // Clear error when file is changed
+    if (errors[section]?.[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [section]: {
+          ...(prev[section] as unknown as Record<string, any>),
+          [field]: undefined
+        }
+      }));
+    }
   };
   
-  // Handle file uploads for PDF attachments
-  const handleFileChange = (section: keyof VendorData, field: string, file: File | null) => {
-    setFormData(prevData => ({
-      ...prevData,
-      [section]: {
-        ...prevData[section],
-        [field]: file,
-      },
-    }));
-    
-    // Mark the field as touched
+  // Mark field as touched when it loses focus
+  const handleBlur = (section: keyof FormData, field: string) => {
     setTouched(prev => ({
       ...prev,
-      [`${section}.${field}`]: true,
+      [`${String(section)}.${field}`]: true
     }));
   };
-
-  // Track which fields have been touched (for validation UX)
-  const handleBlur = (section: keyof VendorData, field: string) => {
-    setTouched(prev => ({
-      ...prev,
-      [`${section}.${field}`]: true,
-    }));
-  };
-
-  // Submit the form
-  const handleSubmit = async (e: FormEvent): Promise<boolean> => {
+  
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Mark all fields as touched to show all validation errors
-    const allTouched: { [key: string]: boolean } = {};
+    // Validate the form before submission
+    const validationErrors = validateFormData();
+    
+    // Check if form has any errors
+    const hasErrors = Object.values(validationErrors).some(
+      sectionErrors => Object.values(sectionErrors).some(error => !!error)
+    );
+    
+    if (!hasErrors) {
+      setIsSubmitting(true);
+      const result = await submitFn(formData);
+      setIsSubmitting(false);
+      return result;
+    }
+    
+    // Mark all fields as touched to show all errors
+    const allTouched: Record<string, boolean> = {};
+    
     Object.keys(formData).forEach(section => {
-      Object.keys((formData as any)[section]).forEach(field => {
+      const sectionData = (formData[section as keyof FormData] as Record<string, any>);
+      Object.keys(sectionData).forEach(field => {
         allTouched[`${section}.${field}`] = true;
       });
     });
-    setTouched(allTouched);
     
-    // Always proceed with submission, validation will happen in the onSubmit function
-    try {
-      return await onSubmit(formData);
-    } catch (error) {
-      console.error('Form submission error:', error);
-      return false;
-    }
+    setTouched(allTouched);
+    return false;
   };
-
-  // Reset the form to initial state
+  
+  // Reset form to initial state
   const resetForm = () => {
-    setFormData(initialVendorData);
+    setFormData(initialData);
+    setErrors({}as ErrorsType);
     setTouched({});
+    setIsSubmitting(false);
+    setIsValid(true);
   };
-
+  
+  // Return all form handling functions and state
   return {
     formData,
     errors,
     touched,
     isValid,
+    isSubmitting,
     handleChange,
     handleCheckboxChange,
     handleFileChange,
     handleBlur,
     handleSubmit,
-    resetForm,
-    validateFormData, // Expose the validation function
+    validateFormData,
+    resetForm
   };
 };
+
+export default useForm;

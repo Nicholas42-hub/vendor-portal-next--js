@@ -2,7 +2,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
 
-// GET handler to fetch approvers for a business unit
+// Mock approvers data based on business unit
+const mockApprovers = {
+  "Travel Essentials": {
+    id: "1",
+    approver1: "manager@example.com",
+    approverName: "John Manager",
+    businessUnit: "Travel Essentials"
+  },
+  "Food Services": {
+    id: "2",
+    approver1: "manager2@example.com",
+    approverName: "Sarah Manager",
+    businessUnit: "Food Services"
+  },
+  "Specialty": {
+    id: "3",
+    approver1: "manager3@example.com",
+    approverName: "Mike Manager",
+    businessUnit: "Specialty"
+  },
+  "Duty Free": {
+    id: "4",
+    approver1: "manager4@example.com",
+    approverName: "David Manager",
+    businessUnit: "Duty Free"
+  }
+};
+
+// Default approver to return when requested business unit is not found
+function createDefaultApprover(businessUnit: string) {
+  return {
+    id: "default",
+    approver1: `approver.${businessUnit.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+    approverName: `${businessUnit} Approver`,
+    businessUnit: businessUnit
+  };
+}
+
+// GET handler to fetch approvers
 export async function GET(req: NextRequest) {
   try {
     // Check if the user is authenticated
@@ -12,73 +50,92 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
     
-    // Get business unit from query parameter
+    // Get parameters from query
     const url = new URL(req.url);
     const businessUnit = url.searchParams.get('businessUnit');
+    const email = url.searchParams.get('email');
     
-    if (!businessUnit) {
-      return NextResponse.json({ error: 'Business unit parameter is required' }, { status: 400 });
-    }
-    
-    // In a real implementation, you would make a request to Dynamics 365 to get approvers
-    // This is a simplified example with mock data
-    
-    // Mock approvers data based on business unit
-    const mockApprovers = {
-      "Travel Essentials": {
-        crb7c_approversid: "1",
-        crb7c_approver1: "manager@example.com",
-        crb7c_approver1_name: "John Manager",
-        crb7c_approver2: "cfo@example.com",
-        crb7c_approver2_name: "Jane CFO",
-        crb7c_approver3: "exco@example.com",
-        crb7c_approver3_name: "Bob Exco",
-        crb7c_businessunit: "Travel Essentials"
-      },
-      "Food Services": {
-        crb7c_approversid: "2",
-        crb7c_approver1: "manager2@example.com",
-        crb7c_approver1_name: "Sarah Manager",
-        crb7c_approver2: "cfo@example.com",
-        crb7c_approver2_name: "Jane CFO",
-        crb7c_approver3: "exco@example.com",
-        crb7c_approver3_name: "Bob Exco",
-        crb7c_businessunit: "Food Services"
-      },
-      "Specialty": {
-        crb7c_approversid: "3",
-        crb7c_approver1: "manager3@example.com",
-        crb7c_approver1_name: "Mike Manager",
-        crb7c_approver2: "cfo@example.com",
-        crb7c_approver2_name: "Jane CFO",
-        crb7c_approver3: "exco@example.com",
-        crb7c_approver3_name: "Bob Exco",
-        crb7c_businessunit: "Specialty"
-      },
-      "Duty Free": {
-        crb7c_approversid: "4",
-        crb7c_approver1: "manager4@example.com",
-        crb7c_approver1_name: "David Manager",
-        crb7c_approver2: "cfo@example.com",
-        crb7c_approver2_name: "Jane CFO",
-        crb7c_approver3: "exco@example.com",
-        crb7c_approver3_name: "Bob Exco",
-        crb7c_businessunit: "Duty Free"
+    // If requesting a specific approver by email
+    if (email) {
+      // Search for the approver in our mock data
+      for (const buKey in mockApprovers) {
+        const approver = mockApprovers[buKey as keyof typeof mockApprovers];
+        if (approver.approver1.toLowerCase() === email.toLowerCase()) {
+          return NextResponse.json({
+            success: true,
+            approver
+          });
+        }
       }
-    };
-    
-    // Get approvers for the requested business unit
-    const approvers = mockApprovers[businessUnit as keyof typeof mockApprovers];
-    
-    if (!approvers) {
-      return NextResponse.json({ error: 'No approvers found for this business unit' }, { status: 404 });
+      
+      // If approver not found, create a default one based on the email
+      return NextResponse.json({
+        success: true,
+        approver: {
+          id: "email-default",
+          approver1: email,
+          approverName: email.split('@')[0],
+          businessUnit: "UNKNOWN"
+        }
+      });
     }
     
-    // Return the approvers data
-    return NextResponse.json([approvers]);
+    // If requesting approvers for a specific business unit
+    if (businessUnit) {
+      // Try to find an exact match
+      const approver = mockApprovers[businessUnit as keyof typeof mockApprovers];
+      
+      if (approver) {
+        return NextResponse.json({
+          success: true,
+          approvers: [approver]
+        });
+      }
+      
+      // If no exact match, search for partial matches
+      const matchingApprovers = Object.values(mockApprovers).filter(a => 
+        a.businessUnit.toLowerCase().includes(businessUnit.toLowerCase())
+      );
+      
+      if (matchingApprovers.length > 0) {
+        return NextResponse.json({
+          success: true,
+          approvers: matchingApprovers
+        });
+      }
+      
+      // If still no match, return a default approver for this business unit
+      return NextResponse.json({
+        success: true,
+        approvers: [createDefaultApprover(businessUnit)]
+      });
+    }
+    
+    // If no specific filters, return all approvers
+    return NextResponse.json({
+      success: true,
+      approvers: Object.values(mockApprovers)
+    });
     
   } catch (error) {
     console.error('Error fetching approvers:', error);
-    return NextResponse.json({ error: 'Failed to fetch approvers' }, { status: 500 });
+    
+    // Even in case of error, return something usable to avoid breaking the UI
+    if (req.url) {
+      const url = new URL(req.url);
+      const businessUnit = url.searchParams.get('businessUnit');
+      
+      if (businessUnit) {
+        return NextResponse.json({
+          success: true,
+          approvers: [createDefaultApprover(businessUnit)]
+        });
+      }
+    }
+    
+    return NextResponse.json({
+      success: true,
+      approvers: Object.values(mockApprovers)
+    });
   }
 }

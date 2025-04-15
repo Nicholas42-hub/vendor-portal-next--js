@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Label } from "@/components/ui/label";
+import { Popup } from "../ui/Popup";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -22,7 +23,6 @@ import axios from "axios";
 
 // Define interfaces for trading entities
 interface TradingEntity {
-  contactid: string;
   TradingEntityId: string;
   entityName: string;
   entityCountry: string;
@@ -38,7 +38,6 @@ interface SupplierFormData {
   gst?: string;
   address: string;
   website: string;
-  postal_address: string;
   city: string;
   state: string;
   postcode: string;
@@ -47,7 +46,8 @@ interface SupplierFormData {
   po_email: string;
   return_order_email: string;
   trading_entities: string[];
-
+  has_tax_id: string;
+  ANB_GST: string;
   // Payment method
   payment_method: string;
 
@@ -91,7 +91,7 @@ interface FormErrors {
 
 export default function SupplierForm() {
   const searchParams = useSearchParams();
-  const contactid = searchParams.get("contactid");
+  const email = searchParams.get("email");
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -113,7 +113,6 @@ export default function SupplierForm() {
     gst_registered: "",
     address: "",
     website: "",
-    postal_address: "",
     city: "",
     state: "",
     postcode: "",
@@ -124,6 +123,8 @@ export default function SupplierForm() {
     trading_entities: [],
     payment_method: "Bank Transfer",
     iAgree: false,
+    has_tax_id: "",
+    ANB_GST: "",
   });
 
   // Currencies list
@@ -135,7 +136,41 @@ export default function SupplierForm() {
     { value: "GBP", label: "GBP" },
     { value: "CNY", label: "CNY" },
   ];
+  // Add this function to your component
+  const handleInputBlur = (
+    e: React.FocusEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
+    const { name, value } = e.target;
 
+    // Only validate if there's a value
+    if (value) {
+      let error = "";
+
+      // Email validation for email fields
+      if (
+        name === "po_email" ||
+        name === "return_order_email" ||
+        name === "primary_contact_email" ||
+        name === "au_remittance_email" ||
+        name === "nz_remittance_email"
+      ) {
+        const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+        if (!emailRegex.test(value)) {
+          error = "Please enter a valid email address";
+        }
+      }
+
+      // Update errors state if there's an error
+      if (error) {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: error,
+        }));
+      }
+    }
+  };
   // Get vendor trading entities on component mount
   useEffect(() => {
     if (session?.accessToken) {
@@ -147,16 +182,16 @@ export default function SupplierForm() {
   const fetchTradingEntities = async () => {
     try {
       setIsLoading(true);
-      if (!contactid) {
-        console.error("No contact ID available in URL");
+      if (!email) {
+        console.error("No email available in URL");
         return;
       }
 
-      const response = await axios.get(`/api/supplier/${contactid}`);
+      const response = await axios.get(`/api/supplier-onboarding/${email}`);
 
-      const { vendorCountry, tradingEntities } = response.data;
+      const { vendorInfo, tradingEntities } = response.data;
 
-      console.log(vendorCountry);
+      console.log(vendorInfo);
       setTradingEntities(tradingEntities);
 
       const auEntities = tradingEntities.filter(
@@ -169,7 +204,10 @@ export default function SupplierForm() {
       setHasAuEntities(auEntities.length > 0);
       setHasNzEntities(nzEntities.length > 0);
 
-      setFormData((prev) => ({ ...prev, country: vendorCountry }));
+      setFormData((prev) => ({
+        ...prev,
+        business_name: vendorInfo.business_name,
+      }));
       setVendorCountry(vendorCountry);
     } catch (error) {
       console.error("Error fetching trading entities:", error);
@@ -185,10 +223,9 @@ export default function SupplierForm() {
       if (user) {
         setFormData((prev) => ({
           ...prev,
-          business_name: user.name || "",
-          primary_contact_email: user.email || "",
-          po_email: user.email || "",
-          return_order_email: user.email || "",
+          primary_contact_email: email || "",
+          po_email: email || "",
+          return_order_email: email || "",
         }));
       }
     }
@@ -305,7 +342,6 @@ export default function SupplierForm() {
       "trading_name",
       "country",
       "gst_registered",
-      "postal_address",
       "city",
       "state",
       "postcode",
@@ -504,11 +540,11 @@ export default function SupplierForm() {
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (validateForm()) {
-      setShowConfirmation(true);
-    }
+    console.log("Form submitted");
+
+    setShowConfirmation(true);
   };
 
   // Handle confirmation
@@ -518,7 +554,10 @@ export default function SupplierForm() {
 
     try {
       // Submit form data to the API
-      const response = await axios.post("/api/supplier-onboarding", formData);
+      const response = await axios.put(
+        `/api/supplier-onboarding/${email}`,
+        formData
+      );
 
       if (response.data.success) {
         setShowSuccess(true);
@@ -566,7 +605,7 @@ export default function SupplierForm() {
                 id="business_name"
                 name="business_name"
                 value={formData.business_name}
-                readOnly
+                onChange={handleInputChange}
                 className="bg-gray-100"
               />
             </div>
@@ -581,7 +620,7 @@ export default function SupplierForm() {
                 <Input
                   id="trading_name"
                   name="trading_name"
-                  value={formData.trading_name}
+                  value={formData.trading_name || ""}
                   onChange={handleInputChange}
                   required
                   className={errors.trading_name ? "border-red-500" : ""}
@@ -591,6 +630,17 @@ export default function SupplierForm() {
                 )}
               </div>
 
+              {/* Website - Moved here as requested */}
+              <div className="space-y-2">
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  name="website"
+                  value={formData.website || ""}
+                  onChange={handleInputChange}
+                  placeholder="https://example.com"
+                />
+              </div>
               {/* Country */}
               <div className="space-y-2">
                 <Label htmlFor="country">
@@ -621,7 +671,7 @@ export default function SupplierForm() {
                 )}
               </div>
 
-              {/* GST Registered - New field */}
+              {/* GST Registered */}
               <div className="space-y-2">
                 <Label htmlFor="gst_registered">
                   Registered for GST?<span className="text-red-500">*</span>
@@ -649,9 +699,95 @@ export default function SupplierForm() {
                   </p>
                 )}
               </div>
+              {/* Has tax id */}
+              {formData.country &&
+                formData.country !== "New Zealand" &&
+                formData.country !== "Australia" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="has_tax_id">
+                      If you have an ABN or NZ GST, please provide your details
+                      below.
+                    </Label>
+                    <Select
+                      value={formData.has_tax_id}
+                      onValueChange={(value) =>
+                        handleSelectChange("has_tax_id", value)
+                      }
+                    >
+                      <SelectTrigger
+                        id="has_tax_id"
+                        className={errors.has_tax_id ? "border-red-500" : ""}
+                      >
+                        <SelectValue placeholder="Select Yes or No" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Yes">Yes</SelectItem>
+                        <SelectItem value="No">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.has_tax_id && (
+                      <p className="text-red-500 text-sm">
+                        {errors.has_tax_id}
+                      </p>
+                    )}
+                  </div>
+                )}
+              {/* ABN or GST */}
+              {formData.country &&
+                formData.country !== "New Zealand" &&
+                formData.country !== "Australia" &&
+                formData.has_tax_id === "Yes" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="ANB_GST">ABN or GST</Label>
+                    <Select
+                      value={formData.ANB_GST}
+                      onValueChange={(value) =>
+                        handleSelectChange("ANB_GST", value)
+                      }
+                    >
+                      <SelectTrigger
+                        id="ANB_GST"
+                        className={errors.ANB_GST ? "border-red-500" : ""}
+                      >
+                        <SelectValue placeholder="Select ABN or GST" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ABN">ABN</SelectItem>
+                        <SelectItem value="GST">GST</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.ANB_GST && (
+                      <p className="text-red-500 text-sm">{errors.ANB_GST}</p>
+                    )}
+                  </div>
+                )}
 
+              {/* GST - Only for New Zealand */}
+              {(formData.country === "New Zealand" ||
+                (formData.country !== "New Zealand" &&
+                  formData.ANB_GST === "GST")) && (
+                <div className="space-y-2">
+                  <Label htmlFor="gst">
+                    New Zealand Goods & Services Tax Number (GST)
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="gst"
+                    name="gst"
+                    value={formData.gst || ""}
+                    onChange={handleInputChange}
+                    inputMode="numeric"
+                    className={errors.gst ? "border-red-500" : ""}
+                  />
+                  {errors.gst && (
+                    <p className="text-red-500 text-sm">{errors.gst}</p>
+                  )}
+                </div>
+              )}
               {/* ABN - Only for Australia */}
-              {vendorCountry === "Australia" && (
+              {(formData.country === "Australia" ||
+                (formData.country !== "Australia" &&
+                  formData.ANB_GST === "ABN")) && (
                 <div className="space-y-2">
                   <Label htmlFor="abn">
                     Australian Business Number (ABN)
@@ -672,27 +808,6 @@ export default function SupplierForm() {
                 </div>
               )}
 
-              {/* GST - Only for New Zealand */}
-              {vendorCountry === "New Zealand" && (
-                <div className="space-y-2">
-                  <Label htmlFor="gst">
-                    New Zealand Goods & Services Tax Number (GST)
-                    <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="gst"
-                    name="gst"
-                    value={formData.gst || ""}
-                    onChange={handleInputChange}
-                    inputMode="numeric"
-                    className={errors.gst ? "border-red-500" : ""}
-                  />
-                  {errors.gst && (
-                    <p className="text-red-500 text-sm">{errors.gst}</p>
-                  )}
-                </div>
-              )}
-
               {/* Address - with 100 character limit */}
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
@@ -708,38 +823,6 @@ export default function SupplierForm() {
                 <p className="text-xs text-gray-500">
                   {formData.address.length}/100 characters
                 </p>
-              </div>
-
-              {/* Website */}
-              <div className="space-y-2">
-                <Label htmlFor="website">Website</Label>
-                <Input
-                  id="website"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleInputChange}
-                  placeholder="https://example.com"
-                />
-              </div>
-
-              {/* Postal Address */}
-              <div className="space-y-2">
-                <Label htmlFor="postal_address">
-                  Postal Address<span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="postal_address"
-                  name="postal_address"
-                  value={formData.postal_address}
-                  onChange={handleInputChange}
-                  required
-                  className={errors.postal_address ? "border-red-500" : ""}
-                />
-                {errors.postal_address && (
-                  <p className="text-red-500 text-sm">
-                    {errors.postal_address}
-                  </p>
-                )}
               </div>
 
               {/* City */}
@@ -808,6 +891,7 @@ export default function SupplierForm() {
                   type="email"
                   value={formData.primary_contact_email}
                   onChange={handleInputChange}
+                  onBlur={handleInputBlur}
                   placeholder="example@domain.com"
                   required
                   className={
@@ -849,8 +933,9 @@ export default function SupplierForm() {
                   id="po_email"
                   name="po_email"
                   type="email"
-                  value={formData.po_email}
+                  value={formData.po_email || ""}
                   onChange={handleInputChange}
+                  onBlur={handleInputBlur}
                   placeholder="example@domain.com"
                   required
                   className={errors.po_email ? "border-red-500" : ""}
@@ -871,6 +956,7 @@ export default function SupplierForm() {
                   type="email"
                   value={formData.return_order_email}
                   onChange={handleInputChange}
+                  onBlur={handleInputBlur}
                   placeholder="example@domain.com"
                   required
                   className={errors.return_order_email ? "border-red-500" : ""}
@@ -931,7 +1017,7 @@ export default function SupplierForm() {
                 {hasNzEntities && (
                   <div className="space-y-2">
                     <Label htmlFor="nz_invoice_currency">
-                      Select the Invoice currency when trading with our NZ based
+                      Select the Invoice currency when trading with NZ based
                       entity(ies)
                       <span className="text-red-500">*</span>
                     </Label>
@@ -1048,11 +1134,11 @@ export default function SupplierForm() {
             {/* Bank Transfer Fields */}
             {formData.payment_method === "Bank Transfer" && (
               <div className="space-y-6">
-                {/* AU Banking Details */}
+                {/* AU Banking Container */}
                 {hasAuEntities && (
                   <div className="bg-white p-4 rounded-md border">
                     <h3 className="font-medium mb-4">
-                      Fill the banking details when trading with our Australian
+                      Fill the banking details when trading with Australian
                       based entity(ies)
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1179,6 +1265,7 @@ export default function SupplierForm() {
                           type="email"
                           value={formData.au_remittance_email || ""}
                           onChange={handleInputChange}
+                          onBlur={handleInputBlur}
                           placeholder="example@domain.com"
                           className={
                             errors.au_remittance_email ? "border-red-500" : ""
@@ -1245,10 +1332,63 @@ export default function SupplierForm() {
                         </div>
                       </div>
                     )}
+                    {/* NZ Domestic Banking */}
+                    {formData.au_bank_country === "New Zealand" && (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="nz_bsb">
+                            BSB<span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="nz_bsb"
+                            name="nz_bsb"
+                            value={formData.nz_bsb || ""}
+                            onChange={handleInputChange}
+                            maxLength={6}
+                            inputMode="numeric"
+                            className={errors.nz_bsb ? "border-red-500" : ""}
+                          />
+                          {errors.nz_bsb && (
+                            <p className="text-red-500 text-sm">
+                              {errors.nz_bsb}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            Must be exactly 6 digits
+                          </p>
+                        </div>
 
+                        <div className="space-y-2">
+                          <Label htmlFor="nz_account">
+                            Account Number
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="nz_account"
+                            name="nz_account"
+                            value={formData.nz_account || ""}
+                            onChange={handleInputChange}
+                            maxLength={10}
+                            inputMode="numeric"
+                            className={
+                              errors.nz_account ? "border-red-500" : ""
+                            }
+                          />
+                          {errors.nz_account && (
+                            <p className="text-red-500 text-sm">
+                              {errors.nz_account}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            Must be exactly 10 digits
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     {/* AU Overseas Banking */}
                     {formData.au_bank_country &&
-                      formData.au_bank_country !== "Australia" && (
+                      formData.au_bank_country !== "Australia" &&
+                      formData.au_bank_country !== "New Zealand" && (
                         <div className="mt-4 border-t pt-4">
                           <div className="space-y-2 mb-4">
                             <Label htmlFor="overseas_iban_switch">
@@ -1334,7 +1474,7 @@ export default function SupplierForm() {
                   </div>
                 )}
 
-                {/* NZ Banking Details */}
+                {/* NZ Banking Container */}
                 {hasNzEntities && (
                   <div className="bg-white p-4 rounded-md border">
                     <h3 className="font-medium mb-4">
@@ -1465,6 +1605,7 @@ export default function SupplierForm() {
                           type="email"
                           value={formData.nz_remittance_email || ""}
                           onChange={handleInputChange}
+                          onBlur={handleInputBlur}
                           placeholder="example@domain.com"
                           className={
                             errors.nz_remittance_email ? "border-red-500" : ""
@@ -1531,7 +1672,58 @@ export default function SupplierForm() {
                         </div>
                       </div>
                     )}
+                    {formData.au_bank_country === "Australia" && (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="au_bsb">
+                            BSB<span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="au_bsb"
+                            name="au_bsb"
+                            value={formData.au_bsb || ""}
+                            onChange={handleInputChange}
+                            maxLength={6}
+                            inputMode="numeric"
+                            className={errors.au_bsb ? "border-red-500" : ""}
+                          />
+                          {errors.au_bsb && (
+                            <p className="text-red-500 text-sm">
+                              {errors.au_bsb}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            Must be exactly 6 digits
+                          </p>
+                        </div>
 
+                        <div className="space-y-2">
+                          <Label htmlFor="au_account">
+                            Account Number
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="au_account"
+                            name="au_account"
+                            value={formData.au_account || ""}
+                            onChange={handleInputChange}
+                            maxLength={10}
+                            inputMode="numeric"
+                            className={
+                              errors.au_account ? "border-red-500" : ""
+                            }
+                          />
+                          {errors.au_account && (
+                            <p className="text-red-500 text-sm">
+                              {errors.au_account}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            Must be exactly 10 digits
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     {/* NZ Overseas Banking */}
                     {formData.nz_bank_country &&
                       formData.nz_bank_country !== "New Zealand" && (
@@ -1621,12 +1813,43 @@ export default function SupplierForm() {
                 )}
 
                 {/* Bank Statement Upload */}
+                {/* Bank Statement Upload */}
                 <div className="space-y-2 mt-6">
                   <Label htmlFor="bank-statement">
-                    Please attach a recent (last 3 months) bank statement - PDF
-                    only
+                    Bank Statement or Confirmation Letter
                     <span className="text-red-500">*</span>
                   </Label>
+
+                  {/* Bank Statement Instructions */}
+                  <div className="bg-blue-50 p-4 rounded-md mb-3 text-sm">
+                    <p className="font-medium mb-2">Important Requirements:</p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>
+                        A bank statement or bank confirmation letter is required
+                        to verify your banking information
+                      </li>
+                      <li>
+                        The document must:
+                        <ul className="list-disc pl-5 mt-1">
+                          <li>Be dated within the last 3 months</li>
+                          <li>Be in PDF format only</li>
+                          <li>
+                            Clearly show the account details (sensitive
+                            information may be redacted)
+                          </li>
+                        </ul>
+                      </li>
+                      <li>
+                        Banking payment slips cannot be accepted as they lack
+                        proper dating
+                      </li>
+                      <li>
+                        Screenshots or partial images of documents cannot be
+                        verified for authenticity
+                      </li>
+                    </ul>
+                  </div>
+
                   <div
                     className={`border-2 border-dashed rounded-md p-6 text-center ${
                       fileError
@@ -1648,7 +1871,7 @@ export default function SupplierForm() {
                         document.getElementById("file-input")?.click()
                       }
                     >
-                      Choose a PDF file
+                      Upload PDF Document
                     </Button>
                     {bankStatement && (
                       <p className="mt-2 text-sm text-gray-600">
@@ -1694,12 +1917,20 @@ export default function SupplierForm() {
                     <Checkbox
                       id="iAgree"
                       checked={formData.iAgree}
-                      onCheckedChange={(checked) =>
+                      onCheckedChange={(checked: boolean | "indeterminate") => {
                         setFormData((prev) => ({
                           ...prev,
                           iAgree: checked === true,
-                        }))
-                      }
+                        }));
+                        // Clear error when checked
+                        if (checked && errors.iAgree) {
+                          setErrors((prev) => {
+                            const newErrors = { ...prev };
+                            delete newErrors.iAgree;
+                            return newErrors;
+                          });
+                        }
+                      }}
                       className={errors.iAgree ? "border-red-500" : ""}
                     />
                     <Label htmlFor="iAgree" className="font-medium">
@@ -1736,30 +1967,19 @@ export default function SupplierForm() {
       </CardContent>
 
       {/* Confirmation Popup */}
-      {showConfirmation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-semibold mb-4">
-              Would you like to proceed?
-            </h2>
-            <p className="mb-4">Please confirm you want to submit this form.</p>
-            <div className="flex justify-between gap-4">
-              <Button
-                onClick={handleConfirmSubmit}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Yes
-              </Button>
-              <Button
-                onClick={() => setShowConfirmation(false)}
-                variant="destructive"
-              >
-                No
-              </Button>
-            </div>
-          </div>
+      <Popup
+        isOpen={showConfirmation}
+        title="Would you like to proceed?"
+        confirmText="Yes"
+        cancelText="No"
+        onConfirm={handleConfirmSubmit}
+        onCancel={() => setShowConfirmation(false)}
+        isConfirmation={true}
+      >
+        <div style={{ margin: "15px 0" }}>
+          <p>Please confirm you want to submit this form.</p>
         </div>
-      )}
+      </Popup>
 
       {/* Success Popup */}
       {showSuccess && (
