@@ -707,7 +707,6 @@ export default function SupplierForm() {
                     <Label htmlFor="has_tax_id">
                       If you have an ABN or NZ GST, please provide your details
                       below.
-                      <span className="text-red-500">*</span>
                     </Label>
                     <Select
                       value={formData.has_tax_id}
@@ -739,10 +738,7 @@ export default function SupplierForm() {
                 formData.country !== "Australia" &&
                 formData.has_tax_id === "Yes" && (
                   <div className="space-y-2">
-                    <Label htmlFor="ANB_GST">
-                      ABN or GST
-                      <span className="text-red-500">*</span>
-                    </Label>
+                    <Label htmlFor="ANB_GST">ABN or GST</Label>
                     <Select
                       value={formData.ANB_GST}
                       onValueChange={(value) =>

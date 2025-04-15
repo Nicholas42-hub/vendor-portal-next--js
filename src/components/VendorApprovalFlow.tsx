@@ -1267,12 +1267,13 @@ export default function VendorApprovalFlow() {
               <h3 className="text-red-700 font-medium">Declined</h3>
               <p className="text-sm text-gray-700 mt-2">Reason for decline:</p>
               <p className="text-sm italic mt-1">
-                {vendorData.crb7c_approvalcomment || "No reason provided"}
+                {vendorData.approval_comment || "No reason provided"}
               </p>
             </div>
           )}
 
           {canApprove &&
+            vendorData.status_code !== "Declined" &&
             vendorData.status_code &&
             !isStatus(vendorData.status_code, ["Creation approved"]) && (
               <div className="mt-8 grid grid-cols-2 gap-4">
@@ -1316,22 +1317,31 @@ export default function VendorApprovalFlow() {
                 </button>
               </div>
             )}
-
           {isEditable && vendorData.status_code === "Declined" && (
-            <button
-              type="button"
-              className="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium"
-              onClick={() =>
-                document
-                  .querySelector("form")
-                  ?.dispatchEvent(
-                    new Event("submit", { cancelable: true, bubbles: true })
-                  )
-              }
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Processing..." : "Re-submit"}
-            </button>
+            <div className="mt-8 grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium"
+                onClick={() =>
+                  document
+                    .querySelector("form")
+                    ?.dispatchEvent(
+                      new Event("submit", { cancelable: true, bubbles: true })
+                    )
+                }
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Processing..." : "Re-submit"}
+              </button>
+              <button
+                type="button"
+                className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md font-medium"
+                onClick={handleDelete}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Processing..." : "Delete"}
+              </button>
+            </div>
           )}
 
           {vendorData.status_code === "Invitation sent" && (
@@ -1347,39 +1357,47 @@ export default function VendorApprovalFlow() {
         </div>
       </div>
       {showConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-auto">
-            <h2 className="text-xl font-semibold mb-4">
+        <>
+          <div
+            className="fixed inset-0 bg-transparent z-50"
+            onClick={() => setShowConfirmation(false)}
+          />
+          <div className="w-[400px] bg-white rounded-lg fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center p-8 text-gray-800 shadow-lg z-[1000] animate-in fade-in zoom-in duration-300">
+            <h2 className="text-xl font-medium mt-4 mb-4">
               Would you like to proceed?
             </h2>
-            <p className="mb-6">
+            <p className="text-base mb-6">
               Are you sure you want to approve this vendor?
             </p>
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-around gap-4">
               <button
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
-                onClick={() => setShowConfirmation(false)}
-              >
-                No
-              </button>
-              <button
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                className="w-[100px] py-3 px-4 bg-green-600 text-white border-none rounded-md text-base cursor-pointer hover:bg-green-700"
                 onClick={confirmApproval}
               >
                 Yes
               </button>
+              <button
+                className="w-[100px] py-3 px-4 bg-red-600 text-white border-none rounded-md text-base cursor-pointer hover:bg-red-700"
+                onClick={() => setShowConfirmation(false)}
+              >
+                No
+              </button>
             </div>
           </div>
-        </div>
+        </>
       )}
       {showDeclinePopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-auto">
-            <h2 className="text-xl font-semibold mb-4">
+        <>
+          <div
+            className="fixed inset-0 bg-transparent z-50"
+            onClick={() => setShowDeclinePopup(false)}
+          />
+          <div className="w-[400px] bg-white rounded-lg fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center p-8 text-gray-800 shadow-lg z-[1000] animate-in fade-in zoom-in duration-300">
+            <h2 className="text-xl font-medium mt-4 mb-4">
               Are you sure you want to decline?
             </h2>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
                 Please provide a reason:
               </label>
               <textarea
@@ -1389,22 +1407,22 @@ export default function VendorApprovalFlow() {
                 placeholder="Enter your comment here..."
               ></textarea>
             </div>
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-around gap-4">
               <button
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
-                onClick={() => setShowDeclinePopup(false)}
-              >
-                No
-              </button>
-              <button
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                className="w-[100px] py-3 px-4 bg-green-600 text-white border-none rounded-md text-base cursor-pointer hover:bg-green-700"
                 onClick={confirmDecline}
               >
                 Yes
               </button>
+              <button
+                className="w-[100px] py-3 px-4 bg-red-600 text-white border-none rounded-md text-base cursor-pointer hover:bg-red-700"
+                onClick={() => setShowDeclinePopup(false)}
+              >
+                No
+              </button>
             </div>
           </div>
-        </div>
+        </>
       )}
       {showDeleteConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1434,20 +1452,24 @@ export default function VendorApprovalFlow() {
         </div>
       )}
       {showSuccess && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-auto">
-            <h2 className="text-xl font-semibold mb-4">Thank you!</h2>
-            <p className="mb-6">{successMessage}</p>
+        <>
+          <div
+            className="fixed inset-0 bg-transparent z-50"
+            onClick={handleSuccessClose}
+          />
+          <div className="w-[400px] bg-white rounded-lg fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center p-8 text-gray-800 shadow-lg z-[1000] animate-in fade-in zoom-in duration-300">
+            <h2 className="text-xl font-medium mt-4 mb-4">Thank you!</h2>
+            <p className="text-base mb-6">{successMessage}</p>
             <div className="flex justify-center">
               <button
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                className="w-[100px] py-3 px-4 bg-green-600 text-white border-none rounded-md text-base cursor-pointer hover:bg-green-700"
                 onClick={handleSuccessClose}
               >
                 OK
               </button>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
