@@ -77,6 +77,8 @@ const VendorOnboardingContent: React.FC = () => {
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({
     all: 0,
     "Invitation Sent": 0,
+    "Requester review": 0,
+    "Pending Procurement Manager Approval": 0,
     "Pending Manager Approval": 0,
     "Pending Exco Approval": 0,
     "Pending CFO Approval": 0,
@@ -179,6 +181,8 @@ const VendorOnboardingContent: React.FC = () => {
       setStatusCounts({
         all: 0,
         "Invitation Sent": 0,
+        "Requester review": 0,
+        "Pending Procurement Manager Approval": 0,
         "Pending Manager Approval": 0,
         "Pending Exco Approval": 0,
         "Pending CFO Approval": 0,
@@ -191,6 +195,8 @@ const VendorOnboardingContent: React.FC = () => {
     const counts = {
       all: data.length,
       "Invitation Sent": 0,
+      "Requester review": 0,
+      "Pending Procurement Manager Approval": 0,
       "Pending Manager Approval": 0,
       "Pending Exco Approval": 0,
       "Pending CFO Approval": 0,
@@ -257,6 +263,24 @@ const VendorOnboardingContent: React.FC = () => {
             label="Invitation Sent"
             count={statusCounts["Invitation Sent"]}
             isActive={currentFilter === "Invitation Sent"}
+            onClick={handleFilterChange}
+          />
+          {/* Requester review Filter */}
+          <StatusFilter
+            id="Requester-review"
+            dataStatus="Requester review"
+            label="Requester review"
+            count={statusCounts["Requester review"]}
+            isActive={currentFilter === "Requester review"}
+            onClick={handleFilterChange}
+          />
+          {/* Requester review Filter */}
+          <StatusFilter
+            id="pending-procurement-manager-approval"
+            dataStatus="Pending Procurement Manager Approval"
+            label="Pending Procurement Manager Approval"
+            count={statusCounts["Pending Procurement Manager Approval"]}
+            isActive={currentFilter === "Pending Procurement Manager Approval"}
             onClick={handleFilterChange}
           />
 

@@ -19,7 +19,7 @@ type ApprovalStatus =
   | "Exco Approval"
   | "Creation approved"
   | "Declined"
-  | "Invitation sent";
+  | "Invitation Sent";
 
 // Type definitions for VendorData
 interface VendorData {
@@ -247,7 +247,8 @@ export default function VendorApprovalFlow() {
       const canEdit =
         isRequester &&
         (vendorData.status_code === "Requester review" ||
-          vendorData.status_code === "Declined");
+          vendorData.status_code === "Declined" ||
+          vendorData.status_code === "Invitation Sent");
 
       setIsEditable(canEdit);
 
@@ -1274,6 +1275,7 @@ export default function VendorApprovalFlow() {
 
           {canApprove &&
             vendorData.status_code !== "Declined" &&
+            vendorData.status_code !== "Invitation Sent" &&
             vendorData.status_code &&
             !isStatus(vendorData.status_code, ["Creation approved"]) && (
               <div className="mt-8 grid grid-cols-2 gap-4">
@@ -1343,16 +1345,31 @@ export default function VendorApprovalFlow() {
               </button>
             </div>
           )}
-
-          {vendorData.status_code === "Invitation sent" && (
-            <button
-              type="button"
-              className="mt-8 w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md font-medium"
-              onClick={handleDelete}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Processing..." : "Delete"}
-            </button>
+          {isEditable && vendorData.status_code === "Invitation Sent" && (
+            <div className="mt-8 grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium"
+                onClick={() =>
+                  document
+                    .querySelector("form")
+                    ?.dispatchEvent(
+                      new Event("submit", { cancelable: true, bubbles: true })
+                    )
+                }
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Processing..." : "Re-submit"}
+              </button>
+              <button
+                type="button"
+                className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md font-medium"
+                onClick={handleDelete}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Processing..." : "Delete"}
+              </button>
+            </div>
           )}
         </div>
       </div>
