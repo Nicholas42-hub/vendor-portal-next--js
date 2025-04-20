@@ -8,6 +8,7 @@ interface FormFieldProps {
   error?: string;
   touched?: boolean;
   children: ReactNode;
+  disabled?: boolean;
 }
 
 const StyledFormField = styled("div")(({ theme }) => ({
@@ -50,6 +51,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   error,
   touched = false,
   children,
+  disabled = false,
 }) => {
   return (
     <StyledFormField>

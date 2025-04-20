@@ -1,4 +1,5 @@
-import React from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import { styled } from "@mui/material/styles";
 import {
   VendorData,
@@ -9,6 +10,7 @@ import {
 import { FormField } from "../ui/FormField";
 import { TextInput } from "../ui/TextInput";
 import { Dropdown } from "../ui/Dropdown";
+import { useSession } from "next-auth/react";
 
 // Define Props
 interface FinancialTermsSectionProps {
@@ -18,6 +20,7 @@ interface FinancialTermsSectionProps {
   touched: { [key: string]: boolean };
   onChange: (field: string, value: any) => void;
   onBlur: (field: string) => void;
+  disabled: boolean;
 }
 
 // Styled Container
@@ -94,8 +97,16 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
   touched,
   onChange,
   onBlur,
+  disabled,
 }) => {
   // Handle number input changes
+  const [isEditable, setIsEditable] = useState(false);
+  const { data: session, status } = useSession();
+  useEffect(() => {
+    // Set form as editable only if the session email matches
+    setIsEditable(session.user.email === "nicholasliang42@gmail.com");
+  }, []);
+  console.log("IsEditable", !isEditable);
   const handleNumberChange = (field: string, value: string) => {
     const numValue = value === "" ? 0 : parseInt(value, 10);
     onChange(field, numValue);
@@ -116,6 +127,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
         htmlFor="paymentTerms"
         required
         error={errors.paymentTerms}
+        disabled={!isEditable}
         touched={touched["financialTerms.paymentTerms"]}
       >
         <Dropdown
@@ -125,6 +137,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           onChange={(e) => onChange("paymentTerms", e.target.value)}
           onBlur={() => onBlur("paymentTerms")}
           options={paymentTermsOptions}
+          disabled={!isEditable}
           required
           error={
             !!errors.paymentTerms && touched["financialTerms.paymentTerms"]

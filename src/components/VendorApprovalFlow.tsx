@@ -279,16 +279,7 @@ export default function VendorApprovalFlow() {
       const { vendor, tradingEntities_data } = response.data;
 
       // Payment terms that require Finance approval
-      const financeApprovalTerms = [
-        "1 DAY",
-        "10 DAYS",
-        "13 DAYS",
-        "14 DAYS",
-        "15 DAYS",
-        "20 DAYS",
-        "21 DAYS",
-        "20 EOM",
-      ];
+      const financeApprovalTerms = ["20 EOM"];
       console.log("check the vendor data structure", vendor);
       const needsFinanceApproval = financeApprovalTerms.includes(
         vendor.payment_terms?.toUpperCase()

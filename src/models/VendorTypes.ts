@@ -32,10 +32,51 @@ export type PaymentTerms =
   | "60 EOM"
   | "90 EOM"
   | "";
-
+// Business unit options
+export const businessUnitOptions = [
+  { value: "", label: "Select an option", disabled: true },
+  { value: "Travel Essentials", label: "Travel Essentials" },
+  { value: "Food Services", label: "Food Services" },
+  { value: "Specialty", label: "Specialty" },
+  { value: "Duty Free", label: "Duty Free" },
+  { value: "Finance", label: "Finance" },
+  { value: "IT", label: "IT" },
+];
 // Type for rebate time periods
 export type TimePeriod = "month" | "quarter" | "year" | "";
 
+// Vendor type options
+export const vendorTypeOptions = [
+  { value: "", label: "Select an option", disabled: true },
+  { value: "STOCK", label: "Stock" },
+  { value: "OVERHEADS", label: "Overheads" },
+  { value: "OVERHEADANDSTOCK", label: "Overhead and Stock" },
+];
+
+  // Currencies list
+  export  const currencies = [
+    { value: "AUD", label: "AUD" },
+    { value: "NZD", label: "NZD" },
+    { value: "USD", label: "USD" },
+    { value: "EUR", label: "EUR" },
+    { value: "GBP", label: "GBP" },
+    { value: "CNY", label: "CNY" },
+  ];
+// Trading entities data
+export const tradingEntities: Array<{ id: TradingEntity; label: string }> = [
+  { id: "ALAW", label: "The Trustee for Lagardere / AWPL Trust (ALAW)" },
+  {
+    id: "AUDF",
+    label: "Duty Free Stores Australia Pty Ltd (AUDF) (CNS T1 stores only)",
+  },
+  { id: "AUTE", label: "Newslink Pty Ltd (AUTE) (CNS T1 stores only)" },
+  { id: "NZAW", label: "AWPL Retail Solutions Ltd (NZAW)" },
+  { id: "AUPG", label: "The Purely Group Pty Ltd (AUPG)" },
+  { id: "AUAW", label: "The Trustee for AWPL Tango Trust (AUAW)" },
+  { id: "NZDF", label: "Duty Free Stores Wellington Ltd (NZDF)" },
+  { id: "NZTE", label: "LS Travel Retail New Zealand Ltd (NZTE)" },
+  { id: "LSAP", label: "Lagardere Services Asia Pacific Pty Ltd (LSAP)" },
+];
 // Type for General Details section
 export interface GeneralDetailsData {
   tradingEntities: TradingEntity[];
@@ -107,4 +148,66 @@ export interface SimilarVendor {
   email: string;
   similarity: number; // 0.0 to 1.0
   matchedCriteria: string[];
+}
+
+// Define interfaces for trading entities
+export interface TradingEntityList {
+  TradingEntityId: string;
+  entityName: string;
+  entityCountry: string;
+  paymentCountry?: string; // Add this line
+}
+export interface SupplierFormData {
+  business_name: string;
+  trading_name: string;
+  country: string;
+  gst_registered: string;
+  abn?: string;
+  gst?: string;
+  address: string;
+  website: string;
+  city: string;
+  state: string;
+  postcode: string;
+  primary_contact_email: string;
+  telephone: string;
+  po_email: string;
+  return_order_email: string;
+  trading_entities: string[];
+  has_tax_id: string;
+  ANB_GST: string;
+  // Payment method
+  payment_method: string;
+
+  // AU specific fields
+  au_invoice_currency?: string;
+  au_bank_country?: string;
+  au_bank_address?: string;
+  au_bank_currency_code?: string;
+  au_bank_clearing_code?: string;
+  au_remittance_email?: string;
+  au_bsb?: string;
+  au_account?: string;
+
+  // NZ specific fields
+  nz_invoice_currency?: string;
+  nz_bank_country?: string;
+  nz_bank_address?: string;
+  nz_bank_currency_code?: string;
+  nz_bank_clearing_code?: string;
+  nz_remittance_email?: string;
+  nz_bsb?: string;
+  nz_account?: string;
+
+  // Overseas banking
+  overseas_iban_switch?: string;
+  overseas_iban?: string;
+  overseas_swift?: string;
+
+  // BPay
+  biller_code?: string;
+  ref_code?: string;
+
+  // Terms agreement
+  iAgree: boolean;
 }
