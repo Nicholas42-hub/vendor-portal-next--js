@@ -236,6 +236,7 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
     handleSubmit,
     resetForm,
     validateFormData,
+    validateField,
   } = useForm(
     ValidationService.validateForm,
     submitVendorData,
@@ -509,13 +510,20 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
         <div ref={generalDetailsRef}>
           <GeneralDetailsSection
             data={formData.generalDetails}
-            errors={errors.generalDetails || {}}
+            errors={
+              Object.fromEntries(
+                Object.entries(errors.generalDetails || {}).filter(
+                  ([_, v]) => v !== undefined
+                )
+              ) as { [key: string]: string }
+            }
             touched={touched}
             onChange={handleGeneralDetailsChange}
             onCheckboxChange={(field, value, checked) =>
               handleCheckboxChange("generalDetails", field, value, checked)
             }
             onBlur={(field) => handleBlur("generalDetails", field)}
+            validateField={(field) => validateField("generalDetails", field)}
           />
         </div>
 

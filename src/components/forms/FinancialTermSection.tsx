@@ -1,14 +1,19 @@
-import React from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import { styled } from "@mui/material/styles";
 import {
   VendorData,
   VendorType,
   PaymentTerms,
   TimePeriod,
+  timePeriodOptions,
+  paymentTermsOptions,
+  yesNoOptions,
 } from "../../models/VendorTypes";
 import { FormField } from "../ui/FormField";
 import { TextInput } from "../ui/TextInput";
 import { Dropdown } from "../ui/Dropdown";
+import { useSession } from "next-auth/react";
 
 // Define Props
 interface FinancialTermsSectionProps {
@@ -18,6 +23,9 @@ interface FinancialTermsSectionProps {
   touched: { [key: string]: boolean };
   onChange: (field: string, value: any) => void;
   onBlur: (field: string) => void;
+  disabled: boolean;
+  validateField: (field: string) => void;
+  isEditable?: boolean; // Add isEditable prop with default value true
 }
 
 // Styled Container
@@ -59,33 +67,6 @@ const RebateField = styled("div")({
   margin: "0 5px",
 });
 
-// Payment terms options
-const paymentTermsOptions = [
-  { value: "", label: "Select an option", disabled: true },
-  { value: "20 EOM", label: "20 EOM" },
-  { value: "30 DAYS", label: "30 Days" },
-  { value: "60 DAYS", label: "60 Days" },
-  { value: "90 DAYS", label: "90 Days" },
-  { value: "30 EOM", label: "30 EOM" },
-  { value: "60 EOM", label: "60 EOM" },
-  { value: "90 EOM", label: "90 EOM" },
-];
-
-// Yes/No options
-const yesNoOptions = [
-  { value: "", label: "Select an option", disabled: true },
-  { value: "yes", label: "Yes" },
-  { value: "no", label: "No" },
-];
-
-// Time period options
-const timePeriodOptions = [
-  { value: "", label: "Month/Quarter/Year", disabled: true },
-  { value: "month", label: "Month" },
-  { value: "quarter", label: "Quarter" },
-  { value: "year", label: "Year" },
-];
-
 // Component
 export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
   data,
@@ -94,8 +75,9 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
   touched,
   onChange,
   onBlur,
+  validateField,
+  isEditable = true,
 }) => {
-  // Handle number input changes
   const handleNumberChange = (field: string, value: string) => {
     const numValue = value === "" ? 0 : parseInt(value, 10);
     onChange(field, numValue);
@@ -116,6 +98,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
         htmlFor="paymentTerms"
         required
         error={errors.paymentTerms}
+        disabled={!isEditable}
         touched={touched["financialTerms.paymentTerms"]}
       >
         <Dropdown
@@ -125,6 +108,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           onChange={(e) => onChange("paymentTerms", e.target.value)}
           onBlur={() => onBlur("paymentTerms")}
           options={paymentTermsOptions}
+          disabled={!isEditable}
           required
           error={
             !!errors.paymentTerms && touched["financialTerms.paymentTerms"]
@@ -156,6 +140,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               !!errors.orderExpiryDays &&
               touched["financialTerms.orderExpiryDays"]
             }
+            disabled={!isEditable}
           />
         </FormField>
       )}
@@ -180,6 +165,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             error={
               !!errors.grossMargin && touched["financialTerms.grossMargin"]
             }
+            disabled={!isEditable}
           />
         </FormField>
       )}
@@ -204,6 +190,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             !!errors.invoiceDiscount &&
             touched["financialTerms.invoiceDiscount"]
           }
+          disabled={!isEditable}
         />
       </FormField>
 
@@ -228,6 +215,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               !!errors.invoiceDiscountValue &&
               touched["financialTerms.invoiceDiscountValue"]
             }
+            disabled={!isEditable}
           />
         </FormField>
       )}
@@ -252,6 +240,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             !!errors.settlementDiscount &&
             touched["financialTerms.settlementDiscount"]
           }
+          disabled={!isEditable}
         />
       </FormField>
 
@@ -280,6 +269,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                 !!errors.settlementDiscountValue &&
                 touched["financialTerms.settlementDiscountValue"]
               }
+              disabled={!isEditable}
             />
           </FormField>
 
@@ -305,6 +295,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                 !!errors.settlementDiscountDays &&
                 touched["financialTerms.settlementDiscountDays"]
               }
+              disabled={!isEditable}
             />
           </FormField>
         </div>
@@ -332,6 +323,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               error={
                 !!errors.flatRebate && touched["financialTerms.flatRebate"]
               }
+              disabled={!isEditable}
             />
           </FormField>
 
@@ -362,6 +354,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       !!errors.flatRebatePercent &&
                       touched["financialTerms.flatRebatePercent"]
                     }
+                    disabled={!isEditable}
                   />
                 </FormField>
               </RebateField>
@@ -390,6 +383,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       !!errors.flatRebateDollar &&
                       touched["financialTerms.flatRebateDollar"]
                     }
+                    disabled={!isEditable}
                   />
                 </FormField>
               </RebateField>
@@ -414,6 +408,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       !!errors.flatRebateTerm &&
                       touched["financialTerms.flatRebateTerm"]
                     }
+                    disabled={!isEditable}
                   />
                 </FormField>
               </RebateField>
@@ -439,6 +434,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               error={
                 !!errors.growthRebate && touched["financialTerms.growthRebate"]
               }
+              disabled={!isEditable}
             />
           </FormField>
 
@@ -469,6 +465,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       !!errors.growthRebatePercent &&
                       touched["financialTerms.growthRebatePercent"]
                     }
+                    disabled={!isEditable}
                   />
                 </FormField>
               </RebateField>
@@ -497,6 +494,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       !!errors.growthRebateDollar &&
                       touched["financialTerms.growthRebateDollar"]
                     }
+                    disabled={!isEditable}
                   />
                 </FormField>
               </RebateField>
@@ -523,6 +521,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       !!errors.growthRebateTerm &&
                       touched["financialTerms.growthRebateTerm"]
                     }
+                    disabled={!isEditable}
                   />
                 </FormField>
               </RebateField>
@@ -549,6 +548,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                 !!errors.marketingRebate &&
                 touched["financialTerms.marketingRebate"]
               }
+              disabled={!isEditable}
             />
           </FormField>
 
@@ -580,6 +580,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       !!errors.marketingRebatePercent &&
                       touched["financialTerms.marketingRebatePercent"]
                     }
+                    disabled={!isEditable}
                   />
                 </FormField>
               </RebateField>
@@ -609,6 +610,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       !!errors.marketingRebateDollar &&
                       touched["financialTerms.marketingRebateDollar"]
                     }
+                    disabled={!isEditable}
                   />
                 </FormField>
               </RebateField>
@@ -635,6 +637,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       !!errors.marketingRebateTerm &&
                       touched["financialTerms.marketingRebateTerm"]
                     }
+                    disabled={!isEditable}
                   />
                 </FormField>
               </RebateField>
@@ -662,6 +665,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             !!errors.promotionalFund &&
             touched["financialTerms.promotionalFund"]
           }
+          disabled={!isEditable}
         />
       </FormField>
 
@@ -686,6 +690,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               !!errors.promotionalFundValue &&
               touched["financialTerms.promotionalFundValue"]
             }
+            disabled={!isEditable}
           />
         </FormField>
       )}

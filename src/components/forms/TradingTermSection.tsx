@@ -1,6 +1,6 @@
 import React from "react";
 import { styled } from "@mui/material/styles";
-import { VendorData, VendorType } from "../../models/VendorTypes";
+import { VendorData, VendorType, yesNoOptions } from "../../models/VendorTypes";
 import { FormField } from "../ui/FormField";
 import { TextInput } from "../ui/TextInput";
 import { Dropdown } from "../ui/Dropdown";
@@ -15,6 +15,8 @@ interface TradingTermsSectionProps {
   onChange: (field: string, value: any) => void;
   onBlur: (field: string) => void;
   onFileChange?: (field: string, file: File | null) => void;
+  validateField: (field: string) => void;
+  isEditable?: boolean; // Add isEditable prop with default value true
 }
 
 // Styled Container
@@ -35,13 +37,6 @@ const SectionTitle = styled("h2")({
   marginTop: "10px",
 });
 
-// Yes/No options
-const yesNoOptions = [
-  { value: "", label: "Select an option", disabled: true },
-  { value: "yes", label: "Yes" },
-  { value: "no", label: "No" },
-];
-
 // Component
 export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
   data,
@@ -51,6 +46,8 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
   onChange,
   onBlur,
   onFileChange,
+  isEditable = true,
+  validateField,
 }) => {
   // Show quotes section only for OVERHEADS or OVERHEADANDSTOCK
   const showQuotesSection =
@@ -80,6 +77,7 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
           required
           error={errors.quotesObtained}
           touched={touched["tradingTerms.quotesObtained"]}
+          disabled={!isEditable}
         >
           <Dropdown
             id="quotesObtained"
@@ -92,6 +90,7 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
             error={
               !!errors.quotesObtained && touched["tradingTerms.quotesObtained"]
             }
+            disabled={!isEditable}
           />
         </FormField>
       )}
@@ -104,6 +103,7 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
           required
           error={errors.quotesPdf}
           touched={touched["tradingTerms.quotesPdf"]}
+          disabled={!isEditable}
         >
           <div className="flex items-center">
             <Input
@@ -134,6 +134,7 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
           required
           error={errors.quotesObtainedReason}
           touched={touched["tradingTerms.quotesObtainedReason"]}
+          disabled={!isEditable}
         >
           <TextInput
             id="quotesObtainedReason"
@@ -146,6 +147,7 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
               !!errors.quotesObtainedReason &&
               touched["tradingTerms.quotesObtainedReason"]
             }
+            disabled={!isEditable}
           />
         </FormField>
       )}
@@ -158,6 +160,7 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
           required={false}
           error={errors.backOrder}
           touched={touched["tradingTerms.backOrder"]}
+          disabled={!isEditable}
         >
           <Dropdown
             id="backOrder"
@@ -167,6 +170,7 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
             onBlur={() => onBlur("backOrder")}
             options={yesNoOptions}
             error={!!errors.backOrder && touched["tradingTerms.backOrder"]}
+            disabled={!isEditable}
           />
         </FormField>
       )}

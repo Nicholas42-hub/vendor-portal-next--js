@@ -1,3 +1,4 @@
+// src/components/ui/TextInput.tsx
 import React from "react";
 import { styled } from "@mui/material/styles";
 
@@ -17,8 +18,8 @@ interface TextInputProps {
   maxLength?: number;
 }
 
-const StyledInput = styled("input")<{ error?: boolean }>(
-  ({ theme, error }) => ({
+const StyledInput = styled("input")<{ error?: boolean; disabled?: boolean }>(
+  ({ theme, error, disabled }) => ({
     display: "block",
     width: "100%",
     padding: "10px",
@@ -26,12 +27,20 @@ const StyledInput = styled("input")<{ error?: boolean }>(
     border: `1px solid ${error ? "#ff0000" : "#ccc"}`,
     borderRadius: "4px",
     boxSizing: "border-box",
+    backgroundColor: disabled ? "#f9f9f9" : "transparent",
+    color: disabled ? "#666" : "inherit",
+    cursor: disabled ? "not-allowed" : "text",
     "&:focus": {
       borderColor: error ? "#ff0000" : "#4CAF50",
       outlineColor: error ? "#ff0000" : "#4CAF50",
       boxShadow: error
         ? "0 0 5px rgba(255, 0, 0, 0.2)"
         : "0 0 5px rgba(76, 175, 80, 0.2)",
+    },
+    "&:read-only": {
+      backgroundColor: "#f9f9f9",
+      color: "#666",
+      cursor: "default",
     },
   })
 );
@@ -67,6 +76,7 @@ export const TextInput: React.FC<TextInputProps> = ({
       title={title}
       maxLength={maxLength}
       className={error ? "error" : ""}
+      readOnly={disabled}
     />
   );
 };
