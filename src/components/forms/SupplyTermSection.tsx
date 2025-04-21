@@ -1,6 +1,6 @@
 import React from "react";
 import { styled } from "@mui/material/styles";
-import { VendorData } from "../../models/VendorTypes";
+import { VendorData, yesNoOptions } from "../../models/VendorTypes";
 import { FormField } from "../ui/FormField";
 import { TextInput } from "../ui/TextInput";
 import { Dropdown } from "../ui/Dropdown";
@@ -12,6 +12,8 @@ interface SupplyTermsSectionProps {
   touched: { [key: string]: boolean };
   onChange: (field: string, value: any) => void;
   onBlur: (field: string) => void;
+  validateField: (field: string) => void;
+  isEditable?: boolean; // Add isEditable prop with default value true
 }
 
 // Styled Container
@@ -52,13 +54,6 @@ const TextArea = styled("textarea")({
   resize: "vertical",
 });
 
-// Yes/No options
-const yesNoOptions = [
-  { value: "", label: "Select an option", disabled: true },
-  { value: "yes", label: "Yes" },
-  { value: "no", label: "No" },
-];
-
 // Component
 export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
   data,
@@ -66,6 +61,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
   touched,
   onChange,
   onBlur,
+  isEditable = true,
 }) => {
   // Handle number input changes with validation
   const handleNumberChange = (field: string, value: string) => {
@@ -85,6 +81,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         required
         error={errors.exclusiveSupply}
         touched={touched["supplyTerms.exclusiveSupply"]}
+        disabled={!isEditable}
       >
         <Dropdown
           id="exclusiveSupply"
@@ -97,6 +94,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
           error={
             !!errors.exclusiveSupply && touched["supplyTerms.exclusiveSupply"]
           }
+          disabled={!isEditable}
         />
         <Note>Product not supplied to other Airport retailers</Note>
       </FormField>
@@ -108,6 +106,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         required
         error={errors.saleOrReturn}
         touched={touched["supplyTerms.saleOrReturn"]}
+        disabled={!isEditable}
       >
         <Dropdown
           id="saleOrReturn"
@@ -118,6 +117,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
           options={yesNoOptions}
           required
           error={!!errors.saleOrReturn && touched["supplyTerms.saleOrReturn"]}
+          disabled={!isEditable}
         />
       </FormField>
 
@@ -128,6 +128,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         required
         error={errors.authRequired}
         touched={touched["supplyTerms.authRequired"]}
+        disabled={!isEditable}
       >
         <Dropdown
           id="authRequired"
@@ -138,6 +139,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
           options={yesNoOptions}
           required
           error={!!errors.authRequired && touched["supplyTerms.authRequired"]}
+          disabled={!isEditable}
         />
       </FormField>
 
@@ -148,11 +150,12 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         required
         error={errors.deliveryNotice}
         touched={touched["supplyTerms.deliveryNotice"]}
+        disabled={!isEditable}
       >
         <TextInput
           id="deliveryNotice"
           name="deliveryNotice"
-          value={data.deliveryNotice ? data.deliveryNotice.toString() : ""}
+          value={data.delivery_notice ? data.delivery_notice.toString() : ""}
           onChange={(e) => handleNumberChange("deliveryNotice", e.target.value)}
           onBlur={() => onBlur("deliveryNotice")}
           placeholder="working days"
@@ -161,6 +164,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
           error={
             !!errors.deliveryNotice && touched["supplyTerms.deliveryNotice"]
           }
+          disabled={!isEditable}
         />
       </FormField>
 
@@ -171,6 +175,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         required
         error={errors.minOrderValue}
         touched={touched["supplyTerms.minOrderValue"]}
+        disabled={!isEditable}
       >
         <TextInput
           id="minOrderValue"
@@ -181,6 +186,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
           type="number"
           required
           error={!!errors.minOrderValue && touched["supplyTerms.minOrderValue"]}
+          disabled={!isEditable}
         />
       </FormField>
 
@@ -191,6 +197,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         required
         error={errors.minOrderQuantity}
         touched={touched["supplyTerms.minOrderQuantity"]}
+        disabled={!isEditable}
       >
         <TextInput
           id="minOrderQuantity"
@@ -205,6 +212,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
           error={
             !!errors.minOrderQuantity && touched["supplyTerms.minOrderQuantity"]
           }
+          disabled={!isEditable}
         />
       </FormField>
 
@@ -215,6 +223,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         required
         error={errors.maxOrderValue}
         touched={touched["supplyTerms.maxOrderValue"]}
+        disabled={!isEditable}
       >
         <TextInput
           id="maxOrderValue"
@@ -225,6 +234,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
           type="number"
           required
           error={!!errors.maxOrderValue && touched["supplyTerms.maxOrderValue"]}
+          disabled={!isEditable}
         />
       </FormField>
 
@@ -235,6 +245,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         required={false}
         error={errors.otherComments}
         touched={touched["supplyTerms.otherComments"]}
+        disabled={!isEditable}
       >
         <TextArea
           id="otherComments"
@@ -243,6 +254,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
           onChange={(e) => onChange("otherComments", e.target.value)}
           onBlur={() => onBlur("otherComments")}
           className="other_comments"
+          disabled={!isEditable}
         />
       </FormField>
     </SectionContainer>

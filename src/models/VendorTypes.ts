@@ -22,6 +22,12 @@ export type VendorType =
 // Type for yes/no answers
 export type YesNo = "yes" | "no" | "";
 
+// Yes/No options
+export const yesNoOptions = [
+  { value: "", label: "Select an option", disabled: true },
+  { value: "yes", label: "Yes" },
+  { value: "no", label: "No" },
+];
 // Type for payment terms
 export type PaymentTerms = 
   | "20 EOM"
@@ -101,7 +107,7 @@ export interface SupplyTermsData {
   exclusiveSupply: YesNo;
   saleOrReturn: YesNo;
   authRequired: YesNo;
-  deliveryNotice: number;
+  delivery_notice: number;
   minOrderValue: number;
   minOrderQuantity: number;
   maxOrderValue: number;
@@ -211,3 +217,25 @@ export interface SupplierFormData {
   // Terms agreement
   iAgree: boolean;
 }
+
+// Time period options
+export const timePeriodOptions = [
+  { value: "", label: "Month/Quarter/Year", disabled: true },
+  { value: "month", label: "Month" },
+  { value: "quarter", label: "Quarter" },
+  { value: "year", label: "Year" },
+];
+
+// Payment terms options
+export const paymentTermsOptions = [
+  { value: "", label: "Select an option", disabled: true },
+  { value: "20 EOM", label: "20 EOM" },
+  { value: "30 DAYS", label: "30 Days" },
+  { value: "60 DAYS", label: "60 Days" },
+  { value: "90 DAYS", label: "90 Days" },
+  { value: "30 EOM", label: "30 EOM" },
+  { value: "60 EOM", label: "60 EOM" },
+  { value: "90 EOM", label: "90 EOM" },
+];
+
+

@@ -1,3 +1,4 @@
+// src/components/ui/Dropdown.tsx
 import React from "react";
 import { styled } from "@mui/material/styles";
 
@@ -20,8 +21,8 @@ interface DropdownProps {
   title?: string;
 }
 
-const StyledSelect = styled("select")<{ error?: boolean }>(
-  ({ theme, error }) => ({
+const StyledSelect = styled("select")<{ error?: boolean; disabled?: boolean }>(
+  ({ theme, error, disabled }) => ({
     display: "block",
     width: "100%",
     padding: "10px",
@@ -30,6 +31,9 @@ const StyledSelect = styled("select")<{ error?: boolean }>(
     borderRadius: "4px",
     boxSizing: "border-box",
     appearance: "none",
+    backgroundColor: disabled ? "#f9f9f9" : "transparent",
+    color: disabled ? "#666" : "inherit",
+    cursor: disabled ? "not-allowed" : "pointer",
     backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
     backgroundRepeat: "no-repeat",
     backgroundPosition: "right 10px center",
@@ -73,7 +77,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         <option
           key={option.value}
           value={option.value}
-          disabled={option.disabled}
+          disabled={option.disabled || disabled}
         >
           {option.label}
         </option>

@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import SupplierForm from "@/components/forms/SupplierForm";
-
+import SupplierOnboardingForm from "@/components/forms/SupplieronboardFormPage";
 // This page component serves as a wrapper for the SupplierForm
 // It handles authentication checks and redirects
 export default function SupplierFormPage() {
@@ -53,7 +53,7 @@ export default function SupplierFormPage() {
           </p>
         </div>
 
-        <SupplierForm />
+        <SupplierOnboardingForm />
       </div>
     </div>
   );

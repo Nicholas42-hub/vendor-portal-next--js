@@ -269,8 +269,7 @@ export default function VendorApprovalFlow() {
     }
   }, [session?.user?.email, vendorData]);
 
-  // Fetch vendor data from API
-  const fetchVendorData = async (vendorEmail: string) => {
+  const fetchVendorData = async (vendorEmail) => {
     try {
       setIsLoading(true);
       const email = searchParams.get("email");
@@ -280,7 +279,7 @@ export default function VendorApprovalFlow() {
 
       // Payment terms that require Finance approval
       const financeApprovalTerms = ["20 EOM"];
-      console.log("check the vendor data structure", vendor);
+
       const needsFinanceApproval = financeApprovalTerms.includes(
         vendor.payment_terms?.toUpperCase()
       );
@@ -295,7 +294,8 @@ export default function VendorApprovalFlow() {
         tradingEntities.push(vendor.trading_name);
       }
 
-      // Format data for all form sections
+      // Fix 2: Ensure proper type conversion for numeric values
+      // and handle boolean values consistently
       setFormattedVendorData({
         generalDetails: {
           tradingEntities: tradingEntities,
@@ -313,48 +313,48 @@ export default function VendorApprovalFlow() {
           city: vendor.city || "",
           state: vendor.state || "",
           postcode: vendor.postcode || "",
-          is_gst_registered: vendor.is_gst_registered || false,
+          is_gst_registered: Boolean(vendor.is_gst_registered),
           abn: vendor.abn || "",
           gst: vendor.gst || "",
         },
         supplyTerms: {
-          exclusive_supply: vendor.exclusive_supply || false,
-          sale_or_return: vendor.sale_or_return || false,
-          auth_required: vendor.auth_required || false,
-          delivery_notice: parseInt(vendor.delivery_notice || "0"),
-          min_order_value: parseInt(vendor.min_order_value || "0"),
-          min_order_quantity: parseInt(vendor.min_order_quantity || "0"),
-          max_order_value: parseInt(vendor.max_order_value || "0"),
+          exclusive_supply: Boolean(vendor.exclusive_supply),
+          sale_or_return: Boolean(vendor.sale_or_return),
+          auth_required: Boolean(vendor.auth_required),
+          delivery_notice: Number(vendor.delivery_notice || 0),
+          min_order_value: Number(vendor.min_order_value || 0),
+          min_order_quantity: Number(vendor.min_order_quantity || 0),
+          max_order_value: Number(vendor.max_order_value || 0),
           other_comments: vendor.other_comments || "",
         },
         tradingTerms: {
-          quotes_obtained: vendor.quotes_obtained || false,
+          quotes_obtained: Boolean(vendor.quotes_obtained),
           quotes_obtained_reason: vendor.quotes_obtained_reason || "",
           quotes_pdf_url: vendor.quotes_pdf_url || "",
-          back_order: vendor.back_order || false,
+          back_order: Boolean(vendor.back_order),
         },
         financialTerms: {
           payment_terms: vendor.payment_terms || "",
-          order_expiry_days: parseInt(vendor.order_expiry_days || "0"),
+          order_expiry_days: Number(vendor.order_expiry_days || 0),
           gross_margin: vendor.gross_margin || "",
-          invoice_discount: vendor.invoice_discount || false,
+          invoice_discount: Boolean(vendor.invoice_discount),
           invoice_discount_value: vendor.invoice_discount_value || "",
-          settlement_discount: vendor.settlement_discount || false,
+          settlement_discount: Boolean(vendor.settlement_discount),
           settlement_discount_value: vendor.settlement_discount_value || "",
           settlement_discount_days: vendor.settlement_discount_days || "",
-          flat_rebate: vendor.flat_rebate || false,
+          flat_rebate: Boolean(vendor.flat_rebate),
           flat_rebate_percent: vendor.flat_rebate_percent || "",
           flat_rebate_dollar: vendor.flat_rebate_dollar || "",
           flat_rebate_term: vendor.flat_rebate_term || "",
-          growth_rebate: vendor.growth_rebate || false,
+          growth_rebate: Boolean(vendor.growth_rebate),
           growth_rebate_percent: vendor.growth_rebate_percent || "",
           growth_rebate_dollar: vendor.growth_rebate_dollar || "",
           growth_rebate_term: vendor.growth_rebate_term || "",
-          marketing_rebate: vendor.marketing_rebate || false,
+          marketing_rebate: Boolean(vendor.marketing_rebate),
           marketing_rebate_percent: vendor.marketing_rebate_percent || "",
           marketing_rebate_dollar: vendor.marketing_rebate_dollar || "",
           marketing_rebate_term: vendor.marketing_rebate_term || "",
-          promotional_fund: vendor.promotional_fund || false,
+          promotional_fund: Boolean(vendor.promotional_fund),
           promotional_fund_value: vendor.promotional_fund_value || "",
         },
         bankDetails: {
@@ -376,7 +376,7 @@ export default function VendorApprovalFlow() {
           nz_remittance_email: vendor.nz_remittance_email || "",
           nz_bsb: vendor.nz_bsb || "",
           nz_account: vendor.nz_account || "",
-          overseas_iban_switch: vendor.overseas_iban_switch || false,
+          overseas_iban_switch: Boolean(vendor.overseas_iban_switch),
           overseas_iban: vendor.overseas_iban || "",
           overseas_swift: vendor.overseas_swift || "",
           biller_code: vendor.biller_code || "",
@@ -554,7 +554,9 @@ export default function VendorApprovalFlow() {
 
       // Make API call to delete the vendor
       if (vendorData.email) {
-        const response = await axios.delete(`/api/vendors/${vendorData.email}`);
+        const response = await axios.delete(
+          `/api/vendor-approval/${vendorData.email}`
+        );
 
         if (!response.data.success) {
           throw new Error("Failed to delete vendor");
@@ -726,26 +728,133 @@ export default function VendorApprovalFlow() {
     setShowSuccess(false);
   };
 
-  // Handle form submission for requester edits
-  const handleRequesterSubmit = async (e: React.FormEvent) => {
+  // Fix 6: Update the handleRequesterSubmit function to collect and submit the form data
+  const handleRequesterSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      setIsLoading(true);
+      setIsSubmitting(true);
 
-      // Collect form data
-      // In a real implementation, you would gather all the updated form field values
+      // Collect form data from formattedVendorData state
       const formData = {
-        // Include all form fields here
+        // General Details
+        vendor_home_country:
+          formattedVendorData.generalDetails.vendor_home_country,
+        primary_trading_business_unit:
+          formattedVendorData.generalDetails.primary_trading_business_unit,
+        business_name: formattedVendorData.generalDetails.business_name,
+        trading_name: formattedVendorData.generalDetails.trading_name,
+        vendor_type: formattedVendorData.generalDetails.vendor_type,
+        contact_person: formattedVendorData.generalDetails.contact_person,
+        contact_phone: formattedVendorData.generalDetails.contact_phone,
+        website_url: formattedVendorData.generalDetails.website_url,
+        postal_address: formattedVendorData.generalDetails.postal_address,
+        city: formattedVendorData.generalDetails.city,
+        state: formattedVendorData.generalDetails.state,
+        postcode: formattedVendorData.generalDetails.postcode,
+        is_gst_registered: formattedVendorData.generalDetails.is_gst_registered,
+        abn: formattedVendorData.generalDetails.abn,
+        gst: formattedVendorData.generalDetails.gst,
+
+        // Supply Terms
+        exclusive_supply: formattedVendorData.supplyTerms.exclusive_supply,
+        sale_or_return: formattedVendorData.supplyTerms.sale_or_return,
+        auth_required: formattedVendorData.supplyTerms.auth_required,
+        delivery_notice: formattedVendorData.supplyTerms.delivery_notice,
+        min_order_value: formattedVendorData.supplyTerms.min_order_value,
+        min_order_quantity: formattedVendorData.supplyTerms.min_order_quantity,
+        max_order_value: formattedVendorData.supplyTerms.max_order_value,
+        other_comments: formattedVendorData.supplyTerms.other_comments,
+
+        // Trading Terms
+        quotes_obtained: formattedVendorData.tradingTerms.quotes_obtained,
+        quotes_obtained_reason:
+          formattedVendorData.tradingTerms.quotes_obtained_reason,
+        quotes_pdf_url: formattedVendorData.tradingTerms.quotes_pdf_url,
+        back_order: formattedVendorData.tradingTerms.back_order,
+
+        // Financial Terms
+        payment_terms: formattedVendorData.financialTerms.payment_terms,
+        order_expiry_days: formattedVendorData.financialTerms.order_expiry_days,
+        gross_margin: formattedVendorData.financialTerms.gross_margin,
+        invoice_discount: formattedVendorData.financialTerms.invoice_discount,
+        invoice_discount_value:
+          formattedVendorData.financialTerms.invoice_discount_value,
+        settlement_discount:
+          formattedVendorData.financialTerms.settlement_discount,
+        settlement_discount_value:
+          formattedVendorData.financialTerms.settlement_discount_value,
+        settlement_discount_days:
+          formattedVendorData.financialTerms.settlement_discount_days,
+        flat_rebate: formattedVendorData.financialTerms.flat_rebate,
+        flat_rebate_percent:
+          formattedVendorData.financialTerms.flat_rebate_percent,
+        flat_rebate_dollar:
+          formattedVendorData.financialTerms.flat_rebate_dollar,
+        flat_rebate_term: formattedVendorData.financialTerms.flat_rebate_term,
+        growth_rebate: formattedVendorData.financialTerms.growth_rebate,
+        growth_rebate_percent:
+          formattedVendorData.financialTerms.growth_rebate_percent,
+        growth_rebate_dollar:
+          formattedVendorData.financialTerms.growth_rebate_dollar,
+        growth_rebate_term:
+          formattedVendorData.financialTerms.growth_rebate_term,
+        marketing_rebate: formattedVendorData.financialTerms.marketing_rebate,
+        marketing_rebate_percent:
+          formattedVendorData.financialTerms.marketing_rebate_percent,
+        marketing_rebate_dollar:
+          formattedVendorData.financialTerms.marketing_rebate_dollar,
+        marketing_rebate_term:
+          formattedVendorData.financialTerms.marketing_rebate_term,
+        promotional_fund: formattedVendorData.financialTerms.promotional_fund,
+        promotional_fund_value:
+          formattedVendorData.financialTerms.promotional_fund_value,
+
+        // Bank Details
+        au_invoice_currency:
+          formattedVendorData.bankDetails.au_invoice_currency,
+        au_bank_country: formattedVendorData.bankDetails.au_bank_country,
+        au_bank_name: formattedVendorData.bankDetails.au_bank_name,
+        au_bank_address: formattedVendorData.bankDetails.au_bank_address,
+        au_bank_currency_code:
+          formattedVendorData.bankDetails.au_bank_currency_code,
+        au_bank_clearing_code:
+          formattedVendorData.bankDetails.au_bank_clearing_code,
+        au_remittance_email:
+          formattedVendorData.bankDetails.au_remittance_email,
+        au_bsb: formattedVendorData.bankDetails.au_bsb,
+        au_account: formattedVendorData.bankDetails.au_account,
+        nz_invoice_currency:
+          formattedVendorData.bankDetails.nz_invoice_currency,
+        nz_bank_country: formattedVendorData.bankDetails.nz_bank_country,
+        nz_bank_name: formattedVendorData.bankDetails.nz_bank_name,
+        nz_bank_address: formattedVendorData.bankDetails.nz_bank_address,
+        nz_bank_currency_code:
+          formattedVendorData.bankDetails.nz_bank_currency_code,
+        nz_bank_clearing_code:
+          formattedVendorData.bankDetails.nz_bank_clearing_code,
+        nz_remittance_email:
+          formattedVendorData.bankDetails.nz_remittance_email,
+        nz_bsb: formattedVendorData.bankDetails.nz_bsb,
+        nz_account: formattedVendorData.bankDetails.nz_account,
+        overseas_iban_switch:
+          formattedVendorData.bankDetails.overseas_iban_switch,
+        overseas_iban: formattedVendorData.bankDetails.overseas_iban,
+        overseas_swift: formattedVendorData.bankDetails.overseas_swift,
+        biller_code: formattedVendorData.bankDetails.biller_code,
+        ref_code: formattedVendorData.bankDetails.ref_code,
       };
 
       // Make API call to update the status and form data
       if (vendorData.email) {
-        const response = await axios.patch(`/api/vendors/${vendorData.email}`, {
-          ...formData,
-          status_code: "Procurement Approval",
-          approval_comment: "", // Clear any previous decline comments
-        });
+        const response = await axios.put(
+          `/api/vendor-approval/${vendorData.email}`,
+          {
+            ...formData,
+            status_code: "Procurement Approval",
+            approval_comment: "", // Clear any previous decline comments
+          }
+        );
 
         if (!response.data.success) {
           throw new Error("Failed to update vendor data");
@@ -757,6 +866,7 @@ export default function VendorApprovalFlow() {
       // Update local state
       setVendorData({
         ...vendorData,
+        ...formData,
         status_code: "Procurement Approval",
         approval_comment: "",
       });
@@ -768,7 +878,7 @@ export default function VendorApprovalFlow() {
       console.error("Error submitting form:", error);
       alert("Failed to submit form. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 

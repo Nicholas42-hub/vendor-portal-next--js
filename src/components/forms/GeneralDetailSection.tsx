@@ -15,15 +15,18 @@ import { TextInput } from "../ui/TextInput";
 import { Dropdown } from "../ui/Dropdown";
 import { Checkbox } from "../ui/Checkbox";
 import { countries } from "@/lib/countries";
+
 // Define Props
 interface GeneralDetailsSectionProps {
   data: VendorData["generalDetails"];
   errors: { [key: string]: string };
   touched: { [key: string]: boolean };
+  isChecking?: { [key: string]: boolean }; // Add isChecking prop
   onChange: (field: string, value: any) => void;
   onCheckboxChange: (field: string, value: string, checked: boolean) => void;
   onBlur: (field: string) => void;
-  validateField: (field: string) => void; // Added validateField to props
+  validateField: (field: string) => void;
+  isEditable?: boolean; // Add isEditable prop with default value true
 }
 
 // Styled Container
@@ -64,15 +67,40 @@ const CheckboxColumn = styled("div")({
   minWidth: "250px",
 });
 
+// New styled components for loading and validation indicators
+const LoadingIndicator = styled("div")({
+  color: "#2196F3",
+  fontSize: "0.8rem",
+  marginTop: "4px",
+  display: "flex",
+  alignItems: "center",
+});
+
+const Spinner = styled("span")({
+  display: "inline-block",
+  width: "12px",
+  height: "12px",
+  border: "2px solid rgba(33, 150, 243, 0.3)",
+  borderRadius: "50%",
+  borderTopColor: "#2196F3",
+  animation: "spin 0.8s linear infinite",
+  marginRight: "8px",
+  "@keyframes spin": {
+    to: { transform: "rotate(360deg)" },
+  },
+});
+
 // Component
 export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
   data,
   errors,
   touched,
+  isChecking = {}, // Default to empty object if not provided
   onChange,
   onCheckboxChange,
   onBlur,
-  validateField, // Destructure validateField
+  validateField,
+  isEditable = true, // Default to editable if not specified
 }) => {
   return (
     <SectionContainer>
@@ -102,6 +130,7 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
                     e.target.checked
                   )
                 }
+                disabled={!isEditable}
                 label={entity.label}
               />
             </CheckboxColumn>
@@ -131,6 +160,7 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
             })),
           ]}
           required
+          disabled={!isEditable}
           error={
             !!errors.vendorHomeCountry &&
             touched["generalDetails.vendorHomeCountry"]
@@ -156,6 +186,7 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
           onBlur={() => onBlur("primaryTradingBusinessUnit")}
           options={businessUnitOptions}
           required
+          disabled={!isEditable}
           error={
             !!errors.primaryTradingBusinessUnit &&
             touched["generalDetails.primaryTradingBusinessUnit"]
@@ -185,8 +216,16 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
           pattern="[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}"
           title="Please enter a valid email address (e.g., example@domain.com)"
           required
+          disabled={!isEditable}
           error={!!errors.email && touched["generalDetails.email"]}
         />
+        {/* Add loading indicator when checking email */}
+        {isChecking["generalDetails.email"] && (
+          <LoadingIndicator>
+            <Spinner />
+            Checking email availability...
+          </LoadingIndicator>
+        )}
       </FormField>
 
       {/* Business Name */}
@@ -207,6 +246,23 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
           error={
             !!errors.businessName && touched["generalDetails.businessName"]
           }
+        />
+      </FormField>
+
+      {/* Trading Name (Optional) */}
+      <FormField
+        label="Trading Name (if different from Business Name)"
+        htmlFor="tradingName"
+        error={errors.tradingName}
+        touched={touched["generalDetails.tradingName"]}
+      >
+        <TextInput
+          id="tradingName"
+          name="tradingName"
+          value={data.tradingName || ""}
+          onChange={(e) => onChange("tradingName", e.target.value)}
+          onBlur={() => onBlur("tradingName")}
+          error={!!errors.tradingName && touched["generalDetails.tradingName"]}
         />
       </FormField>
 
