@@ -51,14 +51,13 @@ export class ValidationService {
   static validateSupplierForm(data: SupplierFormData): ValidationErrors {
     const errors: ValidationErrors = {};
 
-    // Business Name validation
-    if (!data.business_name?.trim()) {
-      errors.business_name = "Business Name is required";
+    if (!data.business_name || typeof data.business_name !== 'string' || data.business_name.trim() === '') {
+      errors.business_name = 'Business name is required';
     }
 
-    // Trading Name validation
-    if (!data.trading_name?.trim()) {
-      errors.trading_name = "Trading Name is required";
+    // Trading Name validation (optional)
+    if (data.trading_name && typeof data.trading_name === 'string' && data.trading_name.trim() === '') {
+      errors.trading_name = 'Trading name cannot be empty if provided';
     }
 
     // Country validation
@@ -127,24 +126,26 @@ export class ValidationService {
       errors.return_order_email = "Please enter a valid email address";
     }
 
+    const tradingEntities = Array.isArray(data.trading_entities) ? data.trading_entities : [];
+
     // Trading Entities validation
-    if (!data.trading_entities || data.trading_entities.length === 0) {
+    if (!tradingEntities.length) {
       errors.trading_entities = "At least one Trading Entity must be selected";
     }
-
+  
     // AU/NZ Invoice Currency validation (if trading entities are selected)
-    const hasAuEntities = data.trading_entities.some(entity => 
+    const hasAuEntities = tradingEntities.some(entity => 
       ['ALAW', 'AUDF', 'AUTE', 'AUPG', 'AUAW', 'LSAP'].includes(entity)
     );
     
-    const hasNzEntities = data.trading_entities.some(entity => 
+    const hasNzEntities = tradingEntities.some(entity => 
       ['NZAW', 'NZDF', 'NZTE'].includes(entity)
     );
-
+  
     if (hasAuEntities && !data.au_invoice_currency) {
       errors.au_invoice_currency = "Invoice currency is required for Australian entities";
     }
-
+  
     if (hasNzEntities && !data.nz_invoice_currency) {
       errors.nz_invoice_currency = "Invoice currency is required for New Zealand entities";
     }

@@ -156,13 +156,7 @@ export interface SimilarVendor {
   matchedCriteria: string[];
 }
 
-// Define interfaces for trading entities
-export interface TradingEntityList {
-  TradingEntityId: string;
-  entityName: string;
-  entityCountry: string;
-  paymentCountry: string; // Add this line
-}
+
 export interface SupplierFormData {
   business_name: string;
   trading_name: string;

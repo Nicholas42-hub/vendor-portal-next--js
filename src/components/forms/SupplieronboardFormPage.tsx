@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { styled } from "@mui/material/styles";
-import { SupplierFormData, TradingEntity } from "../../models/VendorTypes";
+import { SupplierFormData } from "../../models/VendorTypes";
 import { SupplierForm } from "./SupplierOnboardingSection";
 import useForm from "../../hooks/useForm";
 import { ValidationService } from "../../services/ValidationService";
@@ -12,6 +12,14 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+
+// Define interfaces for trading entities
+export interface TradingEntity {
+  TradingEntityId: string;
+  entityName: string;
+  entityCountry: string;
+  paymentCountry: string; // Add this line
+}
 
 // Define styled components
 const FormContainer = styled("div")({
@@ -160,6 +168,8 @@ const SupplierOnboardingFormPage: React.FC<
   }, [session]);
 
   // Fetch trading entities
+  // ... existing imports and code ...
+
   const fetchTradingEntities = async () => {
     try {
       setIsLoading(true);
@@ -169,26 +179,40 @@ const SupplierOnboardingFormPage: React.FC<
       }
 
       const response = await axios.get(`/api/supplier-onboarding/${email}`);
-
       const { vendorInfo, tradingEntities } = response.data;
 
-      console.log(vendorInfo);
-      setTradingEntities(tradingEntities);
+      // Update trading entities state
+      setTradingEntities(tradingEntities || []);
 
-      const auEntities = tradingEntities.filter(
-        (entity: TradingEntity) => entity.paymentCountry === "Australia"
-      );
-      const nzEntities = tradingEntities.filter(
-        (entity: TradingEntity) => entity.paymentCountry === "New Zealand"
-      );
+      // Filter entities by country
+      const auEntities =
+        tradingEntities?.filter(
+          (entity: TradingEntity) => entity.paymentCountry === "Australia"
+        ) || [];
+      const nzEntities =
+        tradingEntities?.filter(
+          (entity: TradingEntity) => entity.paymentCountry === "New Zealand"
+        ) || [];
 
+      // Update entity flags
       setHasAuEntities(auEntities.length > 0);
       setHasNzEntities(nzEntities.length > 0);
 
-      setFormData((prev) => ({
-        ...prev,
-        business_name: vendorInfo.business_name,
-      }));
+      if (vendorInfo?.business_name) {
+        // Updated to include section name as first argument
+        handleChange("vendorInfo", "business_name", vendorInfo.business_name);
+      }
+
+      // Update trading entities in form data
+      tradingEntities?.forEach((entity: TradingEntity) => {
+        if (entity.TradingEntityId) {
+          handleCheckboxChange(
+            "trading_entities",
+            entity.TradingEntityId,
+            true
+          );
+        }
+      });
     } catch (error) {
       console.error("Error fetching trading entities:", error);
     } finally {

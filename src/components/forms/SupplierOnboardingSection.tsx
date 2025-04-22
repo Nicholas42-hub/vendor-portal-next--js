@@ -19,6 +19,8 @@ interface SupplierFormProps {
   onBlur: (field: string) => void;
   validateField: (field: string) => void;
   isEditable?: boolean;
+  hasAuEntities?: boolean;
+  hasNzEntities?: boolean;
 }
 
 // Styled Container
@@ -130,7 +132,20 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({
   onBlur,
   validateField,
   isEditable = true,
+  hasAuEntities = false,
+  hasNzEntities = false,
 }) => {
+  const hasEntityType = (
+    entities: string[] | undefined,
+    types: string[]
+  ): boolean => {
+    if (!Array.isArray(entities)) {
+      return false;
+    }
+    return entities.some((entity) => types.includes(entity));
+  };
+  const AU_ENTITIES = ["ALAW", "AUDF", "AUTE", "AUPG", "AUAW", "LSAP"];
+  const NZ_ENTITIES = ["NZAW", "NZDF", "NZTE"];
   return (
     <SectionContainer>
       <FormLegend>Supplier Onboarding Form</FormLegend>
@@ -513,65 +528,69 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({
         />
       </FormField>
 
-      {/* Australian Invoice Currency - only if AU entities are selected */}
+      {/* Invoice Currency Selection */}
       {(hasAuEntities || hasNzEntities) && (
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* AU Invoice Currency */}
-                {hasAuEntities && (
-      ) && (
-        <FormField
-          label="Select the Invoice currency when trading with our Australian based entity(ies)"
-          htmlFor="au_invoice_currency"
-          required
-          error={errors.au_invoice_currency}
-          touched={touched["au_invoice_currency"]}
-        >
-          <Dropdown
-            id="au_invoice_currency"
-            name="au_invoice_currency"
-            value={data.au_invoice_currency || ""}
-            onChange={(e) => onChange("au_invoice_currency", e.target.value)}
-            onBlur={() => onBlur("au_invoice_currency")}
-            options={[
-              { value: "", label: "Select a currency", disabled: true },
-              ...currencies,
-            ]}
-            required
-            disabled={!isEditable}
-            error={
-              !!errors.au_invoice_currency && touched["au_invoice_currency"]
-            }
-          />
-        </FormField>
-      )}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Australian Invoice Currency */}
+          {hasAuEntities && (
+            <FormField
+              label="Select the Invoice currency when trading with our Australian based entity(ies)"
+              htmlFor="au_invoice_currency"
+              required
+              error={errors.au_invoice_currency}
+              touched={touched["au_invoice_currency"]}
+            >
+              <Dropdown
+                id="au_invoice_currency"
+                name="au_invoice_currency"
+                value={data.au_invoice_currency || ""}
+                onChange={(e) =>
+                  onChange("au_invoice_currency", e.target.value)
+                }
+                onBlur={() => onBlur("au_invoice_currency")}
+                options={[
+                  { value: "", label: "Select a currency", disabled: true },
+                  ...currencies,
+                ]}
+                required
+                disabled={!isEditable}
+                error={
+                  !!errors.au_invoice_currency && touched["au_invoice_currency"]
+                }
+              />
+            </FormField>
+          )}
 
-      {/* New Zealand Invoice Currency - only if NZ entities are selected */}
-      {hasNzEntities && (
-                  <div className="space-y-2"> (
-        <FormField
-          label="Select the Invoice currency when trading with NZ based entity(ies)"
-          htmlFor="nz_invoice_currency"
-          required
-          error={errors.nz_invoice_currency}
-          touched={touched["nz_invoice_currency"]}
-        >
-          <Dropdown
-            id="nz_invoice_currency"
-            name="nz_invoice_currency"
-            value={data.nz_invoice_currency || ""}
-            onChange={(e) => onChange("nz_invoice_currency", e.target.value)}
-            onBlur={() => onBlur("nz_invoice_currency")}
-            options={[
-              { value: "", label: "Select a currency", disabled: true },
-              ...currencies,
-            ]}
-            required
-            disabled={!isEditable}
-            error={
-              !!errors.nz_invoice_currency && touched["nz_invoice_currency"]
-            }
-          />
-        </FormField>
+          {/* New Zealand Invoice Currency */}
+          {hasNzEntities && (
+            <FormField
+              label="Select the Invoice currency when trading with NZ based entity(ies)"
+              htmlFor="nz_invoice_currency"
+              required
+              error={errors.nz_invoice_currency}
+              touched={touched["nz_invoice_currency"]}
+            >
+              <Dropdown
+                id="nz_invoice_currency"
+                name="nz_invoice_currency"
+                value={data.nz_invoice_currency || ""}
+                onChange={(e) =>
+                  onChange("nz_invoice_currency", e.target.value)
+                }
+                onBlur={() => onBlur("nz_invoice_currency")}
+                options={[
+                  { value: "", label: "Select a currency", disabled: true },
+                  ...currencies,
+                ]}
+                required
+                disabled={!isEditable}
+                error={
+                  !!errors.nz_invoice_currency && touched["nz_invoice_currency"]
+                }
+              />
+            </FormField>
+          )}
+        </div>
       )}
 
       {/* SECTION 2: BANKING DETAILS */}
@@ -602,9 +621,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({
       {data.payment_method === "Bank Transfer" && (
         <>
           {/* AUSTRALIAN BANKING DETAILS */}
-          {data.trading_entities.some((entity) =>
-            ["ALAW", "AUDF", "AUTE", "AUPG", "AUAW", "LSAP"].includes(entity)
-          ) && (
+          {hasEntityType(data.trading_entities, AU_ENTITIES) && (
             <div className="bg-white p-4 rounded-md border mb-6">
               <h3 className="font-medium mb-4">
                 Fill the banking details when trading with Australian based
@@ -789,9 +806,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({
           )}
 
           {/* NEW ZEALAND BANKING DETAILS */}
-          {data.trading_entities.some((entity) =>
-            ["NZAW", "NZDF", "NZTE"].includes(entity)
-          ) && (
+          {hasEntityType(data.trading_entities, NZ_ENTITIES) && (
             <div className="bg-white p-4 rounded-md border mb-6">
               <h3 className="font-medium mb-4">
                 Fill banking details when trading with our NZ based entity(ies)
