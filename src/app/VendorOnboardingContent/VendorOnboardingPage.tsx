@@ -17,9 +17,13 @@ const VendorOnboardingPage: React.FC = () => {
       .filter-wrapper {
         display: flex;
         flex-wrap: wrap;
-        justify-content: center;
+        justify-content: flex-start;  // Changed from center to flex-start
         gap: 10px;
         margin-bottom: 20px;
+        max-width: 1800px;  // Match container width
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0 1rem;
       }
       .status-filter {
         padding: 10px 15px;
@@ -195,7 +199,7 @@ const VendorOnboardingPage: React.FC = () => {
       />
 
       {/* Main content */}
-      <div className="relative z-10 max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 max-w-[1400px] mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {connectionError && (
           <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4">
             <div className="flex">

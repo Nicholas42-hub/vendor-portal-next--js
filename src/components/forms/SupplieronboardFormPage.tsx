@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { styled } from "@mui/material/styles";
-import { SupplierFormData } from "../../models/VendorTypes";
+import { SupplierFormData, GeneralDetailsData } from "../../models/VendorTypes";
 import { SupplierForm } from "./SupplierOnboardingSection";
 import useForm from "../../hooks/useForm";
 import { ValidationService } from "../../services/ValidationService";
@@ -200,7 +200,12 @@ const SupplierOnboardingFormPage: React.FC<
 
       if (vendorInfo?.business_name) {
         // Updated to include section name as first argument
-        handleChange("vendorInfo", "business_name", vendorInfo.business_name);
+        if (vendorInfo.business_name)
+          handleChange(
+            "generalDetails",
+            "business_name",
+            vendorInfo.business_name
+          );
       }
 
       // Update trading entities in form data
@@ -253,7 +258,11 @@ const SupplierOnboardingFormPage: React.FC<
 
         // Instead of using setFormData directly, use handleChange for each field
         if (vendorInfo.business_name)
-          handleChange("business_name", vendorInfo.business_name);
+          handleChange(
+            "generalDetails",
+            "business_name",
+            vendorInfo.business_name
+          );
         if (vendorInfo.trading_name)
           handleChange("trading_name", vendorInfo.trading_name);
         handleChange("primary_contact_email", email || "");

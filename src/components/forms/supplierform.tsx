@@ -89,7 +89,7 @@ interface FormErrors {
   [key: string]: string;
 }
 
-export default function SupplierForm() {
+export default function SupplierFormExternal() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
   const { data: session, status } = useSession();

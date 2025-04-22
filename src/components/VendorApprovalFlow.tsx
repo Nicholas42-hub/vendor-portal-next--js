@@ -8,7 +8,7 @@ import GeneralDetailsSection from "@/components/forms/GeneralDetailSection";
 import SupplyTermsSection from "@/components/forms/SupplyTermSection";
 import { TradingTermsSection } from "./forms/TradingTermSection";
 import { FinancialTermsSection } from "./forms/FinancialTermSection";
-import SupplierForm from "@/components/forms/SupplierForm";
+import SupplierForm from "@/components/forms/supplierform";
 
 // Define types for approval states
 type ApprovalStatus =

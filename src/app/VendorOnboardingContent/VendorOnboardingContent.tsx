@@ -23,6 +23,7 @@ interface VendorData {
   originalStatus: string;
 }
 
+// Updated StatusFilter component with more subtle hover and active states
 const StatusFilter: React.FC<StatusFilterProps> = ({
   id,
   dataStatus,
@@ -35,11 +36,20 @@ const StatusFilter: React.FC<StatusFilterProps> = ({
     <button
       id={id}
       data-status={dataStatus}
-      className={`status-filter ${isActive ? "active" : ""}`}
+      className={`
+        px-3 py-2 rounded-md text-sm
+        transition-all flex flex-col items-center whitespace-nowrap
+        border-b-2 border-b-[#003063]
+        ${
+          isActive
+            ? "bg-[#f0f5fa] text-[#003063] font-semibold"
+            : "bg-[#F6F6F6] text-[#5E5E5E] hover:bg-[#e0e5eb]"
+        }
+      `}
       onClick={() => onClick(dataStatus)}
     >
-      <div className="label">{label}</div>
-      <div className="count">{count}</div>
+      <div className="font-medium">{label}</div>
+      <div className="text-xs mt-1">{count}</div>
     </button>
   );
 };
@@ -78,10 +88,10 @@ const VendorOnboardingContent: React.FC = () => {
     all: 0,
     "Invitation Sent": 0,
     "Requester review": 0,
-    "Pending Procurement Manager Approval": 0,
+    "Procurement Approval": 0,
     "Pending Manager Approval": 0,
-    "Pending Exco Approval": 0,
     "Pending CFO Approval": 0,
+    "Pending Exco Approval": 0,
     "Creation approved": 0,
     Declined: 0,
   });
@@ -182,7 +192,7 @@ const VendorOnboardingContent: React.FC = () => {
         all: 0,
         "Invitation Sent": 0,
         "Requester review": 0,
-        "Pending Procurement Manager Approval": 0,
+        "Procurement Approval": 0,
         "Pending Manager Approval": 0,
         "Pending Exco Approval": 0,
         "Pending CFO Approval": 0,
@@ -196,7 +206,7 @@ const VendorOnboardingContent: React.FC = () => {
       all: data.length,
       "Invitation Sent": 0,
       "Requester review": 0,
-      "Pending Procurement Manager Approval": 0,
+      "Procurement Approval": 0,
       "Pending Manager Approval": 0,
       "Pending Exco Approval": 0,
       "Pending CFO Approval": 0,
@@ -243,159 +253,159 @@ const VendorOnboardingContent: React.FC = () => {
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full shadow-md border border-[#F6F6F6]">
       <CardContent className="p-6">
-        <div className="filter-wrapper">
-          {/* All Status Filter */}
-          <StatusFilter
-            id="all"
-            dataStatus="all"
-            label="All"
-            count={statusCounts.all}
-            isActive={currentFilter === "all"}
-            onClick={handleFilterChange}
-          />
+        {/* Header and Create button container */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-[#003063] mb-4 sm:mb-0">
+            Vendor Portal Dashboard
+          </h2>
 
-          {/* Invitation Sent Filter */}
-          <StatusFilter
-            id="invitation-Sent"
-            dataStatus="Invitation Sent"
-            label="Invitation Sent"
-            count={statusCounts["Invitation Sent"]}
-            isActive={currentFilter === "Invitation Sent"}
-            onClick={handleFilterChange}
-          />
-          {/* Requester review Filter */}
-          <StatusFilter
-            id="Requester-review"
-            dataStatus="Requester review"
-            label="Requester review"
-            count={statusCounts["Requester review"]}
-            isActive={currentFilter === "Requester review"}
-            onClick={handleFilterChange}
-          />
-          {/* Requester review Filter */}
-          <StatusFilter
-            id="pending-procurement-manager-approval"
-            dataStatus="Pending Procurement Manager Approval"
-            label="Pending Procurement Manager Approval"
-            count={statusCounts["Pending Procurement Manager Approval"]}
-            isActive={currentFilter === "Pending Procurement Manager Approval"}
-            onClick={handleFilterChange}
-          />
-
-          {/* Pending Manager Approval Filter */}
-          <StatusFilter
-            id="pending-manager-approval"
-            dataStatus="Pending Manager Approval"
-            label="Pending Manager Approval"
-            count={statusCounts["Pending Manager Approval"]}
-            isActive={currentFilter === "Pending Manager Approval"}
-            onClick={handleFilterChange}
-          />
-
-          {/* Pending Exco Approval Filter */}
-          <StatusFilter
-            id="pending-exco-approval"
-            dataStatus="Pending Exco Approval"
-            label="Pending Exco Approval"
-            count={statusCounts["Pending Exco Approval"]}
-            isActive={currentFilter === "Pending Exco Approval"}
-            onClick={handleFilterChange}
-          />
-
-          {/* Pending CFO Approval Filter */}
-          <StatusFilter
-            id="pending-cfo-approval"
-            dataStatus="Pending CFO Approval"
-            label="Pending CFO Approval"
-            count={statusCounts["Pending CFO Approval"]}
-            isActive={currentFilter === "Pending CFO Approval"}
-            onClick={handleFilterChange}
-          />
-
-          {/* Creation Approved Filter */}
-          <StatusFilter
-            id="completed"
-            dataStatus="Creation approved"
-            label="Creation approved"
-            count={statusCounts["Creation approved"]}
-            isActive={currentFilter === "Creation approved"}
-            onClick={handleFilterChange}
-          />
-
-          {/* Declined Filter */}
-          <StatusFilter
-            id="declined"
-            dataStatus="Declined"
-            label="Declined"
-            count={statusCounts["Declined"]}
-            isActive={currentFilter === "Declined"}
-            onClick={handleFilterChange}
-          />
-
-          {/* Vendor Onboarding Form Button */}
+          {/* Create Vendor Button - Now separated from filters */}
           <Button
             id="vendor-onboarding"
             onClick={handleNavigateToForm}
-            className="status-filter create-button"
+            className="bg-[#003063] hover:bg-[#002364] text-white px-4 py-2 rounded w-full sm:w-auto"
           >
-            <div className="label">Create a Vendor Onboarding Form</div>
+            Create a Vendor Onboarding Form
           </Button>
         </div>
 
-        <div className="search-container flex justify-center mb-8">
-          <Input
-            type="text"
-            id="searchInput"
-            placeholder="Search for Business Name"
-            value={searchTerm}
-            onChange={handleSearchInputChange}
-            onKeyPress={handleKeyPress}
-            className="w-64 rounded-l-md rounded-r-none border-r-0"
-          />
-          <Button
-            type="button"
-            id="searchButton"
-            onClick={handleSearch}
-            className="rounded-l-none rounded-r-md bg-blue-600 hover:bg-blue-700"
-          >
-            Search
-          </Button>
+        {/* Search container */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="search-container flex w-full max-w-md">
+            <Input
+              type="text"
+              id="searchInput"
+              placeholder="Search for Business Name"
+              value={searchTerm}
+              onChange={handleSearchInputChange}
+              onKeyPress={handleKeyPress}
+              className="rounded-l-md rounded-r-none border-r-0 border-[#B2B2B2] focus:border-[#003063]"
+            />
+            <Button
+              type="button"
+              id="searchButton"
+              onClick={handleSearch}
+              className="rounded-l-none rounded-r-md bg-[#003063] hover:bg-[#002364]"
+            >
+              Search
+            </Button>
+          </div>
         </div>
 
+        {/* Filters container - all in one row with overflow handling */}
+        <div className="mb-6 overflow-x-auto">
+          <div className="filter-wrapper flex space-x-2 pb-2 min-w-max">
+            <StatusFilter
+              id="all"
+              dataStatus="all"
+              label="All Requests"
+              count={statusCounts.all}
+              isActive={currentFilter === "all"}
+              onClick={handleFilterChange}
+            />
+            <StatusFilter
+              id="invitation-Sent"
+              dataStatus="Invitation Sent"
+              label="Invitation Sent"
+              count={statusCounts["Invitation Sent"]}
+              isActive={currentFilter === "Invitation Sent"}
+              onClick={handleFilterChange}
+            />
+            <StatusFilter
+              id="Requester-review"
+              dataStatus="Requester review"
+              label="Requester Review"
+              count={statusCounts["Requester review"]}
+              isActive={currentFilter === "Requester review"}
+              onClick={handleFilterChange}
+            />
+            <StatusFilter
+              id="pending-procurement-manager-approval"
+              dataStatus="Procurement Approval"
+              label="Procurement Approval"
+              count={statusCounts["Procurement Approval"]}
+              isActive={currentFilter === "Procurement Approval"}
+              onClick={handleFilterChange}
+            />
+            <StatusFilter
+              id="pending-manager-approval"
+              dataStatus="Pending Manager Approval"
+              label="Manager Approval"
+              count={statusCounts["Pending Manager Approval"]}
+              isActive={currentFilter === "Pending Manager Approval"}
+              onClick={handleFilterChange}
+            />
+            <StatusFilter
+              id="pending-exco-approval"
+              dataStatus="Pending Exco Approval"
+              label="Exco Approval"
+              count={statusCounts["Pending Exco Approval"]}
+              isActive={currentFilter === "Pending Exco Approval"}
+              onClick={handleFilterChange}
+            />
+            <StatusFilter
+              id="pending-cfo-approval"
+              dataStatus="Pending CFO Approval"
+              label="CFO Approval"
+              count={statusCounts["Pending CFO Approval"]}
+              isActive={currentFilter === "Pending CFO Approval"}
+              onClick={handleFilterChange}
+            />
+            <StatusFilter
+              id="completed"
+              dataStatus="Creation approved"
+              label="Approved"
+              count={statusCounts["Creation approved"]}
+              isActive={currentFilter === "Creation approved"}
+              onClick={handleFilterChange}
+            />
+            <StatusFilter
+              id="declined"
+              dataStatus="Declined"
+              label="Declined"
+              count={statusCounts["Declined"]}
+              isActive={currentFilter === "Declined"}
+              onClick={handleFilterChange}
+            />
+          </div>
+        </div>
+
+        {/* Error message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="bg-[#f0f5fa] border border-[#003063] text-[#003063] px-4 py-3 rounded mb-4">
             <p className="font-bold">Error</p>
             <p>{error}</p>
           </div>
         )}
 
-        <div id="POContainer" className="POContainer mt-8">
+        {/* Data Table */}
+        <div id="POContainer" className="POContainer mt-6">
           {isLoading ? (
             <div className="flex justify-center py-10">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#003063]"></div>
             </div>
           ) : (
             <table
               id="crmDataTable"
-              className="w-full border border-gray-200 rounded-lg overflow-hidden"
+              className="w-full border border-[#F6F6F6] rounded-lg overflow-hidden shadow-sm"
             >
               <thead>
                 <tr className="cursor-pointer">
-                  <th className="p-3 text-left bg-gray-50 text-gray-700 font-bold uppercase text-xs border-b-2 border-gray-200">
+                  <th className="p-3 text-left bg-[#f0f5fa] text-[#003063] font-bold uppercase text-xs border-b-2 border-[#00306380]">
                     Business Name
                   </th>
-                  <th className="p-3 text-left bg-gray-50 text-gray-700 font-bold uppercase text-xs border-b-2 border-gray-200">
+                  <th className="p-3 text-left bg-[#f0f5fa] text-[#003063] font-bold uppercase text-xs border-b-2 border-[#00306380]">
                     Email
                   </th>
-                  <th className="p-3 text-left bg-gray-50 text-gray-700 font-bold uppercase text-xs border-b-2 border-gray-200">
+                  <th className="p-3 text-left bg-[#f0f5fa] text-[#003063] font-bold uppercase text-xs border-b-2 border-[#00306380]">
                     Created By
                   </th>
-                  <th className="p-3 text-left bg-gray-50 text-gray-700 font-bold uppercase text-xs border-b-2 border-gray-200">
+                  <th className="p-3 text-left bg-[#f0f5fa] text-[#003063] font-bold uppercase text-xs border-b-2 border-[#00306380]">
                     Created On
                   </th>
-                  <th className="p-3 text-left bg-gray-50 text-gray-700 font-bold uppercase text-xs border-b-2 border-gray-200">
+                  <th className="p-3 text-left bg-[#f0f5fa] text-[#003063] font-bold uppercase text-xs border-b-2 border-[#00306380]">
                     Status
                   </th>
                 </tr>
@@ -405,21 +415,41 @@ const VendorOnboardingContent: React.FC = () => {
                   filteredData.map((row, index) => (
                     <tr
                       key={`${row.crb7c_poemail}-${index}`}
-                      className="border-b hover:bg-gray-50 cursor-pointer"
+                      className="border-b border-[#F6F6F6] hover:bg-[#f0f5fa] cursor-pointer transition-colors"
                       onClick={() => handleRowClick(row.crb7c_poemail)}
                     >
-                      <td className="p-3 text-sm">{row.crb7c_businessname}</td>
-                      <td className="p-3 text-sm">{row.crb7c_poemail}</td>
-                      <td className="p-3 text-sm">
+                      <td className="p-3 text-sm text-[#4E4E4E]">
+                        {row.crb7c_businessname}
+                      </td>
+                      <td className="p-3 text-sm text-[#4E4E4E]">
+                        {row.crb7c_poemail}
+                      </td>
+                      <td className="p-3 text-sm text-[#4E4E4E]">
                         {row.adx_createdbyusername}
                       </td>
-                      <td className="p-3 text-sm">{row.createdon_formatted}</td>
-                      <td className="p-3 text-sm">{row.statecodename}</td>
+                      <td className="p-3 text-sm text-[#4E4E4E]">
+                        {row.createdon_formatted}
+                      </td>
+                      <td className="p-3 text-sm">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-semibold
+                          ${
+                            row.statecodename === "Creation approved"
+                              ? "bg-[#f0f5fa] text-[#003063] border border-[#003063]"
+                              : row.statecodename === "Declined"
+                              ? "bg-[#ffebee] text-[#F44336]"
+                              : "bg-[#E106754D] text-[#003063]"
+                          }
+                        `}
+                        >
+                          {row.statecodename}
+                        </span>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="p-4 text-center text-gray-500">
+                    <td colSpan={5} className="p-4 text-center text-[#5E5E5E]">
                       No records found.
                     </td>
                   </tr>
