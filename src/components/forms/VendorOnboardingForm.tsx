@@ -90,7 +90,7 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
       exclusiveSupply: "",
       saleOrReturn: "",
       authRequired: "",
-      deliveryNotice: 0,
+      delivery_notice: 0,
       minOrderValue: 0,
       minOrderQuantity: 0,
       maxOrderValue: 0,

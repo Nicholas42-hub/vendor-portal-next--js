@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
               exclusive_supply: "${supplyTerms.exclusiveSupply || ""}"
               sale_or_return: "${supplyTerms.saleOrReturn || ""}"
               auth_required: "${supplyTerms.authRequired || ""}"
-              delivery_notice: ${Number(supplyTerms.deliveryNotice) || 0}
+              delivery_notice: ${Number(supplyTerms.delivery_notice) || 0}
               min_order_value: ${Number(supplyTerms.minOrderValue) || 0}
               min_order_quantity: ${Number(supplyTerms.minOrderQuantity) || 0}
               max_order_value: ${Number(supplyTerms.maxOrderValue) || 0}

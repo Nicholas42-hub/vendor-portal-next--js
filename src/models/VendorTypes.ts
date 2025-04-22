@@ -161,7 +161,7 @@ export interface TradingEntityList {
   TradingEntityId: string;
   entityName: string;
   entityCountry: string;
-  paymentCountry?: string; // Add this line
+  paymentCountry: string; // Add this line
 }
 export interface SupplierFormData {
   business_name: string;

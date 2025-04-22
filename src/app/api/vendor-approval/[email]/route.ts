@@ -272,6 +272,7 @@ const updateStatusMutation = {
             item: {
           status_code: "${formData.status_code}"
           status_update_time: "${currentTimestamp}"
+          delivery_notice: ${formData.delivery_notice || 0}
         }
       ) {
         result
@@ -333,7 +334,7 @@ const updateStatusMutation = {
                 city: "${formData.city || ""}"
                 state: "${formData.state || ""}"
                 postcode: "${formData.postcode || ""}"
-                
+                delivery_notice: "${formData.delivery_notice || ""}"
                 is_gst_registered: "${formData.gst_registered || ""}"
                 abn: "${formData.abn || ""}"
                 gst: "${formData.gst || ""}"
@@ -426,6 +427,122 @@ const updateStatusMutation = {
         stack: errorStack
       }, 
       { status: errorStatus }
+    );
+  }
+}
+
+
+export async function formresubmit(
+  req: NextRequest,
+  context: { params: { email: string } }
+) {
+  try {
+    // Authenticate
+    const session = await getServerSession(authOptions);
+    if (!session?.accessToken) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    // Get and validate email param
+    const { email } = context.params;
+    if (!email || typeof email !== "string") {
+      return NextResponse.json({ error: "Invalid email parameter" }, { status: 400 });
+    }
+
+    // Parse body
+    const formData = await req.json();
+    const { status_code, delivery_notice } = formData;
+
+    // GraphQL endpoint config
+    const workspaceId = process.env.NEXT_PUBLIC_FABRIC_WORKSPACE_ID!;
+    const graphqlId   = process.env.NEXT_PUBLIC_GRAPHQL_ID!;
+    const endpoint = `https://${workspaceId}.zaa.graphql.fabric.microsoft.com/v1/workspaces/${workspaceId}/graphqlapis/${graphqlId}/graphql`;
+
+    // 1) Verify vendor exists
+    const checkResponse = await axios.post(
+      endpoint,
+      {
+        query: `
+          query($email: String!) {
+            vendorOnboardings(filter: { email: { eq: $email } }) {
+              items { email }
+            }
+          }
+        `,
+        variables: { email },
+      },
+      { headers: { 
+          Authorization: `Bearer ${session.accessToken}`, 
+          "Content-Type": "application/json" 
+        } }
+    );
+    const items = checkResponse.data.data.vendorOnboardings.items;
+    if (items.length === 0) {
+      return NextResponse.json(
+        { success: false, message: `No vendor with email "${email}"` },
+        { status: 404 }
+      );
+    }
+
+    // 2) Perform the status update
+    const now = new Date().toISOString();
+    const mutation = `
+      mutation(
+        $email: String!
+        $status: String!
+        $time: DateTime!
+        $notice: Int
+      ) {
+        updateVendorOnboarding(
+          email: $email
+          item: {
+            status_code: $status
+            status_update_time: $time
+            ${delivery_notice != null ? "delivery_notice: $notice" : ""}
+          }
+        ) {
+          result
+        }
+      }
+    `;
+    const variables: any = { email, status: status_code, time: now };
+    if (typeof delivery_notice === "number") {
+      variables.notice = delivery_notice;
+    }
+
+    const updateResp = await axios.post(
+      endpoint,
+      { query: mutation, variables },
+      {
+        headers: { 
+          Authorization: `Bearer ${session.accessToken}`, 
+          "Content-Type": "application/json" 
+        },
+        timeout: 30000,
+      }
+    );
+    if (updateResp.data.errors) {
+      throw new Error(updateResp.data.errors[0].message);
+    }
+
+    // Prepare response message
+    let message = `Vendor status updated to ${status_code}.`;
+    if (status_code === "Declined") {
+      message = "Vendor declined and sent back for requester review.";
+    } else if (status_code === "Creation approved") {
+      message = "Vendor fully approved—setup complete.";
+    }
+
+    return NextResponse.json({
+      success: true,
+      message,
+      data: { email, status: status_code, result: updateResp.data.data.updateVendorOnboarding.result },
+    });
+  } catch (err: any) {
+    console.error("formresubmit error:", err);
+    return NextResponse.json(
+      { success: false, message: err.message || "Internal Server Error" },
+      { status: 500 }
     );
   }
 }

@@ -1,15 +1,15 @@
 // src/services/ValidationService.ts
-import { VendorData, VendorType } from "../models/VendorTypes";
-import { ErrorsType, ValidateFunction } from "../hooks/useForm";
+import { VendorData, VendorType, SupplierFormData } from "../models/VendorTypes";
 
-// Reexport the ErrorsType from useForm
-export type ValidationErrors = ErrorsType;
+// Type for validation errors
+type ValidationErrors = {
+  [key: string]: string | undefined;
+};
 
 export class ValidationService {
-  // Main validation method for the entire form that implements ValidateFunction
-  static validateForm: ValidateFunction = (data: any): ValidationErrors => {
-    const vendorData = data as unknown as VendorData;
-    const errors: ValidationErrors = {
+  // Main validation method for the entire vendor form
+  static validateForm(data: VendorData): any {
+    const errors: any = {
       generalDetails: {},
       tradingTerms: {},
       supplyTerms: {},
@@ -17,31 +17,255 @@ export class ValidationService {
     };
 
     // Validate General Details if defined
-    if (vendorData.generalDetails) {
-      ValidationService.validateGeneralDetails(vendorData.generalDetails, errors.generalDetails);
+    if (data.generalDetails) {
+      ValidationService.validateGeneralDetails(data.generalDetails, errors.generalDetails);
     }
 
     // Validate Trading Terms based on vendor type if defined
-    if (vendorData.tradingTerms && vendorData.generalDetails?.vendorType) {
+    if (data.tradingTerms && data.generalDetails?.vendorType) {
       ValidationService.validateTradingTerms(
-        vendorData.tradingTerms, 
-        vendorData.generalDetails.vendorType as VendorType, 
+        data.tradingTerms, 
+        data.generalDetails.vendorType as VendorType, 
         errors.tradingTerms
       );
     }
 
     // Validate Supply Terms if defined
-    if (vendorData.supplyTerms) {
-      ValidationService.validateSupplyTerms(vendorData.supplyTerms, errors.supplyTerms);
+    if (data.supplyTerms) {
+      ValidationService.validateSupplyTerms(data.supplyTerms, errors.supplyTerms);
     }
 
     // Validate Financial Terms based on vendor type if defined
-    if (vendorData.financialTerms && vendorData.generalDetails?.vendorType) {
+    if (data.financialTerms && data.generalDetails?.vendorType) {
       ValidationService.validateFinancialTerms(
-        vendorData.financialTerms, 
-        vendorData.generalDetails.vendorType as VendorType, 
+        data.financialTerms, 
+        data.generalDetails.vendorType as VendorType, 
         errors.financialTerms
       );
+    }
+
+    return errors;
+  }
+
+  // New validation method for the supplier form
+  static validateSupplierForm(data: SupplierFormData): ValidationErrors {
+    const errors: ValidationErrors = {};
+
+    // Business Name validation
+    if (!data.business_name?.trim()) {
+      errors.business_name = "Business Name is required";
+    }
+
+    // Trading Name validation
+    if (!data.trading_name?.trim()) {
+      errors.trading_name = "Trading Name is required";
+    }
+
+    // Country validation
+    if (!data.country) {
+      errors.country = "Country is required";
+    }
+
+    // GST Registered validation
+    if (!data.gst_registered) {
+      errors.gst_registered = "GST registration status is required";
+    }
+
+    // Validate Tax ID fields based on country
+    if (data.country === "Australia" || data.ANB_GST === "ABN") {
+      if (!data.abn) {
+        errors.abn = "ABN is required";
+      } else if (!/^\d{11}$/.test(data.abn)) {
+        errors.abn = "ABN must be exactly 11 digits";
+      }
+    }
+
+    if (data.country === "New Zealand" || data.ANB_GST === "GST") {
+      if (!data.gst) {
+        errors.gst = "GST number is required";
+      }
+    }
+
+    // Address validation - optional but with max length
+    if (data.address && data.address.length > 100) {
+      errors.address = "Address must be less than 100 characters";
+    }
+
+    // Required location fields
+    if (!data.city?.trim()) {
+      errors.city = "City is required";
+    }
+
+    if (!data.state?.trim()) {
+      errors.state = "State is required";
+    }
+
+    if (!data.postcode?.trim()) {
+      errors.postcode = "Postcode is required";
+    }
+
+    // Contact information validation
+    if (!data.primary_contact_email) {
+      errors.primary_contact_email = "Primary Contact Email is required";
+    } else if (!ValidationService.isValidEmail(data.primary_contact_email)) {
+      errors.primary_contact_email = "Please enter a valid email address";
+    }
+
+    if (!data.telephone?.trim()) {
+      errors.telephone = "Telephone is required";
+    }
+
+    if (!data.po_email) {
+      errors.po_email = "PO Email is required";
+    } else if (!ValidationService.isValidEmail(data.po_email)) {
+      errors.po_email = "Please enter a valid email address";
+    }
+
+    if (!data.return_order_email) {
+      errors.return_order_email = "Return Order Email is required";
+    } else if (!ValidationService.isValidEmail(data.return_order_email)) {
+      errors.return_order_email = "Please enter a valid email address";
+    }
+
+    // Trading Entities validation
+    if (!data.trading_entities || data.trading_entities.length === 0) {
+      errors.trading_entities = "At least one Trading Entity must be selected";
+    }
+
+    // AU/NZ Invoice Currency validation (if trading entities are selected)
+    const hasAuEntities = data.trading_entities.some(entity => 
+      ['ALAW', 'AUDF', 'AUTE', 'AUPG', 'AUAW', 'LSAP'].includes(entity)
+    );
+    
+    const hasNzEntities = data.trading_entities.some(entity => 
+      ['NZAW', 'NZDF', 'NZTE'].includes(entity)
+    );
+
+    if (hasAuEntities && !data.au_invoice_currency) {
+      errors.au_invoice_currency = "Invoice currency is required for Australian entities";
+    }
+
+    if (hasNzEntities && !data.nz_invoice_currency) {
+      errors.nz_invoice_currency = "Invoice currency is required for New Zealand entities";
+    }
+
+    // Payment Method validation
+    if (!data.payment_method) {
+      errors.payment_method = "Payment Method is required";
+    }
+
+    // Bank Transfer validation
+    if (data.payment_method === "Bank Transfer") {
+      // AU Banking validation
+      if (hasAuEntities) {
+        if (!data.au_bank_country) {
+          errors.au_bank_country = "Bank country is required";
+        }
+        
+        if (!data.au_bank_address?.trim()) {
+          errors.au_bank_address = "Bank address is required";
+        }
+        
+        if (!data.au_bank_currency_code) {
+          errors.au_bank_currency_code = "Bank currency code is required";
+        }
+        
+        if (!data.au_remittance_email) {
+          errors.au_remittance_email = "Remittance email is required";
+        } else if (!ValidationService.isValidEmail(data.au_remittance_email)) {
+          errors.au_remittance_email = "Please enter a valid email address";
+        }
+        
+        // AU domestic banking
+        if (data.au_bank_country === "Australia") {
+          if (!data.au_bsb) {
+            errors.au_bsb = "BSB is required";
+          } else if (!/^\d{6}$/.test(data.au_bsb)) {
+            errors.au_bsb = "BSB must be exactly 6 digits";
+          }
+          
+          if (!data.au_account) {
+            errors.au_account = "Account number is required";
+          } else if (!/^\d{10}$/.test(data.au_account)) {
+            errors.au_account = "Account number must be exactly 10 digits";
+          }
+        }
+      }
+      
+      // NZ Banking validation
+      if (hasNzEntities) {
+        if (!data.nz_bank_country) {
+          errors.nz_bank_country = "Bank country is required";
+        }
+        
+        if (!data.nz_bank_address?.trim()) {
+          errors.nz_bank_address = "Bank address is required";
+        }
+        
+        if (!data.nz_bank_currency_code) {
+          errors.nz_bank_currency_code = "Bank currency code is required";
+        }
+        
+        if (!data.nz_remittance_email) {
+          errors.nz_remittance_email = "Remittance email is required";
+        } else if (!ValidationService.isValidEmail(data.nz_remittance_email)) {
+          errors.nz_remittance_email = "Please enter a valid email address";
+        }
+        
+        // NZ domestic banking
+        if (data.nz_bank_country === "New Zealand") {
+          if (!data.nz_bsb) {
+            errors.nz_bsb = "BSB is required";
+          } else if (!/^\d{6}$/.test(data.nz_bsb)) {
+            errors.nz_bsb = "BSB must be exactly 6 digits";
+          }
+          
+          if (!data.nz_account) {
+            errors.nz_account = "Account number is required";
+          } else if (!/^\d{10}$/.test(data.nz_account)) {
+            errors.nz_account = "Account number must be exactly 10 digits";
+          }
+        }
+      }
+      
+      // Overseas banking validation
+      const hasOverseasBank = 
+        (data.au_bank_country && data.au_bank_country !== "Australia" && data.au_bank_country !== "New Zealand") ||
+        (data.nz_bank_country && data.nz_bank_country !== "Australia" && data.nz_bank_country !== "New Zealand");
+
+      if (hasOverseasBank) {
+        if (!data.overseas_iban_switch) {
+          errors.overseas_iban_switch = "Please select IBAN or SWIFT";
+        } else {
+          if (data.overseas_iban_switch === "IBAN" && !data.overseas_iban) {
+            errors.overseas_iban = "IBAN is required";
+          }
+          
+          if (data.overseas_iban_switch === "SWIFT" && !data.overseas_swift) {
+            errors.overseas_swift = "SWIFT is required";
+          }
+        }
+      }
+    }
+    
+    // BPay validation
+    if (data.payment_method === "Bpay") {
+      if (!data.biller_code) {
+        errors.biller_code = "Biller code is required";
+      } else if (!/^\d+$/.test(data.biller_code)) {
+        errors.biller_code = "Biller code must contain only numbers";
+      }
+      
+      if (!data.ref_code) {
+        errors.ref_code = "Reference code is required";
+      } else if (!/^\d+$/.test(data.ref_code)) {
+        errors.ref_code = "Reference code must contain only numbers";
+      }
+    }
+    
+    // Terms agreement validation
+    if (!data.iAgree) {
+      errors.iAgree = "You must agree to the terms and conditions";
     }
 
     return errors;
@@ -131,8 +355,8 @@ export class ValidationService {
     }
 
     // Numeric fields
-    if (data.deliveryNotice < 0) {
-      errors.deliveryNotice = "Delivery notice cannot be negative";
+    if (data.delivery_notice < 0) {
+      errors.delivery_notice = "Delivery notice cannot be negative";
     }
 
     if (data.minOrderValue < 0) {

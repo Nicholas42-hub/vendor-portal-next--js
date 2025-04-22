@@ -25,7 +25,7 @@ interface GeneralDetailsSectionProps {
   onChange: (field: string, value: any) => void;
   onCheckboxChange: (field: string, value: string, checked: boolean) => void;
   onBlur: (field: string) => void;
-  validateField: (field: string) => void;
+  validateField?: (field: string) => void;
   isEditable?: boolean; // Add isEditable prop with default value true
 }
 

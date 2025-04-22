@@ -1,18 +1,17 @@
-//src/components/forms/SupplierOnboardingForm.tsx
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { styled } from "@mui/material/styles";
-import {
-  VendorType,
-  SimilarVendor,
-  SupplierFormData,
-} from "../../models/VendorTypes";
+import { SupplierFormData, TradingEntity } from "../../models/VendorTypes";
 import { SupplierForm } from "./SupplierOnboardingSection";
 import useForm from "../../hooks/useForm";
 import { ValidationService } from "../../services/ValidationService";
 import { Popup } from "../ui/Popup";
 import { SubmitButton } from "../ui/SubmitButton";
 import axios from "axios";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 
 // Define styled components
 const FormContainer = styled("div")({
@@ -39,27 +38,39 @@ const ErrorMessage = styled("div")({
   fontSize: "14px",
 });
 
+const SuccessMessage = styled("div")({
+  color: "#4CAF50",
+  padding: "15px",
+  marginBottom: "20px",
+  backgroundColor: "#E8F5E9",
+  borderRadius: "5px",
+  borderLeft: "5px solid #4CAF50",
+  fontSize: "14px",
+});
+
 interface SupplierOnboardingFormProps {}
 
-// Helper function for type-safe property access
-function getSectionErrors(sectionErrors: Record<string, string | undefined>) {
-  return Object.values(sectionErrors).some((error) => !!error);
-}
-
-export const SupplierOnboardingForm: React.FC<
+const SupplierOnboardingFormPage: React.FC<
   SupplierOnboardingFormProps
 > = () => {
+  const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email");
+  const router = useRouter();
+  const [tradingEntities, setTradingEntities] = useState<TradingEntity[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
-  const [showSimilarityWarning, setShowSimilarityWarning] =
-    useState<boolean>(false);
-  const [similarVendors, setSimilarVendors] = useState<SimilarVendor[]>([]);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isEditable, setIsEditable] = useState<boolean>(true);
-
+  const [showTerms, setShowTerms] = useState<boolean>(false);
+  const [hasAuEntities, setHasAuEntities] = useState<boolean>(false);
+  const [hasNzEntities, setHasNzEntities] = useState<boolean>(false);
+  const [vendorCountry, setVendorCountry] = useState<string>("");
   // Create ref for the form container
-  const supplierFormDataRef = useRef<HTMLDivElement>(null);
+  const formContainerRef = useRef<HTMLDivElement>(null);
 
   // Initialize form with empty data
   const initialFormData: SupplierFormData = {
@@ -78,10 +89,10 @@ export const SupplierOnboardingForm: React.FC<
     telephone: "",
     po_email: "",
     return_order_email: "",
-    trading_entities: [],
+    trading_entities: [], // Explicitly initialize as an empty array
     has_tax_id: "",
     ANB_GST: "",
-    payment_method: "",
+    payment_method: "Bank Transfer",
     au_invoice_currency: "",
     au_bank_country: "",
     au_bank_address: "",
@@ -106,21 +117,176 @@ export const SupplierOnboardingForm: React.FC<
     iAgree: false,
   };
 
+  // Initialize form with validation
+  const {
+    formData,
+    errors,
+    touched,
+    isValid,
+    handleChange,
+    handleCheckboxChange,
+    handleBlur,
+    handleSubmit,
+    resetForm,
+    validateFormData,
+    validateField,
+  } = useForm(
+    ValidationService.validateSupplierForm as any, // Type cast validation function
+    submitSupplierData as any, // Type cast submit function
+    initialFormData as any // Type cast initial data
+  );
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
+    }
+  }, [status, router]);
+
+  // Fetch vendor data on component mount if email is provided
+  useEffect(() => {
+    if (email && session?.accessToken) {
+      fetchVendorData();
+    } else if (status !== "loading") {
+      setIsLoadingData(false);
+    }
+  }, [email, session, status]);
+
+  // Update AU/NZ entity flags when trading entities change
+  useEffect(() => {
+    if (session?.accessToken) {
+      fetchTradingEntities();
+    }
+  }, [session]);
+
+  // Fetch trading entities
+  const fetchTradingEntities = async () => {
+    try {
+      setIsLoading(true);
+      if (!email) {
+        console.error("No email available in URL");
+        return;
+      }
+
+      const response = await axios.get(`/api/supplier-onboarding/${email}`);
+
+      const { vendorInfo, tradingEntities } = response.data;
+
+      console.log(vendorInfo);
+      setTradingEntities(tradingEntities);
+
+      const auEntities = tradingEntities.filter(
+        (entity: TradingEntity) => entity.paymentCountry === "Australia"
+      );
+      const nzEntities = tradingEntities.filter(
+        (entity: TradingEntity) => entity.paymentCountry === "New Zealand"
+      );
+
+      setHasAuEntities(auEntities.length > 0);
+      setHasNzEntities(nzEntities.length > 0);
+
+      setFormData((prev) => ({
+        ...prev,
+        business_name: vendorInfo.business_name,
+      }));
+    } catch (error) {
+      console.error("Error fetching trading entities:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch vendor data from the API
+  const fetchVendorData = async () => {
+    if (!email) return;
+
+    try {
+      setIsLoadingData(true);
+      const response = await axios.get(`/api/supplier-onboarding/${email}`);
+
+      if (response.data && response.data.vendorInfo) {
+        const vendorInfo = response.data.vendorInfo;
+        const tradingEntities = response.data.tradingEntities || [];
+
+        // Map trading entity IDs to an array, ensuring it's always a valid array
+        let entityIds: string[] = [];
+        try {
+          if (Array.isArray(tradingEntities)) {
+            entityIds = tradingEntities
+              .filter(
+                (entity) =>
+                  entity &&
+                  typeof entity === "object" &&
+                  "TradingEntityId" in entity
+              )
+              .map((entity) => String(entity.TradingEntityId || ""))
+              .filter((id) => id !== "");
+          }
+        } catch (e) {
+          console.error("Error processing trading entities:", e);
+          entityIds = [];
+        }
+
+        // Instead of using setFormData directly, use handleChange for each field
+        if (vendorInfo.business_name)
+          handleChange("business_name", vendorInfo.business_name);
+        if (vendorInfo.trading_name)
+          handleChange("trading_name", vendorInfo.trading_name);
+        handleChange("primary_contact_email", email || "");
+        handleChange("po_email", email || "");
+        handleChange("return_order_email", email || "");
+
+        // For trading entities, make sure we have a valid array
+        const entityIdsArray = Array.isArray(entityIds) ? entityIds : [];
+
+        // For trading entities, we need to set them one by one with handleCheckboxChange
+        entityIdsArray.forEach((entityId) => {
+          if (entityId) {
+            handleCheckboxChange("trading_entities", entityId, true);
+          }
+        });
+
+        // Set entity flags based on loaded entities
+        setHasAuEntities(
+          entityIds.some((id) =>
+            ["ALAW", "AUDF", "AUTE", "AUPG", "AUAW", "LSAP"].includes(id)
+          )
+        );
+
+        setHasNzEntities(
+          entityIds.some((id) => ["NZAW", "NZDF", "NZTE"].includes(id))
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching vendor data:", error);
+      setValidationError("Failed to load vendor data. Please try again later.");
+
+      // Auto-dismiss error after 5 seconds
+      setTimeout(() => {
+        setValidationError(null);
+      }, 5000);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
   // Submit supplier data to API
-  async function submitSupplierData(data: SupplierFormData): Promise<boolean> {
+  async function submitSupplierData(data: any): Promise<boolean> {
+    const supplierData = data as SupplierFormData;
     setIsLoading(true);
     try {
-      // Run validation ourselves
+      // Run validation
       const validationErrors = validateFormData();
 
       // Check if there are any validation errors
-      if (hasValidationErrors(validationErrors)) {
+      if (
+        Object.keys(validationErrors).some((key) => !!validationErrors[key])
+      ) {
         setIsLoading(false);
 
         // Mark all fields as touched to show validation errors
-        const allFields = getAllFieldsArray();
-        allFields.forEach((fieldPath) => {
-          handleBlur(...fieldPath);
+        Object.keys(formData).forEach((field) => {
+          handleBlur(field);
         });
 
         // Scroll to the top of the form
@@ -129,9 +295,9 @@ export const SupplierOnboardingForm: React.FC<
           behavior: "smooth",
         });
 
-        // Also attempt to scroll to the form
-        if (supplierFormDataRef.current) {
-          supplierFormDataRef.current.scrollIntoView({
+        // Also attempt to scroll to the form container
+        if (formContainerRef.current) {
+          formContainerRef.current.scrollIntoView({
             behavior: "smooth",
             block: "start",
           });
@@ -175,43 +341,6 @@ export const SupplierOnboardingForm: React.FC<
     }
   }
 
-  // Initialize form with validation
-  const {
-    formData,
-    errors,
-    touched,
-    isValid,
-    handleChange,
-    handleCheckboxChange,
-    handleFileChange,
-    handleBlur,
-    handleSubmit,
-    resetForm,
-    validateFormData,
-    validateField,
-  } = useForm(
-    ValidationService.validateForm,
-    submitSupplierData,
-    initialFormData
-  );
-
-  // Helper function to get all form field paths (adjusted for SupplierFormData)
-  const getAllFieldsArray = (): Array<[string, string]> => {
-    const fields: Array<[string, string]> = [];
-
-    // Add all fields from the form data
-    Object.keys(formData).forEach((field) => {
-      fields.push([field, field]);
-    });
-
-    return fields;
-  };
-
-  // Helper function to check if there are any validation errors
-  const hasValidationErrors = (validationErrors: any): boolean => {
-    return Object.values(validationErrors).some((error) => !!error);
-  };
-
   // Toggle form editability
   const toggleEditable = () => {
     setIsEditable(!isEditable);
@@ -223,37 +352,34 @@ export const SupplierOnboardingForm: React.FC<
     setShowConfirmation(false);
 
     try {
-      console.log("Submitting form data:", formData);
+      if (!email) {
+        throw new Error("Email parameter is required");
+      }
 
-      // Make the API call to submit the form
-      const response = await axios.post("/api/supplier-onboarding", formData);
+      // Submit form data to the API
+      const response = await axios.put(
+        `/api/supplier-onboarding/${email}`,
+        formData
+      );
 
       if (response.data.success) {
-        console.log("Form submitted successfully:", response.data);
+        setSuccessMessage("Form submitted successfully!");
         setShowSuccess(true);
-        resetForm();
+
+        // Auto-dismiss success message after 5 seconds
+        setTimeout(() => {
+          setSuccessMessage(null);
+        }, 5000);
       } else {
         console.warn("Form submission returned error:", response.data.message);
-
-        // Check if this is an email already exists error
-        if (response.data.existingVendor) {
-          // Set the error with more specific information about the existing vendor
-          setValidationError(
-            `${response.data.message} (Supplier: ${response.data.existingVendor.business_name})`
-          );
-        } else {
-          setValidationError(
-            `There was an issue submitting the form: ${response.data.message}`
-          );
-        }
+        setValidationError(
+          `There was an issue submitting the form: ${response.data.message}`
+        );
 
         setTimeout(() => {
           setValidationError(null);
-        }, 7000); // Give more time to read email duplication errors
+        }, 7000);
       }
-
-      setIsLoading(false);
-      return true;
     } catch (error) {
       console.error("Error submitting form:", error);
 
@@ -265,62 +391,96 @@ export const SupplierOnboardingForm: React.FC<
       setTimeout(() => {
         setValidationError(null);
       }, 5000);
-
+    } finally {
       setIsLoading(false);
-      return false;
     }
   };
 
   // Handle successful submission
   const handleSuccessClose = () => {
     setShowSuccess(false);
-    resetForm();
-    window.scrollTo(0, 0);
+    router.push("/");
   };
 
-  // Handle supplier form changes
-  const supplierFormChange = (field: string, value: any) => {
-    handleChange(field, value);
+  // Show terms and conditions popup
+  const handleShowTerms = () => {
+    setShowTerms(true);
   };
+
+  // Show loading spinner while checking session or loading initial data
+  if (status === "loading" || isLoadingData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-10 h-10 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (status === "unauthenticated") {
+    return null; // Will be redirected by the useEffect
+  }
 
   return (
-    <FormContainer>
+    <FormContainer ref={formContainerRef}>
       {/* Add toggle button for editability */}
-      <div className="flex justify-end mb-4">
-        <button
-          type="button"
+      <div className="flex justify-between mb-4">
+        <Button
+          onClick={() => router.back()}
+          className="bg-gray-100 text-gray-800 hover:bg-gray-200"
+        >
+          &larr; Back
+        </Button>
+
+        <Button
           onClick={toggleEditable}
-          className={`px-4 py-2 rounded-md ${
+          className={`${
             isEditable
               ? "bg-yellow-500 hover:bg-yellow-600"
               : "bg-blue-500 hover:bg-blue-600"
           } text-white`}
         >
           {isEditable ? "Make Form Read-Only" : "Enable Editing"}
-        </button>
+        </Button>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        {validationError && <ErrorMessage>{validationError}</ErrorMessage>}
+      <h1 className="text-2xl font-bold mb-6">Supplier Onboarding Form</h1>
 
+      {validationError && <ErrorMessage>{validationError}</ErrorMessage>}
+      {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
+
+      <form onSubmit={handleSubmit}>
         {/* Supplier Form Section */}
-        <div ref={supplierFormDataRef}>
-          <SupplierForm
-            data={formData}
-            errors={errors}
-            touched={touched}
-            onChange={supplierFormChange}
-            onCheckboxChange={handleCheckboxChange}
-            onBlur={handleBlur}
-            validateField={validateField}
-            isEditable={isEditable}
-          />
+        <SupplierForm
+          data={formData}
+          errors={errors}
+          touched={touched}
+          isChecking={{}}
+          onChange={handleChange}
+          onCheckboxChange={handleCheckboxChange}
+          onBlur={handleBlur}
+          validateField={validateField}
+          isEditable={isEditable}
+        />
+
+        {/* Terms and Conditions Link */}
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={handleShowTerms}
+            className="text-blue-600 underline cursor-pointer"
+          >
+            View Terms and Conditions
+          </button>
         </div>
 
         {/* Submit Button */}
         <FormSubmitContainer>
           <SubmitButton
-            text="Send a supplier portal invite"
+            text="Submit Supplier Form"
             loadingText="Processing..."
             isLoading={isLoading}
             type="submit"
@@ -334,17 +494,17 @@ export const SupplierOnboardingForm: React.FC<
       {/* Confirmation Popup */}
       <Popup
         isOpen={showConfirmation}
-        title="Would you like to proceed?"
-        confirmText="Yes"
-        cancelText="No"
+        title="Confirm Form Submission"
+        confirmText="Yes, Submit"
+        cancelText="Cancel"
         onConfirm={handleConfirmSubmit}
         onCancel={() => setShowConfirmation(false)}
         isConfirmation={true}
       >
         <div style={{ margin: "15px 0" }}>
           <p>
-            This will send an invitation to the supplier to complete their
-            onboarding process. Are you sure you want to continue?
+            Are you sure you want to submit this supplier onboarding form?
+            Please confirm that all information is correct.
           </p>
         </div>
       </Popup>
@@ -352,49 +512,64 @@ export const SupplierOnboardingForm: React.FC<
       {/* Success Popup */}
       <Popup
         isOpen={showSuccess}
-        title="Thank you!"
-        message="The invitation has been successfully shared. Thanks!"
-        confirmText="OK"
+        title="Form Submitted Successfully"
+        message="Your supplier onboarding form has been submitted successfully."
+        confirmText="Return to Dashboard"
         onConfirm={handleSuccessClose}
         isConfirmation={false}
       />
 
-      {/* Similar Vendors Warning Popup */}
+      {/* Terms and Conditions Popup */}
       <Popup
-        isOpen={showSimilarityWarning}
-        title="Potential Similar Suppliers Found"
-        onConfirm={() => {
-          setShowSimilarityWarning(false);
-          setShowConfirmation(true);
-        }}
-        onCancel={() => setShowSimilarityWarning(false)}
-        confirmText="Yes, Proceed"
-        cancelText="No, Cancel"
-        isConfirmation={true}
+        isOpen={showTerms}
+        title="Terms and Conditions"
+        confirmText="Close"
+        onConfirm={() => setShowTerms(false)}
+        isConfirmation={false}
       >
-        <div style={{ textAlign: "left", marginBottom: "20px" }}>
-          <p>
-            We found existing suppliers that are similar to the one you're
-            trying to create:
+        <div style={{ maxHeight: "400px", overflow: "auto", padding: "10px" }}>
+          <h3 className="font-bold mb-2">Supplier Terms and Conditions</h3>
+          <p className="mb-4">
+            Please read the following terms and conditions carefully before
+            submitting the form. By checking the agreement box, you acknowledge
+            that you have read, understood, and agree to be bound by these terms
+            and conditions.
           </p>
-          <ul style={{ maxHeight: "200px", overflowY: "auto" }}>
-            {similarVendors.map((vendor, index) => (
-              <li key={index} style={{ marginBottom: "10px" }}>
-                <strong>{vendor.businessName}</strong>
-                <br />
-                Email: {vendor.email}
-                <br />
-                Similarity: {Math.round(vendor.similarity * 100)}%
-                <br />
-                Matches: {vendor.matchedCriteria.join(", ")}
-              </li>
-            ))}
-          </ul>
-          <p>Do you still want to proceed with creating this supplier?</p>
+
+          <h4 className="font-semibold mt-4 mb-2">1. General Terms</h4>
+          <p className="mb-2">
+            The supplier agrees to provide accurate information in this form and
+            acknowledges that any false or misleading information may result in
+            termination of the business relationship.
+          </p>
+
+          <h4 className="font-semibold mt-4 mb-2">2. Banking Information</h4>
+          <p className="mb-2">
+            The supplier confirms that all banking details provided are accurate
+            and belong to the business entity named in this form. The supplier
+            understands that incorrect banking details may result in payment
+            delays.
+          </p>
+
+          <h4 className="font-semibold mt-4 mb-2">
+            3. Privacy and Data Protection
+          </h4>
+          <p className="mb-2">
+            The supplier acknowledges that the information provided will be
+            stored in our systems and used for business purposes including but
+            not limited to vendor management, payments, and communication.
+          </p>
+
+          <h4 className="font-semibold mt-4 mb-2">4. Compliance</h4>
+          <p className="mb-2">
+            The supplier agrees to comply with all applicable laws and
+            regulations related to their business activities and the goods or
+            services they provide.
+          </p>
         </div>
       </Popup>
     </FormContainer>
   );
 };
 
-export default SupplierOnboardingForm;
+export default SupplierOnboardingFormPage;

@@ -23,8 +23,8 @@ interface FinancialTermsSectionProps {
   touched: { [key: string]: boolean };
   onChange: (field: string, value: any) => void;
   onBlur: (field: string) => void;
-  disabled: boolean;
-  validateField: (field: string) => void;
+  disabled?: boolean; // Make this optional
+  validateField?: (field: string) => void; // Make this optional
   isEditable?: boolean; // Add isEditable prop with default value true
 }
 

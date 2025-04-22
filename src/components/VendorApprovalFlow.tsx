@@ -470,7 +470,6 @@ export default function VendorApprovalFlow() {
       setCanApprove(false);
     }
   };
-  console.log(vendorData.status_code);
   // Helper function to check if status is in a specific state
   const isStatus = (
     status?: ApprovalStatus,
@@ -499,36 +498,114 @@ export default function VendorApprovalFlow() {
       statusOrder.indexOf(vendorData.status_code) >= statusOrder.indexOf(target)
     );
   };
-  // Placeholder functions for the form components props
+  // Form field change handlers
   const handleChange = (field: string, value: any) => {
-    // Only allow changes if the form is editable
-    if (!isEditable) return;
-
     console.log(`Field ${field} changed to ${value}`);
-    // In a real implementation, you would update the formattedVendorData state
-  };
+    // Update the formattedVendorData state based on which section the field belongs to
+    const sections = {
+      vendorHomeCountry: "generalDetails",
+      primaryTradingBusinessUnit: "generalDetails",
+      email: "generalDetails",
+      businessName: "generalDetails",
+      tradingName: "generalDetails",
+      vendorType: "generalDetails",
+      quotesObtained: "tradingTerms",
+      quotesObtainedReason: "tradingTerms",
+      quotesPdf: "tradingTerms",
+      backOrder: "tradingTerms",
+      exclusiveSupply: "supplyTerms",
+      saleOrReturn: "supplyTerms",
+      authRequired: "supplyTerms",
+      delivery_notice: "supplyTerms",
+      minOrderValue: "supplyTerms",
+      minOrderQuantity: "supplyTerms",
+      maxOrderValue: "supplyTerms",
+      otherComments: "supplyTerms",
+      paymentTerms: "financialTerms",
+      orderExpiryDays: "financialTerms",
+      grossMargin: "financialTerms",
+      invoiceDiscount: "financialTerms",
+      invoiceDiscountValue: "financialTerms",
+      settlementDiscount: "financialTerms",
+      settlementDiscountValue: "financialTerms",
+      settlementDiscountDays: "financialTerms",
+      flatRebate: "financialTerms",
+      flatRebatePercent: "financialTerms",
+      flatRebateDollar: "financialTerms",
+      flatRebateTerm: "financialTerms",
+      growthRebate: "financialTerms",
+      growthRebatePercent: "financialTerms",
+      growthRebateDollar: "financialTerms",
+      growthRebateTerm: "financialTerms",
+      marketingRebate: "financialTerms",
+      marketingRebatePercent: "financialTerms",
+      marketingRebateDollar: "financialTerms",
+      marketingRebateTerm: "financialTerms",
+      promotionalFund: "financialTerms",
+      promotionalFundValue: "financialTerms",
+    };
 
+    const section = sections[field] || "generalDetails";
+
+    setFormattedVendorData((prevData) => ({
+      ...prevData,
+      [section]: {
+        ...prevData[section],
+        [field]: value,
+      },
+    }));
+  };
+  // Handle supply terms section changes
+  const handleSupplyTermsChange = (field: string, value: any) => {
+    handleChange("supplyTerms", field, value);
+  };
   const handleCheckboxChange = (
     field: string,
     value: string,
     checked: boolean
   ) => {
-    // Only allow changes if the form is editable
-    if (!isEditable) return;
-
     console.log(
       `Checkbox ${field} with value ${value} changed to ${
         checked ? "checked" : "unchecked"
       }`
     );
+
+    // Handle trading entities checkbox selection
+    if (field === "tradingEntities") {
+      setFormattedVendorData((prevData) => {
+        const currentEntities = [...prevData.generalDetails.tradingEntities];
+
+        if (checked) {
+          // Add the entity if it's not already in the array
+          if (!currentEntities.includes(value)) {
+            currentEntities.push(value);
+          }
+        } else {
+          // Remove the entity if it's in the array
+          const index = currentEntities.indexOf(value);
+          if (index !== -1) {
+            currentEntities.splice(index, 1);
+          }
+        }
+
+        return {
+          ...prevData,
+          generalDetails: {
+            ...prevData.generalDetails,
+            tradingEntities: currentEntities,
+          },
+        };
+      });
+    }
   };
 
   const handleBlur = (field: string) => {
-    // Only track touched fields if the form is editable
-    if (!isEditable) return;
-
     console.log(`Field ${field} blurred`);
-    // In a real implementation, you would update the touched state
+    // Update the touched state to track which fields have been interacted with
+    setTouched((prevTouched) => ({
+      ...prevTouched,
+      [field]: true,
+    }));
   };
 
   // Handle approval button click
@@ -684,6 +761,7 @@ export default function VendorApprovalFlow() {
           {
             status_code: "Declined",
             approval_comment: declineComment,
+            delivery_notice: Number(vendorData.delivery_notice),
           }
         );
 
@@ -738,111 +816,111 @@ export default function VendorApprovalFlow() {
       // Collect form data from formattedVendorData state
       const formData = {
         // General Details
-        vendor_home_country:
-          formattedVendorData.generalDetails.vendor_home_country,
-        primary_trading_business_unit:
-          formattedVendorData.generalDetails.primary_trading_business_unit,
-        business_name: formattedVendorData.generalDetails.business_name,
-        trading_name: formattedVendorData.generalDetails.trading_name,
-        vendor_type: formattedVendorData.generalDetails.vendor_type,
-        contact_person: formattedVendorData.generalDetails.contact_person,
-        contact_phone: formattedVendorData.generalDetails.contact_phone,
-        website_url: formattedVendorData.generalDetails.website_url,
-        postal_address: formattedVendorData.generalDetails.postal_address,
-        city: formattedVendorData.generalDetails.city,
-        state: formattedVendorData.generalDetails.state,
-        postcode: formattedVendorData.generalDetails.postcode,
-        is_gst_registered: formattedVendorData.generalDetails.is_gst_registered,
-        abn: formattedVendorData.generalDetails.abn,
-        gst: formattedVendorData.generalDetails.gst,
+        // vendor_home_country:
+        //   formattedVendorData.generalDetails.vendor_home_country,
+        // primary_trading_business_unit:
+        //   formattedVendorData.generalDetails.primary_trading_business_unit,
+        // business_name: formattedVendorData.generalDetails.business_name,
+        // trading_name: formattedVendorData.generalDetails.trading_name,
+        // vendor_type: formattedVendorData.generalDetails.vendor_type,
+        // contact_person: formattedVendorData.generalDetails.contact_person,
+        // contact_phone: formattedVendorData.generalDetails.contact_phone,
+        // website_url: formattedVendorData.generalDetails.website_url,
+        // postal_address: formattedVendorData.generalDetails.postal_address,
+        // city: formattedVendorData.generalDetails.city,
+        // state: formattedVendorData.generalDetails.state,
+        // postcode: formattedVendorData.generalDetails.postcode,
+        // is_gst_registered: formattedVendorData.generalDetails.is_gst_registered,
+        // abn: formattedVendorData.generalDetails.abn,
+        // gst: formattedVendorData.generalDetails.gst,
 
-        // Supply Terms
-        exclusive_supply: formattedVendorData.supplyTerms.exclusive_supply,
-        sale_or_return: formattedVendorData.supplyTerms.sale_or_return,
-        auth_required: formattedVendorData.supplyTerms.auth_required,
+        // // Supply Terms
+        // exclusive_supply: formattedVendorData.supplyTerms.exclusive_supply,
+        // sale_or_return: formattedVendorData.supplyTerms.sale_or_return,
+        // auth_required: formattedVendorData.supplyTerms.auth_required,
         delivery_notice: formattedVendorData.supplyTerms.delivery_notice,
-        min_order_value: formattedVendorData.supplyTerms.min_order_value,
-        min_order_quantity: formattedVendorData.supplyTerms.min_order_quantity,
-        max_order_value: formattedVendorData.supplyTerms.max_order_value,
-        other_comments: formattedVendorData.supplyTerms.other_comments,
+        // min_order_value: formattedVendorData.supplyTerms.min_order_value,
+        // min_order_quantity: formattedVendorData.supplyTerms.min_order_quantity,
+        // max_order_value: formattedVendorData.supplyTerms.max_order_value,
+        // other_comments: formattedVendorData.supplyTerms.other_comments,
 
-        // Trading Terms
-        quotes_obtained: formattedVendorData.tradingTerms.quotes_obtained,
-        quotes_obtained_reason:
-          formattedVendorData.tradingTerms.quotes_obtained_reason,
-        quotes_pdf_url: formattedVendorData.tradingTerms.quotes_pdf_url,
-        back_order: formattedVendorData.tradingTerms.back_order,
+        // // Trading Terms
+        // quotes_obtained: formattedVendorData.tradingTerms.quotes_obtained,
+        // quotes_obtained_reason:
+        //   formattedVendorData.tradingTerms.quotes_obtained_reason,
+        // quotes_pdf_url: formattedVendorData.tradingTerms.quotes_pdf_url,
+        // back_order: formattedVendorData.tradingTerms.back_order,
 
-        // Financial Terms
-        payment_terms: formattedVendorData.financialTerms.payment_terms,
-        order_expiry_days: formattedVendorData.financialTerms.order_expiry_days,
-        gross_margin: formattedVendorData.financialTerms.gross_margin,
-        invoice_discount: formattedVendorData.financialTerms.invoice_discount,
-        invoice_discount_value:
-          formattedVendorData.financialTerms.invoice_discount_value,
-        settlement_discount:
-          formattedVendorData.financialTerms.settlement_discount,
-        settlement_discount_value:
-          formattedVendorData.financialTerms.settlement_discount_value,
-        settlement_discount_days:
-          formattedVendorData.financialTerms.settlement_discount_days,
-        flat_rebate: formattedVendorData.financialTerms.flat_rebate,
-        flat_rebate_percent:
-          formattedVendorData.financialTerms.flat_rebate_percent,
-        flat_rebate_dollar:
-          formattedVendorData.financialTerms.flat_rebate_dollar,
-        flat_rebate_term: formattedVendorData.financialTerms.flat_rebate_term,
-        growth_rebate: formattedVendorData.financialTerms.growth_rebate,
-        growth_rebate_percent:
-          formattedVendorData.financialTerms.growth_rebate_percent,
-        growth_rebate_dollar:
-          formattedVendorData.financialTerms.growth_rebate_dollar,
-        growth_rebate_term:
-          formattedVendorData.financialTerms.growth_rebate_term,
-        marketing_rebate: formattedVendorData.financialTerms.marketing_rebate,
-        marketing_rebate_percent:
-          formattedVendorData.financialTerms.marketing_rebate_percent,
-        marketing_rebate_dollar:
-          formattedVendorData.financialTerms.marketing_rebate_dollar,
-        marketing_rebate_term:
-          formattedVendorData.financialTerms.marketing_rebate_term,
-        promotional_fund: formattedVendorData.financialTerms.promotional_fund,
-        promotional_fund_value:
-          formattedVendorData.financialTerms.promotional_fund_value,
+        // // Financial Terms
+        // payment_terms: formattedVendorData.financialTerms.payment_terms,
+        // order_expiry_days: formattedVendorData.financialTerms.order_expiry_days,
+        // gross_margin: formattedVendorData.financialTerms.gross_margin,
+        // invoice_discount: formattedVendorData.financialTerms.invoice_discount,
+        // invoice_discount_value:
+        //   formattedVendorData.financialTerms.invoice_discount_value,
+        // settlement_discount:
+        //   formattedVendorData.financialTerms.settlement_discount,
+        // settlement_discount_value:
+        //   formattedVendorData.financialTerms.settlement_discount_value,
+        // settlement_discount_days:
+        //   formattedVendorData.financialTerms.settlement_discount_days,
+        // flat_rebate: formattedVendorData.financialTerms.flat_rebate,
+        // flat_rebate_percent:
+        //   formattedVendorData.financialTerms.flat_rebate_percent,
+        // flat_rebate_dollar:
+        //   formattedVendorData.financialTerms.flat_rebate_dollar,
+        // flat_rebate_term: formattedVendorData.financialTerms.flat_rebate_term,
+        // growth_rebate: formattedVendorData.financialTerms.growth_rebate,
+        // growth_rebate_percent:
+        //   formattedVendorData.financialTerms.growth_rebate_percent,
+        // growth_rebate_dollar:
+        //   formattedVendorData.financialTerms.growth_rebate_dollar,
+        // growth_rebate_term:
+        //   formattedVendorData.financialTerms.growth_rebate_term,
+        // marketing_rebate: formattedVendorData.financialTerms.marketing_rebate,
+        // marketing_rebate_percent:
+        //   formattedVendorData.financialTerms.marketing_rebate_percent,
+        // marketing_rebate_dollar:
+        //   formattedVendorData.financialTerms.marketing_rebate_dollar,
+        // marketing_rebate_term:
+        //   formattedVendorData.financialTerms.marketing_rebate_term,
+        // promotional_fund: formattedVendorData.financialTerms.promotional_fund,
+        // promotional_fund_value:
+        //   formattedVendorData.financialTerms.promotional_fund_value,
 
-        // Bank Details
-        au_invoice_currency:
-          formattedVendorData.bankDetails.au_invoice_currency,
-        au_bank_country: formattedVendorData.bankDetails.au_bank_country,
-        au_bank_name: formattedVendorData.bankDetails.au_bank_name,
-        au_bank_address: formattedVendorData.bankDetails.au_bank_address,
-        au_bank_currency_code:
-          formattedVendorData.bankDetails.au_bank_currency_code,
-        au_bank_clearing_code:
-          formattedVendorData.bankDetails.au_bank_clearing_code,
-        au_remittance_email:
-          formattedVendorData.bankDetails.au_remittance_email,
-        au_bsb: formattedVendorData.bankDetails.au_bsb,
-        au_account: formattedVendorData.bankDetails.au_account,
-        nz_invoice_currency:
-          formattedVendorData.bankDetails.nz_invoice_currency,
-        nz_bank_country: formattedVendorData.bankDetails.nz_bank_country,
-        nz_bank_name: formattedVendorData.bankDetails.nz_bank_name,
-        nz_bank_address: formattedVendorData.bankDetails.nz_bank_address,
-        nz_bank_currency_code:
-          formattedVendorData.bankDetails.nz_bank_currency_code,
-        nz_bank_clearing_code:
-          formattedVendorData.bankDetails.nz_bank_clearing_code,
-        nz_remittance_email:
-          formattedVendorData.bankDetails.nz_remittance_email,
-        nz_bsb: formattedVendorData.bankDetails.nz_bsb,
-        nz_account: formattedVendorData.bankDetails.nz_account,
-        overseas_iban_switch:
-          formattedVendorData.bankDetails.overseas_iban_switch,
-        overseas_iban: formattedVendorData.bankDetails.overseas_iban,
-        overseas_swift: formattedVendorData.bankDetails.overseas_swift,
-        biller_code: formattedVendorData.bankDetails.biller_code,
-        ref_code: formattedVendorData.bankDetails.ref_code,
+        // // Bank Details
+        // au_invoice_currency:
+        //   formattedVendorData.bankDetails.au_invoice_currency,
+        // au_bank_country: formattedVendorData.bankDetails.au_bank_country,
+        // au_bank_name: formattedVendorData.bankDetails.au_bank_name,
+        // au_bank_address: formattedVendorData.bankDetails.au_bank_address,
+        // au_bank_currency_code:
+        //   formattedVendorData.bankDetails.au_bank_currency_code,
+        // au_bank_clearing_code:
+        //   formattedVendorData.bankDetails.au_bank_clearing_code,
+        // au_remittance_email:
+        //   formattedVendorData.bankDetails.au_remittance_email,
+        // au_bsb: formattedVendorData.bankDetails.au_bsb,
+        // au_account: formattedVendorData.bankDetails.au_account,
+        // nz_invoice_currency:
+        //   formattedVendorData.bankDetails.nz_invoice_currency,
+        // nz_bank_country: formattedVendorData.bankDetails.nz_bank_country,
+        // nz_bank_name: formattedVendorData.bankDetails.nz_bank_name,
+        // nz_bank_address: formattedVendorData.bankDetails.nz_bank_address,
+        // nz_bank_currency_code:
+        //   formattedVendorData.bankDetails.nz_bank_currency_code,
+        // nz_bank_clearing_code:
+        //   formattedVendorData.bankDetails.nz_bank_clearing_code,
+        // nz_remittance_email:
+        //   formattedVendorData.bankDetails.nz_remittance_email,
+        // nz_bsb: formattedVendorData.bankDetails.nz_bsb,
+        // nz_account: formattedVendorData.bankDetails.nz_account,
+        // overseas_iban_switch:
+        //   formattedVendorData.bankDetails.overseas_iban_switch,
+        // overseas_iban: formattedVendorData.bankDetails.overseas_iban,
+        // overseas_swift: formattedVendorData.bankDetails.overseas_swift,
+        // biller_code: formattedVendorData.bankDetails.biller_code,
+        // ref_code: formattedVendorData.bankDetails.ref_code,
       };
 
       // Make API call to update the status and form data
@@ -850,7 +928,7 @@ export default function VendorApprovalFlow() {
         const response = await axios.put(
           `/api/vendor-approval/${vendorData.email}`,
           {
-            ...formData,
+            delivery_notice: formattedVendorData.supplyTerms.delivery_notice,
             status_code: "Procurement Approval",
             approval_comment: "", // Clear any previous decline comments
           }
@@ -1033,7 +1111,6 @@ export default function VendorApprovalFlow() {
             <div
               className="form-container"
               style={{
-                pointerEvents: isEditable ? "auto" : "none",
                 opacity: isEditable ? "1" : "0.9",
               }}
             >
@@ -1052,6 +1129,7 @@ export default function VendorApprovalFlow() {
                         onChange={handleChange}
                         onCheckboxChange={handleCheckboxChange}
                         onBlur={handleBlur}
+                        isEditable={isEditable}
                       />
                     </div>
                     {/* Trading Terms Section */}
@@ -1068,6 +1146,7 @@ export default function VendorApprovalFlow() {
                         touched={touched}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        isEditable={isEditable}
                       />
                     </div>
                     {/* Supply Terms Section */}
@@ -1079,6 +1158,7 @@ export default function VendorApprovalFlow() {
                         touched={touched}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        isEditable={isEditable}
                       />
                     </div>
                     {/* Financial Terms Section */}
@@ -1095,6 +1175,8 @@ export default function VendorApprovalFlow() {
                         touched={touched}
                         onChange={handleChange}
                         onBlur={handleBlur}
+                        isEditable={isEditable}
+                        disabled={!isEditable}
                       />
                     </div>
                   </div>

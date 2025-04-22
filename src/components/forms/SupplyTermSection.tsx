@@ -12,7 +12,7 @@ interface SupplyTermsSectionProps {
   touched: { [key: string]: boolean };
   onChange: (field: string, value: any) => void;
   onBlur: (field: string) => void;
-  validateField: (field: string) => void;
+  validateField?: (field: string) => void;
   isEditable?: boolean; // Add isEditable prop with default value true
 }
 
@@ -146,23 +146,25 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
       {/* Lead time in working days */}
       <FormField
         label="Lead time in working days"
-        htmlFor="deliveryNotice"
+        htmlFor="delivery_notice"
         required
-        error={errors.deliveryNotice}
-        touched={touched["supplyTerms.deliveryNotice"]}
+        error={errors.delivery_notice}
+        touched={touched["supplyTerms.delivery_notice"]}
         disabled={!isEditable}
       >
         <TextInput
-          id="deliveryNotice"
-          name="deliveryNotice"
+          id="delivery_notice"
+          name="delivery_notice"
           value={data.delivery_notice ? data.delivery_notice.toString() : ""}
-          onChange={(e) => handleNumberChange("deliveryNotice", e.target.value)}
-          onBlur={() => onBlur("deliveryNotice")}
+          onChange={(e) =>
+            handleNumberChange("delivery_notice", e.target.value)
+          }
+          onBlur={() => onBlur("delivery_notice")}
           placeholder="working days"
           type="number"
           required
           error={
-            !!errors.deliveryNotice && touched["supplyTerms.deliveryNotice"]
+            !!errors.delivery_notice && touched["supplyTerms.delivery_notice"]
           }
           disabled={!isEditable}
         />

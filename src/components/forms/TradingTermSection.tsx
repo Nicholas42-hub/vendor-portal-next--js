@@ -15,7 +15,7 @@ interface TradingTermsSectionProps {
   onChange: (field: string, value: any) => void;
   onBlur: (field: string) => void;
   onFileChange?: (field: string, file: File | null) => void;
-  validateField: (field: string) => void;
+  validateField?: (field: string) => void;
   isEditable?: boolean; // Add isEditable prop with default value true
 }
 
