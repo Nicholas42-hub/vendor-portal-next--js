@@ -85,8 +85,8 @@ export const tradingEntities: Array<{ id: TradingEntity; label: string }> = [
 // Type for General Details section
 export interface GeneralDetailsData {
   tradingEntities: TradingEntity[];
-  vendorHomeCountry: string;
-  primaryTradingBusinessUnit: string;
+  vendor_home_country: string;
+  primary_trading_business_unit: string;
   email: string;
   businessName: string;
   tradingName?: string;

@@ -113,6 +113,14 @@ interface VendorData {
   [key: string]: any;
 }
 
+interface TradingEntity {
+  TradingEntityId: string;
+  entityName?: string;
+  entityCountry?: string;
+  email?: string;
+  paymentCountry?: string;
+}
+
 export default function VendorApprovalFlow() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -123,6 +131,7 @@ export default function VendorApprovalFlow() {
   const [vendorData, setVendorData] = useState<VendorData>({});
   const [formattedVendorData, setFormattedVendorData] = useState({
     generalDetails: {
+      availableTradingEntities: [],
       tradingEntities: [],
       vendor_home_country: "",
       primary_trading_business_unit: "",
@@ -208,6 +217,9 @@ export default function VendorApprovalFlow() {
     },
   });
 
+  const [availableTradingEntities, setAvailableTradingEntities] = useState<
+    TradingEntity[]
+  >([]);
   const [supplierData, setSupplierData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -219,7 +231,7 @@ export default function VendorApprovalFlow() {
   const [requiresFinanceApproval, setRequiresFinanceApproval] = useState(true);
   const [canApprove, setCanApprove] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [touched, setTouched] = useState({});
   const [activeSection, setActiveSection] = useState<string>(
     "vendorOnboardingForm"
@@ -273,9 +285,43 @@ export default function VendorApprovalFlow() {
     try {
       setIsLoading(true);
       const email = searchParams.get("email");
-      const response = await axios.get(`/api/vendor-approval/${email}`);
+      console.log(`Fetching vendor data for: ${email}`);
+
+      // Add request tracking
+      const requestStartTime = Date.now();
+
+      // Add request metadata and caching controls
+      const response = await axios.get(
+        `/api/vendor-approval/${encodeURIComponent(email)}`,
+        {
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+            "X-Request-Id": `vendor-${email}-${Date.now()}`,
+          },
+        }
+      );
+
+      console.log(
+        `Vendor data fetch completed in ${Date.now() - requestStartTime}ms`
+      );
 
       const { vendor, tradingEntities_data } = response.data;
+
+      // Debug the received data
+      console.log("Received vendor data:", vendor);
+      console.log(
+        "Primary business unit:",
+        vendor.primary_trading_business_unit
+      );
+      console.log("Vendor type:", vendor.vendor_type);
+      console.log("Payment terms:", vendor.payment_terms);
+      console.log("Received trading entities:", tradingEntities_data);
+
+      // Validate critical fields
+      if (!vendor) {
+        throw new Error("No vendor data received from API");
+      }
 
       // Payment terms that require Finance approval
       const financeApprovalTerms = ["20 EOM"];
@@ -285,20 +331,116 @@ export default function VendorApprovalFlow() {
       );
       setRequiresFinanceApproval(needsFinanceApproval);
 
-      // Set vendor data
-      setVendorData(vendor);
+      // Set vendor data with defaults for missing fields
+      setVendorData({
+        primary_trading_business_unit:
+          vendor.primary_trading_business_unit || "",
+        email: vendor.email || "",
+        business_name: vendor.business_name || "",
+        trading_name: vendor.trading_name || "",
+        vendor_type: vendor.vendor_type || "",
+        contact_person: vendor.contact_person || "",
+        contact_phone: vendor.contact_phone || "",
+        website_url: vendor.website_url || "",
+        postal_address: vendor.postal_address || "",
+        city: vendor.city || "",
+        state: vendor.state || "",
+        postcode: vendor.postcode || "",
+        is_gst_registered: vendor.is_gst_registered || false,
+        abn: vendor.abn || "",
+        gst: vendor.gst || "",
+        quotes_obtained: vendor.quotes_obtained || false,
+        quotes_obtained_reason: vendor.quotes_obtained_reason || "",
+        quotes_pdf_url: vendor.quotes_pdf_url || "",
+        back_order: vendor.back_order || false,
+        exclusive_supply: vendor.exclusive_supply || false,
+        sale_or_return: vendor.sale_or_return || false,
+        auth_required: vendor.auth_required || false,
+        delivery_notice: vendor.delivery_notice || 0,
+        min_order_value: vendor.min_order_value || 0,
+        min_order_quantity: vendor.min_order_quantity || 0,
+        max_order_value: vendor.max_order_value || 0,
+        other_comments: vendor.other_comments || "",
+        payment_terms: vendor.payment_terms || "",
+        order_expiry_days: vendor.order_expiry_days || 0,
+        gross_margin: vendor.gross_margin || "",
+        invoice_discount: vendor.invoice_discount || false,
+        invoice_discount_value: vendor.invoice_discount_value || "",
+        settlement_discount: vendor.settlement_discount || false,
+        settlement_discount_value: vendor.settlement_discount_value || "",
+        settlement_discount_days: vendor.settlement_discount_days || "",
+        flat_rebate: vendor.flat_rebate || false,
+        flat_rebate_percent: vendor.flat_rebate_percent || "",
+        flat_rebate_dollar: vendor.flat_rebate_dollar || "",
+        flat_rebate_term: vendor.flat_rebate_term || "",
+        growth_rebate: vendor.growth_rebate || false,
+        growth_rebate_percent: vendor.growth_rebate_percent || "",
+        growth_rebate_dollar: vendor.growth_rebate_dollar || "",
+        growth_rebate_term: vendor.growth_rebate_term || "",
+        marketing_rebate: vendor.marketing_rebate || false,
+        marketing_rebate_percent: vendor.marketing_rebate_percent || "",
+        marketing_rebate_dollar: vendor.marketing_rebate_dollar || "",
+        marketing_rebate_term: vendor.marketing_rebate_term || "",
+        promotional_fund: vendor.promotional_fund || false,
+        promotional_fund_value: vendor.promotional_fund_value || "",
+        au_invoice_currency: vendor.au_invoice_currency || "",
+        au_bank_country: vendor.au_bank_country || "",
+        au_bank_name: vendor.au_bank_name || "",
+        au_bank_address: vendor.au_bank_address || "",
+        au_bank_currency_code: vendor.au_bank_currency_code || "",
+        au_bank_clearing_code: vendor.au_bank_clearing_code || "",
+        au_remittance_email: vendor.au_remittance_email || "",
+        au_bsb: vendor.au_bsb || "",
+        au_account: vendor.au_account || "",
+        nz_invoice_currency: vendor.nz_invoice_currency || "",
+        nz_bank_country: vendor.nz_bank_country || "",
+        nz_bank_name: vendor.nz_bank_name || "",
+        nz_bank_address: vendor.nz_bank_address || "",
+        nz_bank_currency_code: vendor.nz_bank_currency_code || "",
+        nz_bank_clearing_code: vendor.nz_bank_clearing_code || "",
+        nz_remittance_email: vendor.nz_remittance_email || "",
+        nz_bsb: vendor.nz_bsb || "",
+        nz_account: vendor.nz_account || "",
+        overseas_iban_switch: vendor.overseas_iban_switch || false,
+        overseas_iban: vendor.overseas_iban || "",
+        overseas_swift: vendor.overseas_swift || "",
+        biller_code: vendor.biller_code || "",
+        ref_code: vendor.ref_code || "",
+        vendor_setup_status: vendor.vendor_setup_status || "",
+        status_code: vendor.status_code || "Invitation Sent",
+        status_code_record: vendor.status_code_record || "",
+        status_update_time: vendor.status_update_time || "",
+        approval_comment: vendor.approval_comment || "",
+        current_approver: vendor.current_approver || "",
+        current_approver_name: vendor.current_approver_name || "",
+        next_approver: vendor.next_approver || "",
+        next_approver_name: vendor.next_approver_name || "",
+      });
 
-      // Format the data for form sections
-      const tradingEntities = [];
-      if (vendor.trading_name) {
-        tradingEntities.push(vendor.trading_name);
+      // Store available trading entities
+      setAvailableTradingEntities(tradingEntities_data || []);
+
+      // Extract vendor's trading entity IDs
+      const selectedEntityIds = [];
+
+      // Process trading entities from API response
+      if (tradingEntities_data && tradingEntities_data.length > 0) {
+        // Add all entity IDs related to this vendor
+        tradingEntities_data.forEach((entity) => {
+          if (entity.TradingEntityId) {
+            selectedEntityIds.push(entity.TradingEntityId);
+          }
+        });
+
+        console.log("Selected trading entity IDs from API:", selectedEntityIds);
       }
 
-      // Fix 2: Ensure proper type conversion for numeric values
-      // and handle boolean values consistently
+      // Format the data for form sections using the vendor data we just stored
+      // This ensures we're using the same values with defaults already applied
       setFormattedVendorData({
         generalDetails: {
-          tradingEntities: tradingEntities,
+          availableTradingEntities: tradingEntities_data || [],
+          tradingEntities: selectedEntityIds,
           vendor_home_country: vendor.vendor_home_country || "",
           primary_trading_business_unit:
             vendor.primary_trading_business_unit || "",
@@ -384,6 +526,11 @@ export default function VendorApprovalFlow() {
         },
       });
 
+      // Debug log
+      console.log("Formatted vendor data:", formattedVendorData);
+      console.log("Trading entities data:", tradingEntities_data);
+      console.log("Selected trading entity IDs:", selectedEntityIds);
+
       // Validate approver access
       validateApproverAccess(
         vendor.status_code,
@@ -391,6 +538,18 @@ export default function VendorApprovalFlow() {
       );
     } catch (error) {
       console.error("Error fetching vendor data:", error);
+
+      // Detailed error logging
+      if (axios.isAxiosError(error)) {
+        console.error("API Error Details:", {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+      }
+
+      // Show a more helpful error message to the user
+      alert("Failed to load vendor data. Please try again or contact support.");
     } finally {
       setIsLoading(false);
     }
@@ -576,12 +735,12 @@ export default function VendorApprovalFlow() {
         const currentEntities = [...prevData.generalDetails.tradingEntities];
 
         if (checked) {
-          // Add the entity if it's not already in the array
+          // Add the entity ID if it's not already in the array
           if (!currentEntities.includes(value)) {
             currentEntities.push(value);
           }
         } else {
-          // Remove the entity if it's in the array
+          // Remove the entity ID if it's in the array
           const index = currentEntities.indexOf(value);
           if (index !== -1) {
             currentEntities.splice(index, 1);
@@ -598,6 +757,15 @@ export default function VendorApprovalFlow() {
       });
     }
   };
+
+  useEffect(() => {
+    if (formattedVendorData.generalDetails.tradingEntities.length > 0) {
+      console.log(
+        "Updated trading entities:",
+        formattedVendorData.generalDetails.tradingEntities
+      );
+    }
+  }, [formattedVendorData.generalDetails.tradingEntities]);
 
   const handleBlur = (field: string) => {
     console.log(`Field ${field} blurred`);
@@ -685,8 +853,6 @@ export default function VendorApprovalFlow() {
     return null;
   };
 
-  // Updated confirmApproval function in VendorApprovalFlow.tsx
-
   const confirmApproval = async () => {
     try {
       setIsSubmitting(true);
@@ -703,34 +869,58 @@ export default function VendorApprovalFlow() {
 
       // Make API call to update the status in Dynamics
       if (vendorData.email) {
-        // Use correct API endpoint structure
-        const response = await axios.put(
-          `/api/vendor-approval/${encodeURIComponent(vendorData.email)}`,
-          {
-            status_code: newStatus,
+        // Add retry logic with exponential backoff for this critical operation
+        let retries = 0;
+        const maxRetries = 3;
+
+        while (retries < maxRetries) {
+          try {
+            const response = await axios.put(
+              `/api/vendor-approval/${encodeURIComponent(vendorData.email)}`,
+              {
+                status_code: newStatus,
+                // Include delivery_notice to ensure it persists through approval flow
+                delivery_notice:
+                  formattedVendorData.supplyTerms.delivery_notice,
+              }
+            );
+
+            if (!response.data.success) {
+              console.error("API error:", response.data);
+              throw new Error(
+                `Failed to update vendor status: ${
+                  response.data.error || "Unknown error"
+                }`
+              );
+            }
+
+            console.log("API response:", response.data);
+
+            // Update local state
+            setVendorData({ ...vendorData, status_code: newStatus });
+
+            // Show success popup
+            setSuccessMessage(
+              `Vendor successfully moved to ${newStatus} status.`
+            );
+            setShowSuccess(true);
+
+            // Break out of retry loop on success
+            break;
+          } catch (error) {
+            retries++;
+            if (retries >= maxRetries) {
+              throw error;
+            }
+            // Wait with exponential backoff before retrying
+            await new Promise((r) =>
+              setTimeout(r, 1000 * Math.pow(2, retries))
+            );
           }
-        );
-
-        if (!response.data.success) {
-          console.error("API error:", response.data);
-          throw new Error(
-            `Failed to update vendor status: ${
-              response.data.error || "Unknown error"
-            }`
-          );
         }
-
-        console.log("API response:", response.data);
       } else {
         throw new Error("Vendor email not found");
       }
-
-      // Update local state
-      setVendorData({ ...vendorData, status_code: newStatus });
-
-      // Show success popup
-      setSuccessMessage(`Vendor successfully moved to ${newStatus} status.`);
-      setShowSuccess(true);
     } catch (error) {
       console.error("Error approving vendor:", error);
       alert(
@@ -738,6 +928,85 @@ export default function VendorApprovalFlow() {
           error instanceof Error ? error.message : String(error)
         }`
       );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRequesterSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      setIsSubmitting(true);
+
+      // Collect form data that needs updating
+      const formData = {
+        // Only include fields that have changed
+        delivery_notice: formattedVendorData.supplyTerms.delivery_notice,
+
+        // Include business and trading name for better identification
+        business_name: formattedVendorData.generalDetails.business_name,
+        trading_name: formattedVendorData.generalDetails.trading_name,
+
+        // Move to next approval state
+        status_code: "Procurement Approval",
+
+        // Clear any previous approval comments when resubmitting
+        approval_comment: "",
+      };
+
+      // Check for required fields before submission
+      if (
+        formData.delivery_notice === undefined ||
+        formData.delivery_notice === null
+      ) {
+        throw new Error("Delivery notice is required");
+      }
+
+      console.log("Submitting vendor update with data:", formData);
+
+      // Make API call to update the status and form data
+      if (vendorData.email) {
+        const response = await axios.put(
+          `/api/vendor-approval/${encodeURIComponent(vendorData.email)}`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+            timeout: 30000, // 30 second timeout
+          }
+        );
+
+        if (!response.data.success) {
+          throw new Error(
+            `Failed to update vendor data: ${
+              response.data.message || "Unknown error"
+            }`
+          );
+        }
+
+        console.log("Vendor update API response:", response.data);
+
+        // Update local state
+        setVendorData({
+          ...vendorData,
+          ...formData,
+        });
+
+        // Show success message
+        setSuccessMessage(
+          "Form has been resubmitted for approval successfully."
+        );
+        setShowSuccess(true);
+      } else {
+        throw new Error("Vendor email not found");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      alert(`Failed to submit form: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -804,160 +1073,6 @@ export default function VendorApprovalFlow() {
   // Handle success popup close
   const handleSuccessClose = () => {
     setShowSuccess(false);
-  };
-
-  // Fix 6: Update the handleRequesterSubmit function to collect and submit the form data
-  const handleRequesterSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      setIsSubmitting(true);
-
-      // Collect form data from formattedVendorData state
-      const formData = {
-        // General Details
-        // vendor_home_country:
-        //   formattedVendorData.generalDetails.vendor_home_country,
-        // primary_trading_business_unit:
-        //   formattedVendorData.generalDetails.primary_trading_business_unit,
-        // business_name: formattedVendorData.generalDetails.business_name,
-        // trading_name: formattedVendorData.generalDetails.trading_name,
-        // vendor_type: formattedVendorData.generalDetails.vendor_type,
-        // contact_person: formattedVendorData.generalDetails.contact_person,
-        // contact_phone: formattedVendorData.generalDetails.contact_phone,
-        // website_url: formattedVendorData.generalDetails.website_url,
-        // postal_address: formattedVendorData.generalDetails.postal_address,
-        // city: formattedVendorData.generalDetails.city,
-        // state: formattedVendorData.generalDetails.state,
-        // postcode: formattedVendorData.generalDetails.postcode,
-        // is_gst_registered: formattedVendorData.generalDetails.is_gst_registered,
-        // abn: formattedVendorData.generalDetails.abn,
-        // gst: formattedVendorData.generalDetails.gst,
-
-        // // Supply Terms
-        // exclusive_supply: formattedVendorData.supplyTerms.exclusive_supply,
-        // sale_or_return: formattedVendorData.supplyTerms.sale_or_return,
-        // auth_required: formattedVendorData.supplyTerms.auth_required,
-        delivery_notice: formattedVendorData.supplyTerms.delivery_notice,
-        // min_order_value: formattedVendorData.supplyTerms.min_order_value,
-        // min_order_quantity: formattedVendorData.supplyTerms.min_order_quantity,
-        // max_order_value: formattedVendorData.supplyTerms.max_order_value,
-        // other_comments: formattedVendorData.supplyTerms.other_comments,
-
-        // // Trading Terms
-        // quotes_obtained: formattedVendorData.tradingTerms.quotes_obtained,
-        // quotes_obtained_reason:
-        //   formattedVendorData.tradingTerms.quotes_obtained_reason,
-        // quotes_pdf_url: formattedVendorData.tradingTerms.quotes_pdf_url,
-        // back_order: formattedVendorData.tradingTerms.back_order,
-
-        // // Financial Terms
-        // payment_terms: formattedVendorData.financialTerms.payment_terms,
-        // order_expiry_days: formattedVendorData.financialTerms.order_expiry_days,
-        // gross_margin: formattedVendorData.financialTerms.gross_margin,
-        // invoice_discount: formattedVendorData.financialTerms.invoice_discount,
-        // invoice_discount_value:
-        //   formattedVendorData.financialTerms.invoice_discount_value,
-        // settlement_discount:
-        //   formattedVendorData.financialTerms.settlement_discount,
-        // settlement_discount_value:
-        //   formattedVendorData.financialTerms.settlement_discount_value,
-        // settlement_discount_days:
-        //   formattedVendorData.financialTerms.settlement_discount_days,
-        // flat_rebate: formattedVendorData.financialTerms.flat_rebate,
-        // flat_rebate_percent:
-        //   formattedVendorData.financialTerms.flat_rebate_percent,
-        // flat_rebate_dollar:
-        //   formattedVendorData.financialTerms.flat_rebate_dollar,
-        // flat_rebate_term: formattedVendorData.financialTerms.flat_rebate_term,
-        // growth_rebate: formattedVendorData.financialTerms.growth_rebate,
-        // growth_rebate_percent:
-        //   formattedVendorData.financialTerms.growth_rebate_percent,
-        // growth_rebate_dollar:
-        //   formattedVendorData.financialTerms.growth_rebate_dollar,
-        // growth_rebate_term:
-        //   formattedVendorData.financialTerms.growth_rebate_term,
-        // marketing_rebate: formattedVendorData.financialTerms.marketing_rebate,
-        // marketing_rebate_percent:
-        //   formattedVendorData.financialTerms.marketing_rebate_percent,
-        // marketing_rebate_dollar:
-        //   formattedVendorData.financialTerms.marketing_rebate_dollar,
-        // marketing_rebate_term:
-        //   formattedVendorData.financialTerms.marketing_rebate_term,
-        // promotional_fund: formattedVendorData.financialTerms.promotional_fund,
-        // promotional_fund_value:
-        //   formattedVendorData.financialTerms.promotional_fund_value,
-
-        // // Bank Details
-        // au_invoice_currency:
-        //   formattedVendorData.bankDetails.au_invoice_currency,
-        // au_bank_country: formattedVendorData.bankDetails.au_bank_country,
-        // au_bank_name: formattedVendorData.bankDetails.au_bank_name,
-        // au_bank_address: formattedVendorData.bankDetails.au_bank_address,
-        // au_bank_currency_code:
-        //   formattedVendorData.bankDetails.au_bank_currency_code,
-        // au_bank_clearing_code:
-        //   formattedVendorData.bankDetails.au_bank_clearing_code,
-        // au_remittance_email:
-        //   formattedVendorData.bankDetails.au_remittance_email,
-        // au_bsb: formattedVendorData.bankDetails.au_bsb,
-        // au_account: formattedVendorData.bankDetails.au_account,
-        // nz_invoice_currency:
-        //   formattedVendorData.bankDetails.nz_invoice_currency,
-        // nz_bank_country: formattedVendorData.bankDetails.nz_bank_country,
-        // nz_bank_name: formattedVendorData.bankDetails.nz_bank_name,
-        // nz_bank_address: formattedVendorData.bankDetails.nz_bank_address,
-        // nz_bank_currency_code:
-        //   formattedVendorData.bankDetails.nz_bank_currency_code,
-        // nz_bank_clearing_code:
-        //   formattedVendorData.bankDetails.nz_bank_clearing_code,
-        // nz_remittance_email:
-        //   formattedVendorData.bankDetails.nz_remittance_email,
-        // nz_bsb: formattedVendorData.bankDetails.nz_bsb,
-        // nz_account: formattedVendorData.bankDetails.nz_account,
-        // overseas_iban_switch:
-        //   formattedVendorData.bankDetails.overseas_iban_switch,
-        // overseas_iban: formattedVendorData.bankDetails.overseas_iban,
-        // overseas_swift: formattedVendorData.bankDetails.overseas_swift,
-        // biller_code: formattedVendorData.bankDetails.biller_code,
-        // ref_code: formattedVendorData.bankDetails.ref_code,
-      };
-
-      // Make API call to update the status and form data
-      if (vendorData.email) {
-        const response = await axios.put(
-          `/api/vendor-approval/${vendorData.email}`,
-          {
-            delivery_notice: formattedVendorData.supplyTerms.delivery_notice,
-            status_code: "Procurement Approval",
-            approval_comment: "", // Clear any previous decline comments
-          }
-        );
-
-        if (!response.data.success) {
-          throw new Error("Failed to update vendor data");
-        }
-      } else {
-        throw new Error("Vendor email not found");
-      }
-
-      // Update local state
-      setVendorData({
-        ...vendorData,
-        ...formData,
-        status_code: "Procurement Approval",
-        approval_comment: "",
-      });
-
-      // Show success message
-      setSuccessMessage("Form has been resubmitted for approval.");
-      setShowSuccess(true);
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      alert("Failed to submit form. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   // Show loading state

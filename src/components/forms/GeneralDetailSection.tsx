@@ -140,17 +140,17 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
       {/* Vendor Home Country */}
       <FormField
         label="Vendor Home Country"
-        htmlFor="vendorHomeCountry"
+        htmlFor="vendor_home_country"
         required
-        error={errors.vendorHomeCountry}
-        touched={touched["generalDetails.vendorHomeCountry"]}
+        error={errors.vendor_home_country}
+        touched={touched["generalDetails.vendor_home_country"]}
       >
         <ConditionalInput
           isEditable={isEditable}
           type="select"
           name="vendor_home_country"
-          value={data.vendorHomeCountry}
-          onChange={(value) => onChange("vendorHomeCountry", value)}
+          value={data.vendor_home_country}
+          onChange={(value) => onChange("vendor_home_country", value)}
           options={countries.map((country) => ({
             value: country,
             label: country,
@@ -162,17 +162,17 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
       {/* Primary Trading Business Unit */}
       <FormField
         label="Primary Trading Business Unit"
-        htmlFor="primaryTradingBusinessUnit"
+        htmlFor="primary_trading_business_unit"
         required
-        error={errors.primaryTradingBusinessUnit}
-        touched={touched["generalDetails.primaryTradingBusinessUnit"]}
+        error={errors.primary_trading_business_unit}
+        touched={touched["generalDetails.primary_trading_business_unit"]}
       >
         <ConditionalInput
           isEditable={isEditable}
           type="select"
           name="primary_trading_business_unit"
-          value={data.primaryTradingBusinessUnit}
-          onChange={(value) => onChange("primaryTradingBusinessUnit", value)}
+          value={data.primary_trading_business_unit}
+          onChange={(value) => onChange("primary_trading_business_unit", value)}
           options={businessUnitOptions.map((unit) => ({
             value: unit.value,
             label: unit.label,

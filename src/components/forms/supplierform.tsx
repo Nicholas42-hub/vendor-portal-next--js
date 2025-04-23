@@ -385,12 +385,6 @@ export default function SupplierFormExternal({
       }
     });
 
-    // Trading entities validation
-    if (formData.trading_entities.length === 0) {
-      newErrors["trading_entities"] =
-        "Please select at least one trading entity";
-    }
-
     // Country-specific validations for GST/ABN
     if (vendorCountry === "Australia") {
       if (!formData.abn) {
@@ -612,19 +606,19 @@ export default function SupplierFormExternal({
           <div className="bg-gray-50 p-6 rounded-lg">
             <h2 className="text-xl font-semibold mb-6">1. Supplier Details</h2>
 
-            {/* Business Name (Read-only from Vendor Creation page) */}
-            <div className="space-y-2 mb-6">
-              <Label htmlFor="business_name">Business Name</Label>
-              <ConditionalInput
-                isEditable={false} // Always read-only
-                type="text"
-                name="business_name"
-                value={formData.business_name}
-                placeholder="Business Name"
-              />
-            </div>
+            <div className="space-y-6">
+              {/* Business Name (Read-only from Vendor Creation page) */}
+              <div className="space-y-2">
+                <Label htmlFor="business_name">Business Name</Label>
+                <ConditionalInput
+                  isEditable={false} // Always read-only
+                  type="text"
+                  name="business_name"
+                  value={formData.business_name}
+                  placeholder="Business Name"
+                />
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Trading Name */}
               <div className="space-y-2">
                 <Label htmlFor="trading_name">
@@ -659,32 +653,8 @@ export default function SupplierFormExternal({
                   placeholder="https://example.com"
                 />
               </div>
-              {/* Country */}
-              <div className="space-y-2">
-                <Label htmlFor="country">
-                  Country<span className="text-red-500">*</span>
-                </Label>
-                <ConditionalInput
-                  isEditable={isEditable}
-                  type="select"
-                  name="country"
-                  value={formData.country}
-                  onChange={handleSelectChange}
-                  onBlur={handleInputBlur}
-                  options={countries.map((country) => ({
-                    value: country,
-                    label: country,
-                  }))}
-                  required={true}
-                  className={errors.country ? "border-red-500" : ""}
-                  placeholder="Select a country"
-                />
-                {errors.country && (
-                  <p className="text-red-500 text-sm">{errors.country}</p>
-                )}
-              </div>
 
-              {/* GST Registered */}
+              {/* GST Registered - MOVED ABOVE COUNTRY */}
               <div className="space-y-2">
                 <Label htmlFor="gst_registered">
                   Registered for GST?<span className="text-red-500">*</span>
@@ -710,7 +680,33 @@ export default function SupplierFormExternal({
                   </p>
                 )}
               </div>
-              {/* Has tax id */}
+
+              {/* Country */}
+              <div className="space-y-2">
+                <Label htmlFor="country">
+                  Country<span className="text-red-500">*</span>
+                </Label>
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="select"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleSelectChange}
+                  onBlur={handleInputBlur}
+                  options={countries.map((country) => ({
+                    value: country,
+                    label: country,
+                  }))}
+                  required={true}
+                  className={errors.country ? "border-red-500" : ""}
+                  placeholder="Select a country"
+                />
+                {errors.country && (
+                  <p className="text-red-500 text-sm">{errors.country}</p>
+                )}
+              </div>
+
+              {/* Has tax id - MOVED TO FULL WIDTH */}
               {formData.country &&
                 formData.country !== "New Zealand" &&
                 formData.country !== "Australia" && (
@@ -745,6 +741,7 @@ export default function SupplierFormExternal({
                     )}
                   </div>
                 )}
+
               {/* ABN or GST */}
               {formData.country &&
                 formData.country !== "New Zealand" &&
@@ -794,6 +791,7 @@ export default function SupplierFormExternal({
                   )}
                 </div>
               )}
+
               {/* ABN - Only for Australia */}
               {(formData.country === "Australia" ||
                 (formData.country !== "Australia" &&
@@ -836,235 +834,164 @@ export default function SupplierFormExternal({
                 </p>
               </div>
 
-              {/* City */}
-              <div className="space-y-2">
-                <Label htmlFor="city">
-                  City<span className="text-red-500">*</span>
-                </Label>
-                <ConditionalInput
-                  isEditable={isEditable}
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleSelectChange}
-                  required={true}
-                  className={errors.city ? "border-red-500" : ""}
-                  placeholder="Enter city"
-                />
-                {errors.city && (
-                  <p className="text-red-500 text-sm">{errors.city}</p>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* City */}
+                <div className="space-y-2">
+                  <Label htmlFor="city">
+                    City<span className="text-red-500">*</span>
+                  </Label>
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="text"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleSelectChange}
+                    required={true}
+                    className={errors.city ? "border-red-500" : ""}
+                    placeholder="Enter city"
+                  />
+                  {errors.city && (
+                    <p className="text-red-500 text-sm">{errors.city}</p>
+                  )}
+                </div>
+
+                {/* State */}
+                <div className="space-y-2">
+                  <Label htmlFor="state">
+                    State<span className="text-red-500">*</span>
+                  </Label>
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="text"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleSelectChange}
+                    required={true}
+                    className={errors.state ? "border-red-500" : ""}
+                    placeholder="Enter state"
+                  />
+                  {errors.state && (
+                    <p className="text-red-500 text-sm">{errors.state}</p>
+                  )}
+                </div>
+
+                {/* Postcode */}
+                <div className="space-y-2">
+                  <Label htmlFor="postcode">
+                    Postcode<span className="text-red-500">*</span>
+                  </Label>
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="text"
+                    name="postcode"
+                    value={formData.postcode}
+                    onChange={handleSelectChange}
+                    inputMode="numeric"
+                    required={true}
+                    className={errors.postcode ? "border-red-500" : ""}
+                    placeholder="Enter postcode"
+                  />
+                  {errors.postcode && (
+                    <p className="text-red-500 text-sm">{errors.postcode}</p>
+                  )}
+                </div>
               </div>
 
-              {/* State */}
-              <div className="space-y-2">
-                <Label htmlFor="state">
-                  State<span className="text-red-500">*</span>
-                </Label>
-                <ConditionalInput
-                  isEditable={isEditable}
-                  type="text"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleSelectChange}
-                  required={true}
-                  className={errors.state ? "border-red-500" : ""}
-                  placeholder="Enter state"
-                />
-                {errors.state && (
-                  <p className="text-red-500 text-sm">{errors.state}</p>
-                )}
-              </div>
+              {/* Contact Information */}
+              <div className="grid grid-cols-1 gap-6">
+                {/* Primary Contact Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="primary_contact_email">
+                    Primary Contact Email<span className="text-red-500">*</span>
+                  </Label>
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="email"
+                    name="primary_contact_email"
+                    value={formData.primary_contact_email}
+                    onChange={handleSelectChange}
+                    onBlur={handleInputBlur}
+                    required={true}
+                    placeholder="example@domain.com"
+                    className={
+                      errors.primary_contact_email ? "border-red-500" : ""
+                    }
+                  />
+                  {errors.primary_contact_email && (
+                    <p className="text-red-500 text-sm">
+                      {errors.primary_contact_email}
+                    </p>
+                  )}
+                </div>
 
-              {/* Postcode */}
-              <div className="space-y-2">
-                <Label htmlFor="postcode">
-                  Postcode<span className="text-red-500">*</span>
-                </Label>
-                <ConditionalInput
-                  isEditable={isEditable}
-                  type="text"
-                  name="postcode"
-                  value={formData.postcode}
-                  onChange={handleSelectChange}
-                  inputMode="numeric"
-                  required={true}
-                  className={errors.postcode ? "border-red-500" : ""}
-                  placeholder="Enter postcode"
-                />
-                {errors.postcode && (
-                  <p className="text-red-500 text-sm">{errors.postcode}</p>
-                )}
-              </div>
+                {/* Telephone */}
+                <div className="space-y-2">
+                  <Label htmlFor="telephone">
+                    Telephone<span className="text-red-500">*</span>
+                  </Label>
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="text"
+                    name="telephone"
+                    value={formData.telephone}
+                    onChange={handleSelectChange}
+                    inputMode="numeric"
+                    required={true}
+                    className={errors.telephone ? "border-red-500" : ""}
+                    placeholder="Enter telephone number"
+                  />
+                  {errors.telephone && (
+                    <p className="text-red-500 text-sm">{errors.telephone}</p>
+                  )}
+                </div>
 
-              {/* Primary Contact Email */}
-              <div className="space-y-2">
-                <Label htmlFor="primary_contact_email">
-                  Primary Contact Email<span className="text-red-500">*</span>
-                </Label>
-                <ConditionalInput
-                  isEditable={isEditable}
-                  type="email"
-                  name="primary_contact_email"
-                  value={formData.primary_contact_email}
-                  onChange={handleSelectChange}
-                  onBlur={handleInputBlur}
-                  required={true}
-                  placeholder="example@domain.com"
-                  className={
-                    errors.primary_contact_email ? "border-red-500" : ""
-                  }
-                />
-                {errors.primary_contact_email && (
-                  <p className="text-red-500 text-sm">
-                    {errors.primary_contact_email}
-                  </p>
-                )}
-              </div>
+                {/* PO Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="po_email">
+                    PO Email<span className="text-red-500">*</span>
+                  </Label>
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="email"
+                    name="po_email"
+                    value={formData.po_email || ""}
+                    onChange={handleSelectChange}
+                    onBlur={handleInputBlur}
+                    required={true}
+                    placeholder="example@domain.com"
+                    className={errors.po_email ? "border-red-500" : ""}
+                  />
+                  {errors.po_email && (
+                    <p className="text-red-500 text-sm">{errors.po_email}</p>
+                  )}
+                </div>
 
-              {/* Telephone */}
-              <div className="space-y-2">
-                <Label htmlFor="telephone">
-                  Telephone<span className="text-red-500">*</span>
-                </Label>
-                <ConditionalInput
-                  isEditable={isEditable}
-                  type="text"
-                  name="telephone"
-                  value={formData.telephone}
-                  onChange={handleSelectChange}
-                  inputMode="numeric"
-                  required={true}
-                  className={errors.telephone ? "border-red-500" : ""}
-                  placeholder="Enter telephone number"
-                />
-                {errors.telephone && (
-                  <p className="text-red-500 text-sm">{errors.telephone}</p>
-                )}
-              </div>
-
-              {/* PO Email */}
-              <div className="space-y-2">
-                <Label htmlFor="po_email">
-                  PO Email<span className="text-red-500">*</span>
-                </Label>
-                <ConditionalInput
-                  isEditable={isEditable}
-                  type="email"
-                  name="po_email"
-                  value={formData.po_email || ""}
-                  onChange={handleSelectChange}
-                  onBlur={handleInputBlur}
-                  required={true}
-                  placeholder="example@domain.com"
-                  className={errors.po_email ? "border-red-500" : ""}
-                />
-                {errors.po_email && (
-                  <p className="text-red-500 text-sm">{errors.po_email}</p>
-                )}
-              </div>
-
-              {/* Return Order Email */}
-              <div className="space-y-2">
-                <Label htmlFor="return_order_email">
-                  Return Order Email<span className="text-red-500">*</span>
-                </Label>
-                <ConditionalInput
-                  isEditable={isEditable}
-                  type="email"
-                  name="return_order_email"
-                  value={formData.return_order_email}
-                  onChange={handleSelectChange}
-                  onBlur={handleInputBlur}
-                  required={true}
-                  placeholder="example@domain.com"
-                  className={errors.return_order_email ? "border-red-500" : ""}
-                />
-                {errors.return_order_email && (
-                  <p className="text-red-500 text-sm">
-                    {errors.return_order_email}
-                  </p>
-                )}
+                {/* Return Order Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="return_order_email">
+                    Return Order Email<span className="text-red-500">*</span>
+                  </Label>
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="email"
+                    name="return_order_email"
+                    value={formData.return_order_email}
+                    onChange={handleSelectChange}
+                    onBlur={handleInputBlur}
+                    required={true}
+                    placeholder="example@domain.com"
+                    className={
+                      errors.return_order_email ? "border-red-500" : ""
+                    }
+                  />
+                  {errors.return_order_email && (
+                    <p className="text-red-500 text-sm">
+                      {errors.return_order_email}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-
-            {/* Invoice Currency sections based on trading entities */}
-            {(hasAuEntities || hasNzEntities) && (
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* AU Invoice Currency */}
-                {hasAuEntities && (
-                  <div className="space-y-2">
-                    <Label htmlFor="au_invoice_currency">
-                      Select the Invoice currency when trading with our
-                      Australian based entity(ies)
-                      <span className="text-red-500">*</span>
-                    </Label>
-                    <ConditionalInput
-                      isEditable={isEditable}
-                      type="select"
-                      name="au_invoice_currency"
-                      value={formData.au_invoice_currency || ""}
-                      onChange={handleSelectChange}
-                      options={currencies.map((currency) => ({
-                        value: currency.value,
-                        label: currency.label,
-                      }))}
-                      required={hasAuEntities}
-                      className={
-                        errors.au_invoice_currency ? "border-red-500" : ""
-                      }
-                      placeholder="Select a currency"
-                    />
-                    {errors.au_invoice_currency && (
-                      <p className="text-red-500 text-sm">
-                        {errors.au_invoice_currency}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* NZ Invoice Currency */}
-                {hasNzEntities && (
-                  <div className="space-y-2">
-                    <Label htmlFor="nz_invoice_currency">
-                      Select the Invoice currency when trading with NZ based
-                      entity(ies)
-                      <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={formData.nz_invoice_currency || ""}
-                      onValueChange={(value) =>
-                        handleSelectChange("nz_invoice_currency", value)
-                      }
-                    >
-                      <SelectTrigger
-                        id="nz_invoice_currency"
-                        className={
-                          errors.nz_invoice_currency ? "border-red-500" : ""
-                        }
-                      >
-                        <SelectValue placeholder="Select a currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {currencies.map((currency) => (
-                          <SelectItem
-                            key={currency.value}
-                            value={currency.value}
-                          >
-                            {currency.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.nz_invoice_currency && (
-                      <p className="text-red-500 text-sm">
-                        {errors.nz_invoice_currency}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {/* 2. Banking Details */}

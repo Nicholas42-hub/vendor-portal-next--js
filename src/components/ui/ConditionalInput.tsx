@@ -81,7 +81,11 @@ export const ConditionalInput: React.FC<ConditionalInputProps> = ({
   // If not editable, render a read-only display
   if (!isEditable) {
     if (type === "checkbox") {
-      return <span className="text-gray-700">{value ? "Yes" : "No"}</span>;
+      return (
+        <span className="text-gray-900 font-medium">
+          {value ? "Yes" : "No"}
+        </span>
+      );
     }
 
     if (type === "select" && options) {
@@ -91,7 +95,7 @@ export const ConditionalInput: React.FC<ConditionalInputProps> = ({
         <Input
           value={selectedOption?.label || value || ""}
           readOnly
-          className={`bg-gray-50 cursor-not-allowed text-gray-700 ${widthClass}`}
+          className={`bg-gray-50 cursor-not-allowed text-gray-900 font-medium ${widthClass}`}
         />
       );
     }
@@ -99,7 +103,7 @@ export const ConditionalInput: React.FC<ConditionalInputProps> = ({
     if (type === "textarea") {
       return (
         <div
-          className={`p-2 bg-gray-50 border rounded-md min-h-[80px] text-gray-700 ${widthClass}`}
+          className={`p-2 bg-gray-50 border rounded-md min-h-[80px] text-gray-900 font-medium ${widthClass}`}
         >
           {value || ""}
         </div>
@@ -110,7 +114,7 @@ export const ConditionalInput: React.FC<ConditionalInputProps> = ({
       <Input
         value={value || ""}
         readOnly
-        className={`bg-gray-50 cursor-not-allowed text-gray-700 ${widthClass}`}
+        className={`bg-gray-50 cursor-not-allowed text-gray-900 font-medium ${widthClass}`}
       />
     );
   }

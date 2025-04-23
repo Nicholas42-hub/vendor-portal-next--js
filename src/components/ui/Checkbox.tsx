@@ -25,7 +25,10 @@ const StyledInput = styled("input")<{ disabled?: boolean }>(({ disabled }) => ({
   marginRight: "8px",
   transform: "translateY(-2px)",
   cursor: disabled ? "not-allowed" : "pointer",
-  opacity: disabled ? 0.7 : 1,
+  opacity: 1,
+  "&:checked": {
+    accentColor: "#3b82f6", // Use your theme color here
+  },
 }));
 
 const StyledLabel = styled("label")<{ disabled?: boolean }>(({ disabled }) => ({
@@ -58,20 +61,75 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   };
 
   return (
-    <CheckboxContainer className={`grid-entity ${className || ""}`}>
-      <StyledInput
-        type="checkbox"
-        id={id}
-        name={name}
-        value={value}
-        checked={checked}
-        onChange={handleChange}
-        disabled={disabled}
-        required={required}
-      />
+    <CheckboxContainer className={className}>
+      {disabled ? (
+        // When disabled, use a custom styled element that maintains the color
+        <div
+          style={{
+            position: "relative",
+            width: "16px",
+            height: "16px",
+            marginRight: "8px",
+            border: "1px solid #d1d5db",
+            borderRadius: "2px",
+            backgroundColor: checked ? "#3b82f6" : "#f9fafb",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {checked && (
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ color: "white" }}
+            >
+              <path
+                d="M5 13L9 17L19 7"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+          <input
+            type="checkbox"
+            id={id}
+            name={name}
+            value={value}
+            checked={checked}
+            onChange={handleChange}
+            disabled={true}
+            required={required}
+            style={{
+              position: "absolute",
+              opacity: 0,
+              width: "100%",
+              height: "100%",
+            }}
+          />
+        </div>
+      ) : (
+        // When enabled, use the normal input
+        <StyledInput
+          type="checkbox"
+          id={id}
+          name={name}
+          value={value}
+          checked={checked}
+          onChange={handleChange}
+          disabled={disabled}
+          required={required}
+        />
+      )}
       {label && (
         <StyledLabel htmlFor={id} disabled={disabled}>
           {label}
+          {required && <span style={{ color: "red" }}>*</span>}
         </StyledLabel>
       )}
     </CheckboxContainer>
