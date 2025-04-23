@@ -11,8 +11,7 @@ import {
   vendorTypeOptions,
 } from "../../models/VendorTypes";
 import { FormField } from "../ui/FormField";
-import { TextInput } from "../ui/TextInput";
-import { Dropdown } from "../ui/Dropdown";
+import { ConditionalInput } from "../ui/ConditionalInput";
 import { Checkbox } from "../ui/Checkbox";
 import { countries } from "@/lib/countries";
 
@@ -146,25 +145,17 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
         error={errors.vendorHomeCountry}
         touched={touched["generalDetails.vendorHomeCountry"]}
       >
-        <Dropdown
-          id="vendorHomeCountry"
-          name="vendorHomeCountry"
+        <ConditionalInput
+          isEditable={isEditable}
+          type="select"
+          name="vendor_home_country"
           value={data.vendorHomeCountry}
-          onChange={(e) => onChange("vendorHomeCountry", e.target.value)}
-          onBlur={() => onBlur("vendorHomeCountry")}
-          options={[
-            { value: "", label: "Select an option", disabled: true },
-            ...countries.map((country) => ({
-              value: country,
-              label: country,
-            })),
-          ]}
-          required
-          disabled={!isEditable}
-          error={
-            !!errors.vendorHomeCountry &&
-            touched["generalDetails.vendorHomeCountry"]
-          }
+          onChange={(value) => onChange("vendorHomeCountry", value)}
+          options={countries.map((country) => ({
+            value: country,
+            label: country,
+          }))}
+          placeholder="Select country"
         />
       </FormField>
 
@@ -176,21 +167,17 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
         error={errors.primaryTradingBusinessUnit}
         touched={touched["generalDetails.primaryTradingBusinessUnit"]}
       >
-        <Dropdown
-          id="primaryTradingBusinessUnit"
-          name="primaryTradingBusinessUnit"
+        <ConditionalInput
+          isEditable={isEditable}
+          type="select"
+          name="primary_trading_business_unit"
           value={data.primaryTradingBusinessUnit}
-          onChange={(e) =>
-            onChange("primaryTradingBusinessUnit", e.target.value)
-          }
-          onBlur={() => onBlur("primaryTradingBusinessUnit")}
-          options={businessUnitOptions}
-          required
-          disabled={!isEditable}
-          error={
-            !!errors.primaryTradingBusinessUnit &&
-            touched["generalDetails.primaryTradingBusinessUnit"]
-          }
+          onChange={(value) => onChange("primaryTradingBusinessUnit", value)}
+          options={businessUnitOptions.map((unit) => ({
+            value: unit.value,
+            label: unit.label,
+          }))}
+          placeholder="Select business unit"
         />
       </FormField>
 
@@ -202,22 +189,13 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
         error={errors.email}
         touched={touched["generalDetails.email"]}
       >
-        <TextInput
-          id="email"
+        <ConditionalInput
+          isEditable={isEditable}
+          type="text"
           name="email"
           value={data.email}
-          onChange={(e) => onChange("email", e.target.value)}
-          onBlur={() => {
-            onBlur("email");
-            validateField("email");
-          }}
+          onChange={(value) => onChange("email", value)}
           placeholder="example@domain.com"
-          type="email"
-          pattern="[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}"
-          title="Please enter a valid email address (e.g., example@domain.com)"
-          required
-          disabled={!isEditable}
-          error={!!errors.email && touched["generalDetails.email"]}
         />
         {/* Add loading indicator when checking email */}
         {isChecking["generalDetails.email"] && (
@@ -236,16 +214,13 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
         error={errors.businessName}
         touched={touched["generalDetails.businessName"]}
       >
-        <TextInput
-          id="businessName"
-          name="businessName"
+        <ConditionalInput
+          isEditable={isEditable}
+          type="text"
+          name="business_name"
           value={data.businessName}
-          onChange={(e) => onChange("businessName", e.target.value)}
-          onBlur={() => onBlur("businessName")}
-          required
-          error={
-            !!errors.businessName && touched["generalDetails.businessName"]
-          }
+          onChange={(value) => onChange("businessName", value)}
+          placeholder="Business name"
         />
       </FormField>
 
@@ -256,13 +231,13 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
         error={errors.tradingName}
         touched={touched["generalDetails.tradingName"]}
       >
-        <TextInput
-          id="tradingName"
-          name="tradingName"
+        <ConditionalInput
+          isEditable={isEditable}
+          type="text"
+          name="trading_name"
           value={data.tradingName || ""}
-          onChange={(e) => onChange("tradingName", e.target.value)}
-          onBlur={() => onBlur("tradingName")}
-          error={!!errors.tradingName && touched["generalDetails.tradingName"]}
+          onChange={(value) => onChange("tradingName", value)}
+          placeholder="Trading name"
         />
       </FormField>
 
@@ -274,15 +249,17 @@ export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
         error={errors.vendorType}
         touched={touched["generalDetails.vendorType"]}
       >
-        <Dropdown
-          id="vendorType"
-          name="vendorType"
+        <ConditionalInput
+          isEditable={isEditable}
+          type="select"
+          name="vendor_type"
           value={data.vendorType}
-          onChange={(e) => onChange("vendorType", e.target.value)}
-          onBlur={() => onBlur("vendorType")}
-          options={vendorTypeOptions}
-          required
-          error={!!errors.vendorType && touched["generalDetails.vendorType"]}
+          onChange={(value) => onChange("vendorType", value)}
+          options={vendorTypeOptions.map((type) => ({
+            value: type.value,
+            label: type.label,
+          }))}
+          placeholder="Select vendor type"
         />
       </FormField>
     </SectionContainer>

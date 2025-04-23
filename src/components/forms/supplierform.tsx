@@ -20,6 +20,7 @@ import {
 import { countries } from "@/lib/countries";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
+import { ConditionalInput } from "../ui/ConditionalInput";
 
 // Define interfaces for trading entities
 interface TradingEntity {
@@ -89,9 +90,21 @@ interface FormErrors {
   [key: string]: string;
 }
 
-export default function SupplierFormExternal() {
+// Define props interface for SupplierForm
+interface SupplierFormProps {
+  isEditable?: boolean;
+  email?: string;
+  onDataChange?: (data: SupplierFormData) => void;
+}
+
+export default function SupplierFormExternal({
+  isEditable = true,
+  email: propEmail,
+  onDataChange,
+}: SupplierFormProps) {
   const searchParams = useSearchParams();
-  const email = searchParams.get("email");
+  const urlEmail = searchParams.get("email");
+  const email = propEmail || urlEmail;
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -126,7 +139,6 @@ export default function SupplierFormExternal() {
     has_tax_id: "",
     ANB_GST: "",
   });
-
   // Currencies list
   const currencies = [
     { value: "AUD", label: "AUD" },
@@ -590,7 +602,9 @@ export default function SupplierFormExternal() {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Supplier Onboarding Form</CardTitle>
+        <CardTitle>
+          Supplier {isEditable ? "Onboarding Form" : "Details"}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -601,12 +615,12 @@ export default function SupplierFormExternal() {
             {/* Business Name (Read-only from Vendor Creation page) */}
             <div className="space-y-2 mb-6">
               <Label htmlFor="business_name">Business Name</Label>
-              <Input
-                id="business_name"
+              <ConditionalInput
+                isEditable={false} // Always read-only
+                type="text"
                 name="business_name"
                 value={formData.business_name}
-                onChange={handleInputChange}
-                className="bg-gray-100"
+                placeholder="Business Name"
               />
             </div>
 
@@ -615,29 +629,33 @@ export default function SupplierFormExternal() {
               <div className="space-y-2">
                 <Label htmlFor="trading_name">
                   Trading Name (if different to Business Name)
-                  <span className="text-red-500">*</span>
+                  {isEditable && <span className="text-red-500">*</span>}
                 </Label>
-                <Input
-                  id="trading_name"
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="text"
                   name="trading_name"
                   value={formData.trading_name || ""}
-                  onChange={handleInputChange}
-                  required
+                  onChange={handleSelectChange}
+                  onBlur={handleInputBlur}
+                  required={isEditable}
+                  placeholder="Trading Name"
                   className={errors.trading_name ? "border-red-500" : ""}
                 />
-                {errors.trading_name && (
+                {errors.trading_name && isEditable && (
                   <p className="text-red-500 text-sm">{errors.trading_name}</p>
                 )}
               </div>
 
-              {/* Website - Moved here as requested */}
+              {/* Website */}
               <div className="space-y-2">
                 <Label htmlFor="website">Website</Label>
-                <Input
-                  id="website"
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="text"
                   name="website"
                   value={formData.website || ""}
-                  onChange={handleInputChange}
+                  onChange={handleSelectChange}
                   placeholder="https://example.com"
                 />
               </div>
@@ -646,26 +664,21 @@ export default function SupplierFormExternal() {
                 <Label htmlFor="country">
                   Country<span className="text-red-500">*</span>
                 </Label>
-                <Select
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="select"
+                  name="country"
                   value={formData.country}
-                  onValueChange={(value) =>
-                    handleSelectChange("country", value)
-                  }
-                >
-                  <SelectTrigger
-                    id="country"
-                    className={errors.country ? "border-red-500" : ""}
-                  >
-                    <SelectValue placeholder="Select a country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((country) => (
-                      <SelectItem key={country} value={country}>
-                        {country}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={handleSelectChange}
+                  onBlur={handleInputBlur}
+                  options={countries.map((country) => ({
+                    value: country,
+                    label: country,
+                  }))}
+                  required={true}
+                  className={errors.country ? "border-red-500" : ""}
+                  placeholder="Select a country"
+                />
                 {errors.country && (
                   <p className="text-red-500 text-sm">{errors.country}</p>
                 )}
@@ -676,23 +689,21 @@ export default function SupplierFormExternal() {
                 <Label htmlFor="gst_registered">
                   Registered for GST?<span className="text-red-500">*</span>
                 </Label>
-                <Select
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="select"
+                  name="gst_registered"
                   value={formData.gst_registered}
-                  onValueChange={(value) =>
-                    handleSelectChange("gst_registered", value)
-                  }
-                >
-                  <SelectTrigger
-                    id="gst_registered"
-                    className={errors.gst_registered ? "border-red-500" : ""}
-                  >
-                    <SelectValue placeholder="Select Yes or No" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Yes">Yes</SelectItem>
-                    <SelectItem value="No">No</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={handleSelectChange}
+                  onBlur={handleInputBlur}
+                  options={[
+                    { value: "Yes", label: "Yes" },
+                    { value: "No", label: "No" },
+                  ]}
+                  required={true}
+                  className={errors.gst_registered ? "border-red-500" : ""}
+                  placeholder="Select Yes or No"
+                />
                 {errors.gst_registered && (
                   <p className="text-red-500 text-sm">
                     {errors.gst_registered}
@@ -708,23 +719,25 @@ export default function SupplierFormExternal() {
                       If you have an ABN or NZ GST, please provide your details
                       below.
                     </Label>
-                    <Select
+                    <ConditionalInput
+                      isEditable={isEditable}
+                      type="select"
+                      name="has_tax_id"
                       value={formData.has_tax_id}
-                      onValueChange={(value) =>
-                        handleSelectChange("has_tax_id", value)
+                      onChange={handleSelectChange}
+                      onBlur={handleInputBlur}
+                      options={[
+                        { value: "Yes", label: "Yes" },
+                        { value: "No", label: "No" },
+                      ]}
+                      required={
+                        formData.country &&
+                        formData.country !== "New Zealand" &&
+                        formData.country !== "Australia"
                       }
-                    >
-                      <SelectTrigger
-                        id="has_tax_id"
-                        className={errors.has_tax_id ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Select Yes or No" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Yes">Yes</SelectItem>
-                        <SelectItem value="No">No</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      className={errors.has_tax_id ? "border-red-500" : ""}
+                      placeholder="Select Yes or No"
+                    />
                     {errors.has_tax_id && (
                       <p className="text-red-500 text-sm">
                         {errors.has_tax_id}
@@ -739,23 +752,19 @@ export default function SupplierFormExternal() {
                 formData.has_tax_id === "Yes" && (
                   <div className="space-y-2">
                     <Label htmlFor="ANB_GST">ABN or GST</Label>
-                    <Select
+                    <ConditionalInput
+                      isEditable={isEditable}
+                      type="select"
+                      name="ANB_GST"
                       value={formData.ANB_GST}
-                      onValueChange={(value) =>
-                        handleSelectChange("ANB_GST", value)
-                      }
-                    >
-                      <SelectTrigger
-                        id="ANB_GST"
-                        className={errors.ANB_GST ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Select ABN or GST" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ABN">ABN</SelectItem>
-                        <SelectItem value="GST">GST</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      onChange={handleSelectChange}
+                      options={[
+                        { value: "ABN", label: "ABN" },
+                        { value: "GST", label: "GST" },
+                      ]}
+                      className={errors.ANB_GST ? "border-red-500" : ""}
+                      placeholder="Select ABN or GST"
+                    />
                     {errors.ANB_GST && (
                       <p className="text-red-500 text-sm">{errors.ANB_GST}</p>
                     )}
@@ -771,11 +780,12 @@ export default function SupplierFormExternal() {
                     New Zealand Goods & Services Tax Number (GST)
                     <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="gst"
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="text"
                     name="gst"
                     value={formData.gst || ""}
-                    onChange={handleInputChange}
+                    onChange={handleSelectChange}
                     inputMode="numeric"
                     className={errors.gst ? "border-red-500" : ""}
                   />
@@ -793,11 +803,12 @@ export default function SupplierFormExternal() {
                     Australian Business Number (ABN)
                     <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="abn"
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="text"
                     name="abn"
                     value={formData.abn || ""}
-                    onChange={handleInputChange}
+                    onChange={handleSelectChange}
                     inputMode="numeric"
                     maxLength={11}
                     className={errors.abn ? "border-red-500" : ""}
@@ -830,13 +841,15 @@ export default function SupplierFormExternal() {
                 <Label htmlFor="city">
                   City<span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="city"
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="text"
                   name="city"
                   value={formData.city}
-                  onChange={handleInputChange}
-                  required
+                  onChange={handleSelectChange}
+                  required={true}
                   className={errors.city ? "border-red-500" : ""}
+                  placeholder="Enter city"
                 />
                 {errors.city && (
                   <p className="text-red-500 text-sm">{errors.city}</p>
@@ -848,13 +861,15 @@ export default function SupplierFormExternal() {
                 <Label htmlFor="state">
                   State<span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="state"
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="text"
                   name="state"
                   value={formData.state}
-                  onChange={handleInputChange}
-                  required
+                  onChange={handleSelectChange}
+                  required={true}
                   className={errors.state ? "border-red-500" : ""}
+                  placeholder="Enter state"
                 />
                 {errors.state && (
                   <p className="text-red-500 text-sm">{errors.state}</p>
@@ -866,34 +881,36 @@ export default function SupplierFormExternal() {
                 <Label htmlFor="postcode">
                   Postcode<span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="postcode"
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="text"
                   name="postcode"
                   value={formData.postcode}
-                  onChange={handleInputChange}
+                  onChange={handleSelectChange}
                   inputMode="numeric"
-                  required
+                  required={true}
                   className={errors.postcode ? "border-red-500" : ""}
+                  placeholder="Enter postcode"
                 />
                 {errors.postcode && (
                   <p className="text-red-500 text-sm">{errors.postcode}</p>
                 )}
               </div>
 
-              {/* Primary Contact Email (renamed from accounts_contact) */}
+              {/* Primary Contact Email */}
               <div className="space-y-2">
                 <Label htmlFor="primary_contact_email">
                   Primary Contact Email<span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="primary_contact_email"
-                  name="primary_contact_email"
+                <ConditionalInput
+                  isEditable={isEditable}
                   type="email"
+                  name="primary_contact_email"
                   value={formData.primary_contact_email}
-                  onChange={handleInputChange}
+                  onChange={handleSelectChange}
                   onBlur={handleInputBlur}
+                  required={true}
                   placeholder="example@domain.com"
-                  required
                   className={
                     errors.primary_contact_email ? "border-red-500" : ""
                   }
@@ -910,14 +927,16 @@ export default function SupplierFormExternal() {
                 <Label htmlFor="telephone">
                   Telephone<span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="telephone"
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="text"
                   name="telephone"
                   value={formData.telephone}
-                  onChange={handleInputChange}
+                  onChange={handleSelectChange}
                   inputMode="numeric"
-                  required
+                  required={true}
                   className={errors.telephone ? "border-red-500" : ""}
+                  placeholder="Enter telephone number"
                 />
                 {errors.telephone && (
                   <p className="text-red-500 text-sm">{errors.telephone}</p>
@@ -929,15 +948,15 @@ export default function SupplierFormExternal() {
                 <Label htmlFor="po_email">
                   PO Email<span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="po_email"
-                  name="po_email"
+                <ConditionalInput
+                  isEditable={isEditable}
                   type="email"
+                  name="po_email"
                   value={formData.po_email || ""}
-                  onChange={handleInputChange}
+                  onChange={handleSelectChange}
                   onBlur={handleInputBlur}
+                  required={true}
                   placeholder="example@domain.com"
-                  required
                   className={errors.po_email ? "border-red-500" : ""}
                 />
                 {errors.po_email && (
@@ -945,20 +964,20 @@ export default function SupplierFormExternal() {
                 )}
               </div>
 
-              {/* Return Order Email - New field */}
+              {/* Return Order Email */}
               <div className="space-y-2">
                 <Label htmlFor="return_order_email">
                   Return Order Email<span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="return_order_email"
-                  name="return_order_email"
+                <ConditionalInput
+                  isEditable={isEditable}
                   type="email"
+                  name="return_order_email"
                   value={formData.return_order_email}
-                  onChange={handleInputChange}
+                  onChange={handleSelectChange}
                   onBlur={handleInputBlur}
+                  required={true}
                   placeholder="example@domain.com"
-                  required
                   className={errors.return_order_email ? "border-red-500" : ""}
                 />
                 {errors.return_order_email && (
@@ -980,31 +999,22 @@ export default function SupplierFormExternal() {
                       Australian based entity(ies)
                       <span className="text-red-500">*</span>
                     </Label>
-                    <Select
+                    <ConditionalInput
+                      isEditable={isEditable}
+                      type="select"
+                      name="au_invoice_currency"
                       value={formData.au_invoice_currency || ""}
-                      onValueChange={(value) =>
-                        handleSelectChange("au_invoice_currency", value)
+                      onChange={handleSelectChange}
+                      options={currencies.map((currency) => ({
+                        value: currency.value,
+                        label: currency.label,
+                      }))}
+                      required={hasAuEntities}
+                      className={
+                        errors.au_invoice_currency ? "border-red-500" : ""
                       }
-                    >
-                      <SelectTrigger
-                        id="au_invoice_currency"
-                        className={
-                          errors.au_invoice_currency ? "border-red-500" : ""
-                        }
-                      >
-                        <SelectValue placeholder="Select a currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {currencies.map((currency) => (
-                          <SelectItem
-                            key={currency.value}
-                            value={currency.value}
-                          >
-                            {currency.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select a currency"
+                    />
                     {errors.au_invoice_currency && (
                       <p className="text-red-500 text-sm">
                         {errors.au_invoice_currency}
@@ -1066,23 +1076,20 @@ export default function SupplierFormExternal() {
               <Label htmlFor="payment_method">
                 Payment Method<span className="text-red-500">*</span>
               </Label>
-              <Select
+              <ConditionalInput
+                isEditable={isEditable}
+                type="select"
+                name="payment_method"
                 value={formData.payment_method}
-                onValueChange={(value) =>
-                  handleSelectChange("payment_method", value)
-                }
-              >
-                <SelectTrigger
-                  id="payment_method"
-                  className={errors.payment_method ? "border-red-500" : ""}
-                >
-                  <SelectValue placeholder="Select Payment Method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="Bpay">Bpay</SelectItem>
-                </SelectContent>
-              </Select>
+                onChange={handleSelectChange}
+                options={[
+                  { value: "Bank Transfer", label: "Bank Transfer" },
+                  { value: "Bpay", label: "Bpay" },
+                ]}
+                required={true}
+                className={errors.payment_method ? "border-red-500" : ""}
+                placeholder="Select Payment Method"
+              />
               {errors.payment_method && (
                 <p className="text-red-500 text-sm">{errors.payment_method}</p>
               )}
@@ -1095,11 +1102,12 @@ export default function SupplierFormExternal() {
                   <Label htmlFor="biller_code">
                     Biller Code<span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="biller_code"
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="text"
                     name="biller_code"
                     value={formData.biller_code || ""}
-                    onChange={handleInputChange}
+                    onChange={handleSelectChange}
                     pattern="\\d+"
                     inputMode="numeric"
                     className={errors.biller_code ? "border-red-500" : ""}
@@ -1114,11 +1122,12 @@ export default function SupplierFormExternal() {
                   <Label htmlFor="ref_code">
                     Ref Code<span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="ref_code"
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="text"
                     name="ref_code"
                     value={formData.ref_code || ""}
-                    onChange={handleInputChange}
+                    onChange={handleSelectChange}
                     pattern="\\d+"
                     inputMode="numeric"
                     className={errors.ref_code ? "border-red-500" : ""}
@@ -1146,28 +1155,21 @@ export default function SupplierFormExternal() {
                         <Label htmlFor="au_bank_country">
                           Bank Country<span className="text-red-500">*</span>
                         </Label>
-                        <Select
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="select"
+                          name="au_bank_country"
                           value={formData.au_bank_country || ""}
-                          onValueChange={(value) =>
-                            handleSelectChange("au_bank_country", value)
+                          onChange={handleSelectChange}
+                          options={countries.map((country) => ({
+                            value: country,
+                            label: country,
+                          }))}
+                          className={
+                            errors.au_bank_country ? "border-red-500" : ""
                           }
-                        >
-                          <SelectTrigger
-                            id="au_bank_country"
-                            className={
-                              errors.au_bank_country ? "border-red-500" : ""
-                            }
-                          >
-                            <SelectValue placeholder="Select a country" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {countries.map((country) => (
-                              <SelectItem key={country} value={country}>
-                                {country}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Select a country"
+                        />
                         {errors.au_bank_country && (
                           <p className="text-red-500 text-sm">
                             {errors.au_bank_country}
@@ -1179,11 +1181,12 @@ export default function SupplierFormExternal() {
                         <Label htmlFor="au_bank_address">
                           Bank Address<span className="text-red-500">*</span>
                         </Label>
-                        <Input
-                          id="au_bank_address"
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="text"
                           name="au_bank_address"
                           value={formData.au_bank_address || ""}
-                          onChange={handleInputChange}
+                          onChange={handleSelectChange}
                           className={
                             errors.au_bank_address ? "border-red-500" : ""
                           }
@@ -1200,33 +1203,21 @@ export default function SupplierFormExternal() {
                           Bank Currency Code
                           <span className="text-red-500">*</span>
                         </Label>
-                        <Select
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="select"
+                          name="au_bank_currency_code"
                           value={formData.au_bank_currency_code || ""}
-                          onValueChange={(value) =>
-                            handleSelectChange("au_bank_currency_code", value)
+                          onChange={handleSelectChange}
+                          options={currencies.map((currency) => ({
+                            value: currency.value,
+                            label: currency.label,
+                          }))}
+                          className={
+                            errors.au_bank_currency_code ? "border-red-500" : ""
                           }
-                        >
-                          <SelectTrigger
-                            id="au_bank_currency_code"
-                            className={
-                              errors.au_bank_currency_code
-                                ? "border-red-500"
-                                : ""
-                            }
-                          >
-                            <SelectValue placeholder="Select a currency" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {currencies.map((currency) => (
-                              <SelectItem
-                                key={currency.value}
-                                value={currency.value}
-                              >
-                                {currency.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Select a currency"
+                        />
                         {errors.au_bank_currency_code && (
                           <p className="text-red-500 text-sm">
                             {errors.au_bank_currency_code}
@@ -1238,11 +1229,12 @@ export default function SupplierFormExternal() {
                         <Label htmlFor="au_bank_clearing_code">
                           Bank Clearing Code
                         </Label>
-                        <Input
-                          id="au_bank_clearing_code"
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="text"
                           name="au_bank_clearing_code"
                           value={formData.au_bank_clearing_code || ""}
-                          onChange={handleInputChange}
+                          onChange={handleSelectChange}
                           className={
                             errors.au_bank_clearing_code ? "border-red-500" : ""
                           }
@@ -1259,12 +1251,12 @@ export default function SupplierFormExternal() {
                           Remittance Email
                           <span className="text-red-500">*</span>
                         </Label>
-                        <Input
-                          id="au_remittance_email"
-                          name="au_remittance_email"
+                        <ConditionalInput
+                          isEditable={isEditable}
                           type="email"
+                          name="au_remittance_email"
                           value={formData.au_remittance_email || ""}
-                          onChange={handleInputChange}
+                          onChange={handleSelectChange}
                           onBlur={handleInputBlur}
                           placeholder="example@domain.com"
                           className={
@@ -1286,11 +1278,12 @@ export default function SupplierFormExternal() {
                           <Label htmlFor="au_bsb">
                             BSB<span className="text-red-500">*</span>
                           </Label>
-                          <Input
-                            id="au_bsb"
+                          <ConditionalInput
+                            isEditable={isEditable}
+                            type="text"
                             name="au_bsb"
                             value={formData.au_bsb || ""}
-                            onChange={handleInputChange}
+                            onChange={handleSelectChange}
                             maxLength={6}
                             inputMode="numeric"
                             className={errors.au_bsb ? "border-red-500" : ""}
@@ -1310,11 +1303,12 @@ export default function SupplierFormExternal() {
                             Account Number
                             <span className="text-red-500">*</span>
                           </Label>
-                          <Input
-                            id="au_account"
+                          <ConditionalInput
+                            isEditable={isEditable}
+                            type="text"
                             name="au_account"
                             value={formData.au_account || ""}
-                            onChange={handleInputChange}
+                            onChange={handleSelectChange}
                             maxLength={10}
                             inputMode="numeric"
                             className={
@@ -1332,145 +1326,6 @@ export default function SupplierFormExternal() {
                         </div>
                       </div>
                     )}
-                    {/* NZ Domestic Banking */}
-                    {formData.au_bank_country === "New Zealand" && (
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="nz_bsb">
-                            BSB<span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            id="nz_bsb"
-                            name="nz_bsb"
-                            value={formData.nz_bsb || ""}
-                            onChange={handleInputChange}
-                            maxLength={6}
-                            inputMode="numeric"
-                            className={errors.nz_bsb ? "border-red-500" : ""}
-                          />
-                          {errors.nz_bsb && (
-                            <p className="text-red-500 text-sm">
-                              {errors.nz_bsb}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-500">
-                            Must be exactly 6 digits
-                          </p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="nz_account">
-                            Account Number
-                            <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            id="nz_account"
-                            name="nz_account"
-                            value={formData.nz_account || ""}
-                            onChange={handleInputChange}
-                            maxLength={10}
-                            inputMode="numeric"
-                            className={
-                              errors.nz_account ? "border-red-500" : ""
-                            }
-                          />
-                          {errors.nz_account && (
-                            <p className="text-red-500 text-sm">
-                              {errors.nz_account}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-500">
-                            Must be exactly 10 digits
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {/* AU Overseas Banking */}
-                    {formData.au_bank_country &&
-                      formData.au_bank_country !== "Australia" &&
-                      formData.au_bank_country !== "New Zealand" && (
-                        <div className="mt-4 border-t pt-4">
-                          <div className="space-y-2 mb-4">
-                            <Label htmlFor="overseas_iban_switch">
-                              IBAN or SWIFT
-                              <span className="text-red-500">*</span>
-                            </Label>
-                            <Select
-                              value={formData.overseas_iban_switch || ""}
-                              onValueChange={(value) =>
-                                handleSelectChange(
-                                  "overseas_iban_switch",
-                                  value
-                                )
-                              }
-                            >
-                              <SelectTrigger
-                                id="overseas_iban_switch"
-                                className={
-                                  errors.overseas_iban_switch
-                                    ? "border-red-500"
-                                    : ""
-                                }
-                              >
-                                <SelectValue placeholder="Select an option" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="IBAN">IBAN</SelectItem>
-                                <SelectItem value="SWIFT">SWIFT</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {errors.overseas_iban_switch && (
-                              <p className="text-red-500 text-sm">
-                                {errors.overseas_iban_switch}
-                              </p>
-                            )}
-                          </div>
-
-                          {formData.overseas_iban_switch === "IBAN" && (
-                            <div className="space-y-2">
-                              <Label htmlFor="overseas_iban">
-                                IBAN<span className="text-red-500">*</span>
-                              </Label>
-                              <Input
-                                id="overseas_iban"
-                                name="overseas_iban"
-                                value={formData.overseas_iban || ""}
-                                onChange={handleInputChange}
-                                className={
-                                  errors.overseas_iban ? "border-red-500" : ""
-                                }
-                              />
-                              {errors.overseas_iban && (
-                                <p className="text-red-500 text-sm">
-                                  {errors.overseas_iban}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {formData.overseas_iban_switch === "SWIFT" && (
-                            <div className="space-y-2">
-                              <Label htmlFor="overseas_swift">
-                                SWIFT<span className="text-red-500">*</span>
-                              </Label>
-                              <Input
-                                id="overseas_swift"
-                                name="overseas_swift"
-                                value={formData.overseas_swift || ""}
-                                onChange={handleInputChange}
-                                className={
-                                  errors.overseas_swift ? "border-red-500" : ""
-                                }
-                              />
-                              {errors.overseas_swift && (
-                                <p className="text-red-500 text-sm">
-                                  {errors.overseas_swift}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
                   </div>
                 )}
 
@@ -1728,35 +1583,29 @@ export default function SupplierFormExternal() {
                     {formData.nz_bank_country &&
                       formData.nz_bank_country !== "New Zealand" && (
                         <div className="mt-4 border-t pt-4">
+                          {/* Overseas Banking (IBAN/SWIFT) */}
                           <div className="space-y-2 mb-4">
                             <Label htmlFor="overseas_iban_switch">
                               IBAN or SWIFT
                               <span className="text-red-500">*</span>
                             </Label>
-                            <Select
+                            <ConditionalInput
+                              isEditable={isEditable}
+                              type="select"
+                              name="overseas_iban_switch"
                               value={formData.overseas_iban_switch || ""}
-                              onValueChange={(value) =>
-                                handleSelectChange(
-                                  "overseas_iban_switch",
-                                  value
-                                )
+                              onChange={handleSelectChange}
+                              options={[
+                                { value: "IBAN", label: "IBAN" },
+                                { value: "SWIFT", label: "SWIFT" },
+                              ]}
+                              className={
+                                errors.overseas_iban_switch
+                                  ? "border-red-500"
+                                  : ""
                               }
-                            >
-                              <SelectTrigger
-                                id="overseas_iban_switch"
-                                className={
-                                  errors.overseas_iban_switch
-                                    ? "border-red-500"
-                                    : ""
-                                }
-                              >
-                                <SelectValue placeholder="Select an option" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="IBAN">IBAN</SelectItem>
-                                <SelectItem value="SWIFT">SWIFT</SelectItem>
-                              </SelectContent>
-                            </Select>
+                              placeholder="Select an option"
+                            />
                             {errors.overseas_iban_switch && (
                               <p className="text-red-500 text-sm">
                                 {errors.overseas_iban_switch}
@@ -1769,11 +1618,12 @@ export default function SupplierFormExternal() {
                               <Label htmlFor="overseas_iban">
                                 IBAN<span className="text-red-500">*</span>
                               </Label>
-                              <Input
-                                id="overseas_iban"
+                              <ConditionalInput
+                                isEditable={isEditable}
+                                type="text"
                                 name="overseas_iban"
                                 value={formData.overseas_iban || ""}
-                                onChange={handleInputChange}
+                                onChange={handleSelectChange}
                                 className={
                                   errors.overseas_iban ? "border-red-500" : ""
                                 }
@@ -1791,11 +1641,12 @@ export default function SupplierFormExternal() {
                               <Label htmlFor="overseas_swift">
                                 SWIFT<span className="text-red-500">*</span>
                               </Label>
-                              <Input
-                                id="overseas_swift"
+                              <ConditionalInput
+                                isEditable={isEditable}
+                                type="text"
                                 name="overseas_swift"
                                 value={formData.overseas_swift || ""}
-                                onChange={handleInputChange}
+                                onChange={handleSelectChange}
                                 className={
                                   errors.overseas_swift ? "border-red-500" : ""
                                 }
@@ -1812,76 +1663,44 @@ export default function SupplierFormExternal() {
                   </div>
                 )}
 
-                {/* Bank Statement Upload */}
-                {/* Bank Statement Upload */}
-                <div className="space-y-2 mt-6">
-                  <Label htmlFor="bank-statement">
-                    Bank Statement or Confirmation Letter
-                    <span className="text-red-500">*</span>
-                  </Label>
-
-                  {/* Bank Statement Instructions */}
-                  <div className="bg-blue-50 p-4 rounded-md mb-3 text-sm">
-                    <p className="font-medium mb-2">Important Requirements:</p>
-                    <ul className="list-disc pl-5 space-y-1">
-                      <li>
-                        A bank statement or bank confirmation letter is required
-                        to verify your banking information
-                      </li>
-                      <li>
-                        The document must:
-                        <ul className="list-disc pl-5 mt-1">
-                          <li>Be dated within the last 3 months</li>
-                          <li>Be in PDF format only</li>
-                          <li>
-                            Clearly show the account details (sensitive
-                            information may be redacted)
-                          </li>
-                        </ul>
-                      </li>
-                      <li>
-                        Banking payment slips cannot be accepted as they lack
-                        proper dating
-                      </li>
-                      <li>
-                        Screenshots or partial images of documents cannot be
-                        verified for authenticity
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div
-                    className={`border-2 border-dashed rounded-md p-6 text-center ${
-                      fileError
-                        ? "border-red-500 bg-red-50"
-                        : "border-gray-300 hover:border-gray-400"
-                    } cursor-pointer`}
-                  >
-                    <input
-                      type="file"
-                      id="file-input"
-                      accept=".pdf"
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        document.getElementById("file-input")?.click()
-                      }
-                    >
-                      Upload PDF Document
-                    </Button>
-                    {bankStatement && (
-                      <p className="mt-2 text-sm text-gray-600">
-                        {bankStatement.name}
+                {/* Add Bank Statement Upload */}
+                <div className="bg-white p-4 rounded-md border mt-4">
+                  <h3 className="font-medium mb-4">Bank Statement</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="bank_statement">
+                      Upload Bank Statement (PDF only)
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    {isEditable ? (
+                      <div className="space-y-2">
+                        <Input
+                          id="bank_statement"
+                          type="file"
+                          accept="application/pdf"
+                          onChange={handleFileChange}
+                          className={fileError ? "border-red-500" : ""}
+                        />
+                        {bankStatement && (
+                          <p className="text-sm text-green-600">
+                            File selected: {bankStatement.name}
+                          </p>
+                        )}
+                        {fileError && (
+                          <p className="text-red-500 text-sm">{fileError}</p>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          Please upload a PDF copy of your bank statement or
+                          document showing your bank details
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">
+                        {bankStatement
+                          ? bankStatement.name
+                          : "No file uploaded"}
                       </p>
                     )}
                   </div>
-                  {fileError && (
-                    <p className="text-red-500 text-sm">{fileError}</p>
-                  )}
                 </div>
               </div>
             )}
@@ -1946,23 +1765,25 @@ export default function SupplierFormExternal() {
             </div>
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end">
-            <Button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
-                  Submitting...
-                </>
-              ) : (
-                "Submit Onboarding Form"
-              )}
-            </Button>
-          </div>
+          {/* Submit Button - only show when form is editable */}
+          {isEditable && (
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Onboarding Form"
+                )}
+              </Button>
+            </div>
+          )}
         </form>
       </CardContent>
 

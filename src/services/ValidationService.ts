@@ -91,15 +91,15 @@ export class ValidationService {
     }
 
     // Required location fields
-    if (!data.city?.trim()) {
+    if (typeof data.city !== 'string' || data.city.trim() === '') {
       errors.city = "City is required";
     }
 
-    if (!data.state?.trim()) {
+    if (typeof data.state !== 'string' || data.state.trim() === '') {
       errors.state = "State is required";
     }
 
-    if (!data.postcode?.trim()) {
+    if (typeof data.postcode !== 'string' || data.postcode.trim() === '') {
       errors.postcode = "Postcode is required";
     }
 
@@ -270,6 +270,153 @@ export class ValidationService {
     }
 
     return errors;
+  }
+
+  // Validate individual supplier form field
+  static validateSupplierFormField(fieldName: string, value: any, data: SupplierFormData): string | undefined {
+    // Create a temporary errors object to hold validation result
+    const errors: { [key: string]: string | undefined } = {};
+    
+    switch (fieldName) {
+      case "business_name":
+        if (!value || typeof value !== 'string' || value.trim() === '') {
+          return 'Business name is required';
+        }
+        break;
+        
+      case "trading_name":
+        if (value && typeof value === 'string' && value.trim() === '') {
+          return 'Trading name cannot be empty if provided';
+        }
+        break;
+        
+      case "country":
+        if (!value) {
+          return 'Country is required';
+        }
+        break;
+        
+      case "gst_registered":
+        if (!value) {
+          return 'GST registration status is required';
+        }
+        break;
+        
+      case "abn":
+        if (data.country === "Australia" || data.ANB_GST === "ABN") {
+          if (!value) {
+            return 'ABN is required';
+          } else if (!/^\d{11}$/.test(value)) {
+            return 'ABN must be exactly 11 digits';
+          }
+        }
+        break;
+        
+      case "gst":
+        if (data.country === "New Zealand" || data.ANB_GST === "GST") {
+          if (!value) {
+            return 'GST number is required';
+          }
+        }
+        break;
+        
+      case "address":
+        if (value && value.length > 100) {
+          return 'Address must be less than 100 characters';
+        }
+        break;
+        
+      case "city":
+        if (typeof value !== 'string' || value.trim() === '') {
+          return 'City is required';
+        }
+        break;
+        
+      case "state":
+        if (typeof value !== 'string' || value.trim() === '') {
+          return 'State is required';
+        }
+        break;
+        
+      case "postcode":
+        if (typeof value !== 'string' || value.trim() === '') {
+          return 'Postcode is required';
+        }
+        break;
+        
+      case "primary_contact_email":
+        if (!value) {
+          return 'Primary Contact Email is required';
+        } else if (!this.isValidEmail(value)) {
+          return 'Please enter a valid email address';
+        }
+        break;
+        
+      case "telephone":
+        if (!value?.trim()) {
+          return 'Telephone is required';
+        }
+        break;
+        
+      case "po_email":
+        if (!value) {
+          return 'PO Email is required';
+        } else if (!this.isValidEmail(value)) {
+          return 'Please enter a valid email address';
+        }
+        break;
+        
+      case "return_order_email":
+        if (!value) {
+          return 'Return Order Email is required';
+        } else if (!this.isValidEmail(value)) {
+          return 'Please enter a valid email address';
+        }
+        break;
+        
+      case "trading_entities":
+        const tradingEntities = Array.isArray(value) ? value : [];
+        if (!tradingEntities.length) {
+          return 'At least one Trading Entity must be selected';
+        }
+        break;
+        
+      case "au_invoice_currency":
+        // Check if there are AU entities before validating
+        const hasAuEntities = Array.isArray(data.trading_entities) && 
+          data.trading_entities.some(id => ['ALAW', 'AUDF', 'AUTE', 'AUPG', 'AUAW', 'LSAP'].includes(id));
+          
+        if (hasAuEntities && !value) {
+          return 'Invoice currency is required for Australian entities';
+        }
+        break;
+        
+      case "nz_invoice_currency":
+        // Check if there are NZ entities before validating
+        const hasNzEntities = Array.isArray(data.trading_entities) &&
+          data.trading_entities.some(id => ['NZAW', 'NZDF', 'NZTE'].includes(id));
+          
+        if (hasNzEntities && !value) {
+          return 'Invoice currency is required for New Zealand entities';
+        }
+        break;
+        
+      case "payment_method":
+        if (!value) {
+          return 'Payment Method is required';
+        }
+        break;
+        
+      // Add more field validations as needed...
+        
+      case "iAgree":
+        if (!value) {
+          return 'You must agree to the terms and conditions';
+        }
+        break;
+    }
+    
+    return undefined; // No error
   }
 
   // Validate General Details section

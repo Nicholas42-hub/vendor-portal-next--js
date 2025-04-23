@@ -2,8 +2,7 @@ import React from "react";
 import { styled } from "@mui/material/styles";
 import { VendorData, VendorType, yesNoOptions } from "../../models/VendorTypes";
 import { FormField } from "../ui/FormField";
-import { TextInput } from "../ui/TextInput";
-import { Dropdown } from "../ui/Dropdown";
+import { ConditionalInput } from "../ui/ConditionalInput";
 import { Input } from "../ui/input";
 
 // Define Props
@@ -16,7 +15,7 @@ interface TradingTermsSectionProps {
   onBlur: (field: string) => void;
   onFileChange?: (field: string, file: File | null) => void;
   validateField?: (field: string) => void;
-  isEditable?: boolean; // Add isEditable prop with default value true
+  isEditable?: boolean;
 }
 
 // Styled Container
@@ -57,6 +56,17 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
   const showBackOrder =
     !vendorType || vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK";
 
+  // Handle field changes
+  const handleFieldChange = (field: string, value: any) => {
+    onChange(field, value);
+  };
+
+  // Handle field blur
+  const handleFieldBlur = (e: React.FocusEvent<any>) => {
+    const fieldName = e.target.name;
+    onBlur(fieldName);
+  };
+
   // Handle file change for PDF upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0];
@@ -79,18 +89,18 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
           touched={touched["tradingTerms.quotesObtained"]}
           disabled={!isEditable}
         >
-          <Dropdown
-            id="quotesObtained"
+          <ConditionalInput
+            isEditable={isEditable}
+            type="select"
             name="quotesObtained"
             value={data.quotesObtained}
-            onChange={(e) => onChange("quotesObtained", e.target.value)}
-            onBlur={() => onBlur("quotesObtained")}
+            onChange={handleFieldChange}
+            onBlur={handleFieldBlur}
             options={yesNoOptions}
-            required={showQuotesSection}
-            error={
-              !!errors.quotesObtained && touched["tradingTerms.quotesObtained"]
-            }
             disabled={!isEditable}
+            required={showQuotesSection}
+            placeholder="Select yes/no"
+            className="w-full"
           />
         </FormField>
       )}
@@ -112,7 +122,7 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
               type="file"
               accept=".pdf"
               onChange={handleFileChange}
-              className="max-w-sm"
+              className="max-w-sm w-full"
               required
             />
             {data.quotesPdf && (
@@ -136,18 +146,17 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
           touched={touched["tradingTerms.quotesObtainedReason"]}
           disabled={!isEditable}
         >
-          <TextInput
-            id="quotesObtainedReason"
+          <ConditionalInput
+            isEditable={isEditable}
+            type="text"
             name="quotesObtainedReason"
             value={data.quotesObtainedReason || ""}
-            onChange={(e) => onChange("quotesObtainedReason", e.target.value)}
-            onBlur={() => onBlur("quotesObtainedReason")}
-            required={data.quotesObtained === "no"}
-            error={
-              !!errors.quotesObtainedReason &&
-              touched["tradingTerms.quotesObtainedReason"]
-            }
+            onChange={handleFieldChange}
+            onBlur={handleFieldBlur}
             disabled={!isEditable}
+            required={data.quotesObtained === "no"}
+            placeholder="Enter reason"
+            className="w-full"
           />
         </FormField>
       )}
@@ -162,15 +171,17 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
           touched={touched["tradingTerms.backOrder"]}
           disabled={!isEditable}
         >
-          <Dropdown
-            id="backOrder"
+          <ConditionalInput
+            isEditable={isEditable}
+            type="select"
             name="backOrder"
             value={data.backOrder || ""}
-            onChange={(e) => onChange("backOrder", e.target.value)}
-            onBlur={() => onBlur("backOrder")}
+            onChange={handleFieldChange}
+            onBlur={handleFieldBlur}
             options={yesNoOptions}
-            error={!!errors.backOrder && touched["tradingTerms.backOrder"]}
             disabled={!isEditable}
+            placeholder="Select yes/no"
+            className="w-full"
           />
         </FormField>
       )}

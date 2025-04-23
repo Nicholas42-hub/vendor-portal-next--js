@@ -1,0 +1,10 @@
+/* Add these styles to your global CSS */
+.empty-field {
+  color: #999;
+  font-style: italic;
+}
+
+.readonly-input {
+  background-color: #f9f9f9;
+  cursor: default;
+}

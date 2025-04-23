@@ -23,7 +23,7 @@ interface VendorData {
   originalStatus: string;
 }
 
-// Updated StatusFilter component with more subtle hover and active states
+// Update the StatusFilter component
 const StatusFilter: React.FC<StatusFilterProps> = ({
   id,
   dataStatus,
@@ -37,24 +37,41 @@ const StatusFilter: React.FC<StatusFilterProps> = ({
       id={id}
       data-status={dataStatus}
       className={`
-        px-3 py-2 rounded-md text-sm
+        px-4 py-2.5 rounded-md text-sm
         transition-all flex flex-col items-center whitespace-nowrap
-        border-b-2 border-b-[#003063]
-        ${
-          isActive
-            ? "bg-[#f0f5fa] text-[#003063] font-semibold"
-            : "bg-[#F6F6F6] text-[#5E5E5E] hover:bg-[#e0e5eb]"
-        }
       `}
+      style={{
+        background: isActive ? "rgb(220, 230, 240)" : "rgb(250, 250, 250)",
+        boxShadow: isActive ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+        color: isActive ? "#003063" : "#5E5E5E",
+        fontWeight: isActive ? "600" : "400",
+      }}
+      onMouseOver={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.background = "rgb(220, 230, 240)";
+          e.currentTarget.style.color = "#003063";
+        }
+      }}
+      onMouseOut={(e) => {
+        if (!isActive) {
+          e.currentTarget.style.background = "rgb(250, 250, 250)";
+          e.currentTarget.style.color = "#5E5E5E";
+        }
+      }}
       onClick={() => onClick(dataStatus)}
     >
       <div className="font-medium">{label}</div>
-      <div className="text-xs mt-1">{count}</div>
+      <div
+        className="text-xs mt-1"
+        style={{ color: isActive ? "#1976D2" : "#777" }}
+      >
+        {count}
+      </div>
     </button>
   );
 };
 
-// Helper function to format date as yyyymmdd
+// Helper function to format date as dd/mm/yyyy
 const formatDateAsYYYYMMDD = (dateString: string): string => {
   try {
     const date = new Date(dateString);
@@ -124,7 +141,7 @@ const VendorOnboardingContent: React.FC = () => {
 
           // Check if data is available and is an array
           if (responseData.data && Array.isArray(responseData.data)) {
-            // Format the date in each item to yyyymmdd
+            // Format the date in each item to dd/mm/yyyy
             const formattedData = responseData.data.map((item: VendorData) => ({
               ...item,
               createdon_formatted: formatDateAsYYYYMMDD(
@@ -253,27 +270,24 @@ const VendorOnboardingContent: React.FC = () => {
   };
 
   return (
-    <Card className="w-full shadow-md border border-[#F6F6F6]">
-      <CardContent className="p-6">
-        {/* Header and Create button container */}
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-[#003063] mb-4 sm:mb-0">
+    <Card
+      className="w-full shadow-md border border-[#F6F6F6]"
+      style={{ backgroundColor: "rgb(240, 245, 250)" }}
+    >
+      <CardContent
+        className="p-6"
+        style={{ backgroundColor: "rgb(240, 245, 250)" }}
+      >
+        {/* Header with centered title and button */}
+        <div className="flex flex-col items-center mb-6">
+          <h2 className="text-xl font-bold text-[#003063] mb-6">
             Vendor Portal Dashboard
           </h2>
-
-          {/* Create Vendor Button - Now separated from filters */}
-          <Button
-            id="vendor-onboarding"
-            onClick={handleNavigateToForm}
-            className="bg-[#003063] hover:bg-[#002364] text-white px-4 py-2 rounded w-full sm:w-auto"
-          >
-            Create a Vendor Onboarding Form
-          </Button>
         </div>
 
-        {/* Search container */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="search-container flex w-full max-w-md">
+        {/* Search and Create button container - aligned heights */}
+        <div className="flex justify-between items-center mb-6 gap-4">
+          <div className="search-container flex flex-1 max-w-md">
             <Input
               type="text"
               id="searchInput"
@@ -281,22 +295,32 @@ const VendorOnboardingContent: React.FC = () => {
               value={searchTerm}
               onChange={handleSearchInputChange}
               onKeyPress={handleKeyPress}
-              className="rounded-l-md rounded-r-none border-r-0 border-[#B2B2B2] focus:border-[#003063]"
+              className="rounded-l-md rounded-r-none border-r-0 border-[#B2B2B2] focus:border-[#003063] h-[42px]"
             />
             <Button
               type="button"
               id="searchButton"
               onClick={handleSearch}
-              className="rounded-l-none rounded-r-md bg-[#003063] hover:bg-[#002364]"
+              className="rounded-l-none rounded-r-md bg-[#003063] hover:bg-[#002364] h-[42px]"
             >
               Search
             </Button>
           </div>
+          <Button
+            id="vendor-onboarding"
+            onClick={handleNavigateToForm}
+            className="bg-[#003063] hover:bg-[#002364] text-white px-6 h-[42px] rounded transition-all hover:shadow-md hover:translate-y-[-1px] font-medium whitespace-nowrap"
+          >
+            Create a Vendor Onboarding Form
+          </Button>
         </div>
 
         {/* Filters container - all in one row with overflow handling */}
-        <div className="mb-6 overflow-x-auto">
-          <div className="filter-wrapper flex space-x-2 pb-2 min-w-max">
+        <div
+          className="mb-6 overflow-x-auto bg-[rgb(240,245,250)]"
+          style={{ scrollbarWidth: "thin" }}
+        >
+          <div className="filter-wrapper flex space-x-2 pb-2 min-w-max bg-[rgb(240,245,250)]">
             <StatusFilter
               id="all"
               dataStatus="all"
@@ -415,7 +439,17 @@ const VendorOnboardingContent: React.FC = () => {
                   filteredData.map((row, index) => (
                     <tr
                       key={`${row.crb7c_poemail}-${index}`}
-                      className="border-b border-[#F6F6F6] hover:bg-[#f0f5fa] cursor-pointer transition-colors"
+                      className="border-b border-[#F6F6F6] cursor-pointer transition-colors"
+                      style={{
+                        backgroundColor: "white",
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          "rgb(220, 230, 240)";
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = "white";
+                      }}
                       onClick={() => handleRowClick(row.crb7c_poemail)}
                     >
                       <td className="p-3 text-sm text-[#4E4E4E]">

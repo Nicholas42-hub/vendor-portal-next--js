@@ -17,50 +17,51 @@ const VendorOnboardingPage: React.FC = () => {
       .filter-wrapper {
         display: flex;
         flex-wrap: wrap;
-        justify-content: flex-start;  // Changed from center to flex-start
+        justify-content: flex-start;
         gap: 10px;
         margin-bottom: 20px;
-        max-width: 1800px;  // Match container width
+        max-width: 1800px; /* Match container width */
         margin-left: auto;
         margin-right: auto;
         padding: 0 1rem;
+        background-color: rgb(240,245,250); /* Match container background */
       }
       .status-filter {
-        padding: 10px 15px;
+        padding: 8px 16px;
         border: none;
-        border-radius: 4px;
+        border-radius: 16px;
         cursor: pointer;
         font-size: 14px;
-        transition: all 0.3s ease;
-        background-color: #f0f0f0;
-        color: #333;
+        transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        background: rgb(250, 250, 250); 
+        color: #555;
         display: flex;
         flex-direction: column;
         align-items: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       }
       .status-filter:hover {
-        background-color: #e0e0e0;
+        background-color: #e0e7f2; /* Slightly darker on hover */
+        color: #333;
       }
       .status-filter.active {
-        background-color: #1976D2;
-        color: white;
+        background: rgb(220, 230, 240); /* Keep consistent with table row hover */
+        color: #003063;
+        font-weight: 600;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.15);
       }
       .status-filter .label {
-        font-weight: bold;
+        font-weight: 500;
       }
       .status-filter .count {
-        margin-top: 5px;
+        margin-top: 4px;
         font-size: 12px;
+        color: #777;
       }
-      #all { 
-        border-bottom: 4px solid #1976D2;
+      .status-filter.active .count {
+        color: #1976D2; /* Match the active text color */
       }
-      #pending-manager-approval { border-bottom: 4px solid #2196F3; }
-      #pending-exco-approval { border-bottom: 4px solid #9C27B0; }
-      #pending-cfo-approval { border-bottom: 4px solid #FF5722; }
-      #completed { border-bottom: 4px solid #4CAF50; }
-      #declined { border-bottom: 4px solid #F44336; }
-      #invitation-sent { border-bottom: 4px solid #FFC107; }
+
       .create-button {
         background-color: #1976D2 !important;
         color: white !important;
@@ -68,9 +69,14 @@ const VendorOnboardingPage: React.FC = () => {
         padding: 15px;
         cursor: pointer;
         font-size: 14px;
+        border-radius: 16px; /* Match filter radius */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: all 0.2s ease-in-out;
       }
       .create-button:hover {
         background-color: #1565C0 !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15);
       }
     `;
     document.head.appendChild(styleElement);
@@ -199,7 +205,7 @@ const VendorOnboardingPage: React.FC = () => {
       />
 
       {/* Main content */}
-      <div className="relative z-10 max-w-[1400px] mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 max-w-[1450px] mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {connectionError && (
           <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4">
             <div className="flex">

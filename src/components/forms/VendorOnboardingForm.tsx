@@ -21,9 +21,19 @@ import useForm from "../../hooks/useForm";
 import { ValidationService } from "../../services/ValidationService";
 import { Popup } from "../ui/Popup";
 import { SubmitButton } from "../ui/SubmitButton";
-import axios from "axios"; // Add axios import
+import axios from "axios";
 
-// Define styled components
+// Define custom colors to match the template
+const customColors = {
+  primary: "#141E5D",
+  primaryLight: "rgba(240, 245, 250, 1)",
+  primaryText: "rgba(0, 51, 102, 1)",
+  requiredAsterisk: "#F01E73",
+  buttonPrimary: "#003063",
+  buttonHover: "#002364",
+};
+
+// Define styled components with updated styling
 const FormContainer = styled("div")({
   maxWidth: "1400px",
   width: "100%",
@@ -33,19 +43,37 @@ const FormContainer = styled("div")({
     '-apple-system, "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
 });
 
+const FormSection = styled("div")({
+  backgroundColor: "#f9fafb", // Light gray background for sections
+  padding: "24px",
+  marginBottom: "24px",
+  borderRadius: "0.5rem",
+  border: "1px solid #f0f0f0",
+});
+
+const SectionTitle = styled("h2")({
+  fontSize: "1.25rem",
+  fontWeight: "600",
+  marginBottom: "1.5rem",
+  color: customColors.primaryText,
+});
+
 const FormSubmitContainer = styled("div")({
   marginTop: "20px",
   width: "100%",
+  display: "flex",
+  justifyContent: "flex-end",
 });
 
 const ErrorMessage = styled("div")({
-  color: "#ff0000",
+  color: "white",
   padding: "15px",
   marginBottom: "20px",
-  backgroundColor: "#ffecec",
+  backgroundColor: "rgba(244, 67, 54, 0.9)",
   borderRadius: "5px",
-  borderLeft: "5px solid #ff0000",
+  borderLeft: "5px solid #D32F2F",
   fontSize: "14px",
+  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
 });
 
 interface VendorOnboardingFormProps {}
@@ -501,13 +529,55 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
   // Determine the vendor type for conditional rendering
   const vendorType = formData.generalDetails.vendorType || "";
 
+  // Add global CSS for styling form elements
+  useEffect(() => {
+    const styleElement = document.createElement("style");
+    styleElement.innerHTML = `
+      .MuiFormLabel-root, .MuiInputLabel-root {
+        color: #333333 !important;
+        font-weight: 500 !important;
+        font-size: 0.875rem !important;
+        margin-bottom: 0.25rem !important;
+      }
+      
+      .MuiInputBase-root, .MuiOutlinedInput-root {
+        background-color: white !important;
+        border-radius: 0.375rem !important;
+      }
+      
+      .MuiOutlinedInput-notchedOutline {
+        border-color: #d1d5db !important;
+      }
+      
+      .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+        border-color: #9ca3af !important;
+      }
+      
+      .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+        border-color: ${customColors.primary} !important;
+        border-width: 2px !important;
+      }
+      
+      .required-field::after {
+        content: '*';
+        color: ${customColors.requiredAsterisk};
+        margin-left: 4px;
+      }
+    `;
+    document.head.appendChild(styleElement);
+
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+
   return (
     <FormContainer>
-      <form onSubmit={handleSubmit}>
-        {validationError && <ErrorMessage>{validationError}</ErrorMessage>}
+      {validationError && <ErrorMessage>{validationError}</ErrorMessage>}
 
+      <form onSubmit={handleSubmit}>
         {/* General Details Section */}
-        <div ref={generalDetailsRef}>
+        <FormSection ref={generalDetailsRef}>
           <GeneralDetailsSection
             data={formData.generalDetails}
             errors={
@@ -525,10 +595,10 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
             onBlur={(field) => handleBlur("generalDetails", field)}
             validateField={(field) => validateField("generalDetails", field)}
           />
-        </div>
+        </FormSection>
 
         {/* Trading Terms Section */}
-        <div ref={tradingTermsRef}>
+        <FormSection ref={tradingTermsRef}>
           <TradingTermsSection
             data={formData.tradingTerms}
             vendorType={vendorType as VendorType}
@@ -538,10 +608,10 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
             onBlur={(field) => handleBlur("tradingTerms", field)}
             onFileChange={handleTradingTermsFileChange}
           />
-        </div>
+        </FormSection>
 
         {/* Supply Terms Section */}
-        <div ref={supplyTermsRef}>
+        <FormSection ref={supplyTermsRef}>
           <SupplyTermsSection
             data={formData.supplyTerms}
             errors={errors.supplyTerms || {}}
@@ -549,10 +619,10 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
             onChange={handleSupplyTermsChange}
             onBlur={(field) => handleBlur("supplyTerms", field)}
           />
-        </div>
+        </FormSection>
 
         {/* Financial Terms Section */}
-        <div ref={financialTermsRef}>
+        <FormSection ref={financialTermsRef}>
           <FinancialTermsSection
             data={formData.financialTerms}
             vendorType={vendorType as VendorType}
@@ -561,7 +631,7 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
             onChange={handleFinancialTermsChange}
             onBlur={(field) => handleBlur("financialTerms", field)}
           />
-        </div>
+        </FormSection>
 
         {/* Submit Button */}
         <FormSubmitContainer>
@@ -571,12 +641,26 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
             isLoading={isLoading}
             type="submit"
             variant="primary"
-            fullWidth={true}
+            fullWidth={false}
+            customStyle={{
+              backgroundColor: customColors.buttonPrimary,
+              color: "white",
+              borderRadius: "6px",
+              padding: "12px 24px",
+              fontSize: "14px",
+              fontWeight: "500",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+              "&:hover": {
+                backgroundColor: customColors.buttonHover,
+                transform: "translateY(-1px)",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+              },
+            }}
           />
         </FormSubmitContainer>
       </form>
 
-      {/* Confirmation Popup */}
+      {/* Popups remain unchanged */}
       <Popup
         isOpen={showConfirmation}
         title="Would you like to proceed?"
@@ -594,7 +678,6 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
         </div>
       </Popup>
 
-      {/* Success Popup */}
       <Popup
         isOpen={showSuccess}
         title="Thank you!"
@@ -604,7 +687,6 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
         isConfirmation={false}
       />
 
-      {/* Similar Vendors Warning Popup */}
       <Popup
         isOpen={showSimilarityWarning}
         title="Potential Similar Vendors Found"

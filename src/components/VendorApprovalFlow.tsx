@@ -1107,7 +1107,7 @@ export default function VendorApprovalFlow() {
               </button>
             </div>
 
-            {/* Form container */}
+            {/* Form container with conditional styling */}
             <div
               className="form-container"
               style={{
@@ -1119,24 +1119,20 @@ export default function VendorApprovalFlow() {
                   <div className="vendor-onboarding-container space-y-6">
                     {/* General Details Section */}
                     <div className="general-details-container">
-                      <h3 className="text-lg font-medium mb-4">
-                        General Details
-                      </h3>
                       <GeneralDetailsSection
                         data={formattedVendorData.generalDetails}
                         errors={errors}
                         touched={touched}
-                        onChange={handleChange}
-                        onCheckboxChange={handleCheckboxChange}
-                        onBlur={handleBlur}
+                        onChange={isEditable ? handleChange : undefined}
+                        onCheckboxChange={
+                          isEditable ? handleCheckboxChange : undefined
+                        }
+                        onBlur={isEditable ? handleBlur : undefined}
                         isEditable={isEditable}
                       />
                     </div>
                     {/* Trading Terms Section */}
                     <div className="trading-terms-container mt-6">
-                      <h3 className="text-lg font-medium mb-4">
-                        Trading Terms
-                      </h3>
                       <TradingTermsSection
                         data={formattedVendorData.tradingTerms}
                         vendorType={
@@ -1144,28 +1140,24 @@ export default function VendorApprovalFlow() {
                         }
                         errors={errors}
                         touched={touched}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
+                        onChange={isEditable ? handleChange : undefined}
+                        onBlur={isEditable ? handleBlur : undefined}
                         isEditable={isEditable}
                       />
                     </div>
                     {/* Supply Terms Section */}
                     <div className="supply-terms-container mt-6">
-                      <h3 className="text-lg font-medium mb-4">Supply Terms</h3>
                       <SupplyTermsSection
                         data={formattedVendorData.supplyTerms}
                         errors={errors}
                         touched={touched}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
+                        onChange={isEditable ? handleChange : undefined}
+                        onBlur={isEditable ? handleBlur : undefined}
                         isEditable={isEditable}
                       />
                     </div>
                     {/* Financial Terms Section */}
                     <div className="financial-terms-container">
-                      <h3 className="text-lg font-medium mb-4">
-                        Financial Terms
-                      </h3>
                       <FinancialTermsSection
                         data={formattedVendorData.financialTerms}
                         vendorType={
@@ -1173,56 +1165,26 @@ export default function VendorApprovalFlow() {
                         }
                         errors={errors}
                         touched={touched}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
+                        onChange={isEditable ? handleChange : undefined}
+                        onBlur={isEditable ? handleBlur : undefined}
                         isEditable={isEditable}
                         disabled={!isEditable}
                       />
                     </div>
                   </div>
-                  {isEditable && (
-                    <div className="mt-6 flex justify-end">
-                      <button
-                        type="submit"
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <div className="flex items-center">
-                            <svg
-                              className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                            Processing...
-                          </div>
-                        ) : (
-                          "Resubmit for Approval"
-                        )}
-                      </button>
-                    </div>
-                  )}
                 </form>
               )}
               {activeSection === "supplierForm" && (
                 <div className="supplier-form-container">
                   {vendorData.email ? (
-                    <SupplierForm />
+                    <SupplierForm
+                      isEditable={isEditable}
+                      email={vendorData.email}
+                      onDataChange={(data) => {
+                        // Optional: Handle supplier form data changes if needed
+                        console.log("Supplier form data updated:", data);
+                      }}
+                    />
                   ) : (
                     <div className="p-6 text-center">
                       <p className="text-gray-500">

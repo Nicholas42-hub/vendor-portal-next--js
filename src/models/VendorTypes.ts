@@ -24,7 +24,6 @@ export type YesNo = "yes" | "no" | "";
 
 // Yes/No options
 export const yesNoOptions = [
-  { value: "", label: "Select an option", disabled: true },
   { value: "yes", label: "Yes" },
   { value: "no", label: "No" },
 ];

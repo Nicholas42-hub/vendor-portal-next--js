@@ -11,8 +11,7 @@ import {
   yesNoOptions,
 } from "../../models/VendorTypes";
 import { FormField } from "../ui/FormField";
-import { TextInput } from "../ui/TextInput";
-import { Dropdown } from "../ui/Dropdown";
+import { ConditionalInput } from "../ui/ConditionalInput";
 import { useSession } from "next-auth/react";
 
 // Define Props
@@ -23,9 +22,9 @@ interface FinancialTermsSectionProps {
   touched: { [key: string]: boolean };
   onChange: (field: string, value: any) => void;
   onBlur: (field: string) => void;
-  disabled?: boolean; // Make this optional
-  validateField?: (field: string) => void; // Make this optional
-  isEditable?: boolean; // Add isEditable prop with default value true
+  disabled?: boolean;
+  validateField?: (field: string) => void;
+  isEditable?: boolean;
 }
 
 // Styled Container
@@ -59,12 +58,18 @@ const RebateRow = styled("div")({
   alignItems: "center",
   gap: "10px",
   marginTop: "8px",
+  flexWrap: "wrap", // Added for better mobile display
 });
 
 const RebateField = styled("div")({
   flex: 1,
   minWidth: "240px",
   margin: "0 5px",
+});
+
+const StyledConditionalInput = styled(ConditionalInput)({
+  width: "100%", // Make all inputs take full width of their container
+  boxSizing: "border-box",
 });
 
 // Component
@@ -77,10 +82,20 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
   onBlur,
   validateField,
   isEditable = true,
+  disabled = false,
 }) => {
   const handleNumberChange = (field: string, value: string) => {
     const numValue = value === "" ? 0 : parseInt(value, 10);
     onChange(field, numValue);
+  };
+
+  const handleValueChange = (field: string, value: any) => {
+    onChange(field, value);
+  };
+
+  const handleBlur = (e: React.FocusEvent<any>) => {
+    const field = e.target.name;
+    onBlur(field);
   };
 
   // Determine which sections to show based on vendor type
@@ -88,6 +103,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
     !vendorType || vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK";
   const showOrderExpiryDays =
     !vendorType || vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK";
+
   return (
     <SectionContainer>
       <SectionTitle>4. Financial Terms</SectionTitle>
@@ -98,21 +114,27 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
         htmlFor="paymentTerms"
         required
         error={errors.paymentTerms}
-        disabled={!isEditable}
         touched={touched["financialTerms.paymentTerms"]}
       >
-        <Dropdown
-          id="paymentTerms"
+        <StyledConditionalInput
+          isEditable={isEditable}
+          type="select"
           name="paymentTerms"
           value={data.paymentTerms}
-          onChange={(e) => onChange("paymentTerms", e.target.value)}
-          onBlur={() => onBlur("paymentTerms")}
-          options={paymentTermsOptions}
-          disabled={!isEditable}
-          required
-          error={
-            !!errors.paymentTerms && touched["financialTerms.paymentTerms"]
+          onChange={handleValueChange}
+          onBlur={handleBlur}
+          options={paymentTermsOptions.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+          }))}
+          disabled={disabled}
+          required={true}
+          className={
+            errors.paymentTerms && touched["financialTerms.paymentTerms"]
+              ? "border-red-500"
+              : ""
           }
+          placeholder="Select payment terms"
         />
         <Note>Terms set to 20 EOM requires CFO approval</Note>
       </FormField>
@@ -126,21 +148,22 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           error={errors.orderExpiryDays}
           touched={touched["financialTerms.orderExpiryDays"]}
         >
-          <TextInput
-            id="orderExpiryDays"
+          <StyledConditionalInput
+            isEditable={isEditable}
+            type="number"
             name="orderExpiryDays"
             value={data.orderExpiryDays ? data.orderExpiryDays.toString() : ""}
-            onChange={(e) =>
-              handleNumberChange("orderExpiryDays", e.target.value)
-            }
-            onBlur={() => onBlur("orderExpiryDays")}
-            type="number"
+            onChange={(name, value) => handleNumberChange(name, value)}
+            onBlur={handleBlur}
+            disabled={disabled}
             required={showOrderExpiryDays}
-            error={
-              !!errors.orderExpiryDays &&
+            className={
+              errors.orderExpiryDays &&
               touched["financialTerms.orderExpiryDays"]
+                ? "border-red-500"
+                : ""
             }
-            disabled={!isEditable}
+            placeholder="Enter days"
           />
         </FormField>
       )}
@@ -154,18 +177,21 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           error={errors.grossMargin}
           touched={touched["financialTerms.grossMargin"]}
         >
-          <TextInput
-            id="grossMargin"
+          <StyledConditionalInput
+            isEditable={isEditable}
+            type="text"
             name="grossMargin"
             value={data.grossMargin}
-            onChange={(e) => onChange("grossMargin", e.target.value)}
-            onBlur={() => onBlur("grossMargin")}
-            placeholder="%"
-            required
-            error={
-              !!errors.grossMargin && touched["financialTerms.grossMargin"]
+            onChange={handleValueChange}
+            onBlur={handleBlur}
+            disabled={disabled}
+            required={true}
+            className={
+              errors.grossMargin && touched["financialTerms.grossMargin"]
+                ? "border-red-500"
+                : ""
             }
-            disabled={!isEditable}
+            placeholder="%"
           />
         </FormField>
       )}
@@ -178,19 +204,25 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
         error={errors.invoiceDiscount}
         touched={touched["financialTerms.invoiceDiscount"]}
       >
-        <Dropdown
-          id="invoiceDiscount"
+        <StyledConditionalInput
+          isEditable={isEditable}
+          type="select"
           name="invoiceDiscount"
           value={data.invoiceDiscount}
-          onChange={(e) => onChange("invoiceDiscount", e.target.value)}
-          onBlur={() => onBlur("invoiceDiscount")}
-          options={yesNoOptions}
-          required
-          error={
-            !!errors.invoiceDiscount &&
-            touched["financialTerms.invoiceDiscount"]
+          onChange={handleValueChange}
+          onBlur={handleBlur}
+          options={yesNoOptions.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+          }))}
+          disabled={disabled}
+          required={true}
+          className={
+            errors.invoiceDiscount && touched["financialTerms.invoiceDiscount"]
+              ? "border-red-500"
+              : ""
           }
-          disabled={!isEditable}
+          placeholder="Select option"
         />
       </FormField>
 
@@ -203,19 +235,22 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           error={errors.invoiceDiscountValue}
           touched={touched["financialTerms.invoiceDiscountValue"]}
         >
-          <TextInput
-            id="invoiceDiscountValue"
+          <StyledConditionalInput
+            isEditable={isEditable}
+            type="text"
             name="invoiceDiscountValue"
             value={data.invoiceDiscountValue || ""}
-            onChange={(e) => onChange("invoiceDiscountValue", e.target.value)}
-            onBlur={() => onBlur("invoiceDiscountValue")}
-            placeholder="% of net invoiced value / wholesale price"
+            onChange={handleValueChange}
+            onBlur={handleBlur}
+            disabled={disabled}
             required={data.invoiceDiscount === "yes"}
-            error={
-              !!errors.invoiceDiscountValue &&
+            className={
+              errors.invoiceDiscountValue &&
               touched["financialTerms.invoiceDiscountValue"]
+                ? "border-red-500"
+                : ""
             }
-            disabled={!isEditable}
+            placeholder="% of net invoiced value / wholesale price"
           />
         </FormField>
       )}
@@ -228,19 +263,26 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
         error={errors.settlementDiscount}
         touched={touched["financialTerms.settlementDiscount"]}
       >
-        <Dropdown
-          id="settlementDiscount"
+        <StyledConditionalInput
+          isEditable={isEditable}
+          type="select"
           name="settlementDiscount"
           value={data.settlementDiscount}
-          onChange={(e) => onChange("settlementDiscount", e.target.value)}
-          onBlur={() => onBlur("settlementDiscount")}
-          options={yesNoOptions}
-          required
-          error={
-            !!errors.settlementDiscount &&
+          onChange={handleValueChange}
+          onBlur={handleBlur}
+          options={yesNoOptions.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+          }))}
+          disabled={disabled}
+          required={true}
+          className={
+            errors.settlementDiscount &&
             touched["financialTerms.settlementDiscount"]
+              ? "border-red-500"
+              : ""
           }
-          disabled={!isEditable}
+          placeholder="Select option"
         />
       </FormField>
 
@@ -255,21 +297,22 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             error={errors.settlementDiscountValue}
             touched={touched["financialTerms.settlementDiscountValue"]}
           >
-            <TextInput
-              id="settlementDiscountValue"
+            <StyledConditionalInput
+              isEditable={isEditable}
+              type="text"
               name="settlementDiscountValue"
               value={data.settlementDiscountValue || ""}
-              onChange={(e) =>
-                onChange("settlementDiscountValue", e.target.value)
-              }
-              onBlur={() => onBlur("settlementDiscountValue")}
-              placeholder="% of net invoiced value for payment"
+              onChange={handleValueChange}
+              onBlur={handleBlur}
+              disabled={disabled}
               required={data.settlementDiscount === "yes"}
-              error={
-                !!errors.settlementDiscountValue &&
+              className={
+                errors.settlementDiscountValue &&
                 touched["financialTerms.settlementDiscountValue"]
+                  ? "border-red-500"
+                  : ""
               }
-              disabled={!isEditable}
+              placeholder="% of net invoiced value for payment"
             />
           </FormField>
 
@@ -281,21 +324,22 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             error={errors.settlementDiscountDays}
             touched={touched["financialTerms.settlementDiscountDays"]}
           >
-            <TextInput
-              id="settlementDiscountDays"
+            <StyledConditionalInput
+              isEditable={isEditable}
+              type="text"
               name="settlementDiscountDays"
               value={data.settlementDiscountDays || ""}
-              onChange={(e) =>
-                onChange("settlementDiscountDays", e.target.value)
-              }
-              onBlur={() => onBlur("settlementDiscountDays")}
-              placeholder="within ____ days"
+              onChange={handleValueChange}
+              onBlur={handleBlur}
+              disabled={disabled}
               required={data.settlementDiscount === "yes"}
-              error={
-                !!errors.settlementDiscountDays &&
+              className={
+                errors.settlementDiscountDays &&
                 touched["financialTerms.settlementDiscountDays"]
+                  ? "border-red-500"
+                  : ""
               }
-              disabled={!isEditable}
+              placeholder="within ____ days"
             />
           </FormField>
         </div>
@@ -312,18 +356,25 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             error={errors.flatRebate}
             touched={touched["financialTerms.flatRebate"]}
           >
-            <Dropdown
-              id="flatRebate"
+            <StyledConditionalInput
+              isEditable={isEditable}
+              type="select"
               name="flatRebate"
               value={data.flatRebate}
-              onChange={(e) => onChange("flatRebate", e.target.value)}
-              onBlur={() => onBlur("flatRebate")}
-              options={yesNoOptions}
+              onChange={handleValueChange}
+              onBlur={handleBlur}
+              options={yesNoOptions.map((opt) => ({
+                value: opt.value,
+                label: opt.label,
+              }))}
+              disabled={disabled}
               required={showRebates}
-              error={
-                !!errors.flatRebate && touched["financialTerms.flatRebate"]
+              className={
+                errors.flatRebate && touched["financialTerms.flatRebate"]
+                  ? "border-red-500"
+                  : ""
               }
-              disabled={!isEditable}
+              placeholder="Select option"
             />
           </FormField>
 
@@ -338,23 +389,24 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                   error={errors.flatRebatePercent}
                   touched={touched["financialTerms.flatRebatePercent"]}
                 >
-                  <TextInput
-                    id="flatRebatePercent"
+                  <StyledConditionalInput
+                    isEditable={isEditable}
+                    type="text"
                     name="flatRebatePercent"
                     value={data.flatRebatePercent || ""}
-                    onChange={(e) =>
-                      onChange("flatRebatePercent", e.target.value)
-                    }
-                    onBlur={() => onBlur("flatRebatePercent")}
-                    placeholder="% of net invoiced value for the"
+                    onChange={handleValueChange}
+                    onBlur={handleBlur}
+                    disabled={disabled}
                     required={
                       !data.flatRebateDollar && data.flatRebate === "yes"
                     }
-                    error={
-                      !!errors.flatRebatePercent &&
+                    className={
+                      errors.flatRebatePercent &&
                       touched["financialTerms.flatRebatePercent"]
+                        ? "border-red-500"
+                        : ""
                     }
-                    disabled={!isEditable}
+                    placeholder="% of net invoiced value for the"
                   />
                 </FormField>
               </RebateField>
@@ -367,23 +419,24 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                   error={errors.flatRebateDollar}
                   touched={touched["financialTerms.flatRebateDollar"]}
                 >
-                  <TextInput
-                    id="flatRebateDollar"
+                  <StyledConditionalInput
+                    isEditable={isEditable}
+                    type="text"
                     name="flatRebateDollar"
                     value={data.flatRebateDollar || ""}
-                    onChange={(e) =>
-                      onChange("flatRebateDollar", e.target.value)
-                    }
-                    onBlur={() => onBlur("flatRebateDollar")}
-                    placeholder="$ of net invoiced value for the"
+                    onChange={handleValueChange}
+                    onBlur={handleBlur}
+                    disabled={disabled}
                     required={
                       !data.flatRebatePercent && data.flatRebate === "yes"
                     }
-                    error={
-                      !!errors.flatRebateDollar &&
+                    className={
+                      errors.flatRebateDollar &&
                       touched["financialTerms.flatRebateDollar"]
+                        ? "border-red-500"
+                        : ""
                     }
-                    disabled={!isEditable}
+                    placeholder="$ of net invoiced value for the"
                   />
                 </FormField>
               </RebateField>
@@ -396,19 +449,26 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                   error={errors.flatRebateTerm}
                   touched={touched["financialTerms.flatRebateTerm"]}
                 >
-                  <Dropdown
-                    id="flatRebateTerm"
+                  <StyledConditionalInput
+                    isEditable={isEditable}
+                    type="select"
                     name="flatRebateTerm"
                     value={data.flatRebateTerm || ""}
-                    onChange={(e) => onChange("flatRebateTerm", e.target.value)}
-                    onBlur={() => onBlur("flatRebateTerm")}
-                    options={timePeriodOptions}
+                    onChange={handleValueChange}
+                    onBlur={handleBlur}
+                    options={timePeriodOptions.map((opt) => ({
+                      value: opt.value,
+                      label: opt.label,
+                    }))}
+                    disabled={disabled}
                     required={data.flatRebate === "yes"}
-                    error={
-                      !!errors.flatRebateTerm &&
+                    className={
+                      errors.flatRebateTerm &&
                       touched["financialTerms.flatRebateTerm"]
+                        ? "border-red-500"
+                        : ""
                     }
-                    disabled={!isEditable}
+                    placeholder="Select term"
                   />
                 </FormField>
               </RebateField>
@@ -423,18 +483,25 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             error={errors.growthRebate}
             touched={touched["financialTerms.growthRebate"]}
           >
-            <Dropdown
-              id="growthRebate"
+            <StyledConditionalInput
+              isEditable={isEditable}
+              type="select"
               name="growthRebate"
               value={data.growthRebate}
-              onChange={(e) => onChange("growthRebate", e.target.value)}
-              onBlur={() => onBlur("growthRebate")}
-              options={yesNoOptions}
+              onChange={handleValueChange}
+              onBlur={handleBlur}
+              options={yesNoOptions.map((opt) => ({
+                value: opt.value,
+                label: opt.label,
+              }))}
+              disabled={disabled}
               required={showRebates}
-              error={
-                !!errors.growthRebate && touched["financialTerms.growthRebate"]
+              className={
+                errors.growthRebate && touched["financialTerms.growthRebate"]
+                  ? "border-red-500"
+                  : ""
               }
-              disabled={!isEditable}
+              placeholder="Select option"
             />
           </FormField>
 
@@ -449,23 +516,24 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                   error={errors.growthRebatePercent}
                   touched={touched["financialTerms.growthRebatePercent"]}
                 >
-                  <TextInput
-                    id="growthRebatePercent"
+                  <StyledConditionalInput
+                    isEditable={isEditable}
+                    type="text"
                     name="growthRebatePercent"
                     value={data.growthRebatePercent || ""}
-                    onChange={(e) =>
-                      onChange("growthRebatePercent", e.target.value)
-                    }
-                    onBlur={() => onBlur("growthRebatePercent")}
-                    placeholder="% of net invoiced value for the"
+                    onChange={handleValueChange}
+                    onBlur={handleBlur}
+                    disabled={disabled}
                     required={
                       !data.growthRebateDollar && data.growthRebate === "yes"
                     }
-                    error={
-                      !!errors.growthRebatePercent &&
+                    className={
+                      errors.growthRebatePercent &&
                       touched["financialTerms.growthRebatePercent"]
+                        ? "border-red-500"
+                        : ""
                     }
-                    disabled={!isEditable}
+                    placeholder="% of net invoiced value for the"
                   />
                 </FormField>
               </RebateField>
@@ -478,23 +546,24 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                   error={errors.growthRebateDollar}
                   touched={touched["financialTerms.growthRebateDollar"]}
                 >
-                  <TextInput
-                    id="growthRebateDollar"
+                  <StyledConditionalInput
+                    isEditable={isEditable}
+                    type="text"
                     name="growthRebateDollar"
                     value={data.growthRebateDollar || ""}
-                    onChange={(e) =>
-                      onChange("growthRebateDollar", e.target.value)
-                    }
-                    onBlur={() => onBlur("growthRebateDollar")}
-                    placeholder="$ of net invoiced value for the"
+                    onChange={handleValueChange}
+                    onBlur={handleBlur}
+                    disabled={disabled}
                     required={
                       !data.growthRebatePercent && data.growthRebate === "yes"
                     }
-                    error={
-                      !!errors.growthRebateDollar &&
+                    className={
+                      errors.growthRebateDollar &&
                       touched["financialTerms.growthRebateDollar"]
+                        ? "border-red-500"
+                        : ""
                     }
-                    disabled={!isEditable}
+                    placeholder="$ of net invoiced value for the"
                   />
                 </FormField>
               </RebateField>
@@ -507,21 +576,26 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                   error={errors.growthRebateTerm}
                   touched={touched["financialTerms.growthRebateTerm"]}
                 >
-                  <Dropdown
-                    id="growthRebateTerm"
+                  <StyledConditionalInput
+                    isEditable={isEditable}
+                    type="select"
                     name="growthRebateTerm"
                     value={data.growthRebateTerm || ""}
-                    onChange={(e) =>
-                      onChange("growthRebateTerm", e.target.value)
-                    }
-                    onBlur={() => onBlur("growthRebateTerm")}
-                    options={timePeriodOptions}
+                    onChange={handleValueChange}
+                    onBlur={handleBlur}
+                    options={timePeriodOptions.map((opt) => ({
+                      value: opt.value,
+                      label: opt.label,
+                    }))}
+                    disabled={disabled}
                     required={data.growthRebate === "yes"}
-                    error={
-                      !!errors.growthRebateTerm &&
+                    className={
+                      errors.growthRebateTerm &&
                       touched["financialTerms.growthRebateTerm"]
+                        ? "border-red-500"
+                        : ""
                     }
-                    disabled={!isEditable}
+                    placeholder="Select term"
                   />
                 </FormField>
               </RebateField>
@@ -536,19 +610,26 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             error={errors.marketingRebate}
             touched={touched["financialTerms.marketingRebate"]}
           >
-            <Dropdown
-              id="marketingRebate"
+            <StyledConditionalInput
+              isEditable={isEditable}
+              type="select"
               name="marketingRebate"
               value={data.marketingRebate}
-              onChange={(e) => onChange("marketingRebate", e.target.value)}
-              onBlur={() => onBlur("marketingRebate")}
-              options={yesNoOptions}
+              onChange={handleValueChange}
+              onBlur={handleBlur}
+              options={yesNoOptions.map((opt) => ({
+                value: opt.value,
+                label: opt.label,
+              }))}
+              disabled={disabled}
               required={showRebates}
-              error={
-                !!errors.marketingRebate &&
+              className={
+                errors.marketingRebate &&
                 touched["financialTerms.marketingRebate"]
+                  ? "border-red-500"
+                  : ""
               }
-              disabled={!isEditable}
+              placeholder="Select option"
             />
           </FormField>
 
@@ -563,24 +644,25 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                   error={errors.marketingRebatePercent}
                   touched={touched["financialTerms.marketingRebatePercent"]}
                 >
-                  <TextInput
-                    id="marketingRebatePercent"
+                  <StyledConditionalInput
+                    isEditable={isEditable}
+                    type="text"
                     name="marketingRebatePercent"
                     value={data.marketingRebatePercent || ""}
-                    onChange={(e) =>
-                      onChange("marketingRebatePercent", e.target.value)
-                    }
-                    onBlur={() => onBlur("marketingRebatePercent")}
-                    placeholder="% of net invoiced value for the"
+                    onChange={handleValueChange}
+                    onBlur={handleBlur}
+                    disabled={disabled}
                     required={
                       !data.marketingRebateDollar &&
                       data.marketingRebate === "yes"
                     }
-                    error={
-                      !!errors.marketingRebatePercent &&
+                    className={
+                      errors.marketingRebatePercent &&
                       touched["financialTerms.marketingRebatePercent"]
+                        ? "border-red-500"
+                        : ""
                     }
-                    disabled={!isEditable}
+                    placeholder="% of net invoiced value for the"
                   />
                 </FormField>
               </RebateField>
@@ -593,24 +675,25 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                   error={errors.marketingRebateDollar}
                   touched={touched["financialTerms.marketingRebateDollar"]}
                 >
-                  <TextInput
-                    id="marketingRebateDollar"
+                  <StyledConditionalInput
+                    isEditable={isEditable}
+                    type="text"
                     name="marketingRebateDollar"
                     value={data.marketingRebateDollar || ""}
-                    onChange={(e) =>
-                      onChange("marketingRebateDollar", e.target.value)
-                    }
-                    onBlur={() => onBlur("marketingRebateDollar")}
-                    placeholder="$ of net invoiced value for the"
+                    onChange={handleValueChange}
+                    onBlur={handleBlur}
+                    disabled={disabled}
                     required={
                       !data.marketingRebatePercent &&
                       data.marketingRebate === "yes"
                     }
-                    error={
-                      !!errors.marketingRebateDollar &&
+                    className={
+                      errors.marketingRebateDollar &&
                       touched["financialTerms.marketingRebateDollar"]
+                        ? "border-red-500"
+                        : ""
                     }
-                    disabled={!isEditable}
+                    placeholder="$ of net invoiced value for the"
                   />
                 </FormField>
               </RebateField>
@@ -623,21 +706,26 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                   error={errors.marketingRebateTerm}
                   touched={touched["financialTerms.marketingRebateTerm"]}
                 >
-                  <Dropdown
-                    id="marketingRebateTerm"
+                  <StyledConditionalInput
+                    isEditable={isEditable}
+                    type="select"
                     name="marketingRebateTerm"
                     value={data.marketingRebateTerm || ""}
-                    onChange={(e) =>
-                      onChange("marketingRebateTerm", e.target.value)
-                    }
-                    onBlur={() => onBlur("marketingRebateTerm")}
-                    options={timePeriodOptions}
+                    onChange={handleValueChange}
+                    onBlur={handleBlur}
+                    options={timePeriodOptions.map((opt) => ({
+                      value: opt.value,
+                      label: opt.label,
+                    }))}
+                    disabled={disabled}
                     required={data.marketingRebate === "yes"}
-                    error={
-                      !!errors.marketingRebateTerm &&
+                    className={
+                      errors.marketingRebateTerm &&
                       touched["financialTerms.marketingRebateTerm"]
+                        ? "border-red-500"
+                        : ""
                     }
-                    disabled={!isEditable}
+                    placeholder="Select term"
                   />
                 </FormField>
               </RebateField>
@@ -654,18 +742,24 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
         error={errors.promotionalFund}
         touched={touched["financialTerms.promotionalFund"]}
       >
-        <Dropdown
-          id="promotionalFund"
+        <StyledConditionalInput
+          isEditable={isEditable}
+          type="select"
           name="promotionalFund"
           value={data.promotionalFund || ""}
-          onChange={(e) => onChange("promotionalFund", e.target.value)}
-          onBlur={() => onBlur("promotionalFund")}
-          options={yesNoOptions}
-          error={
-            !!errors.promotionalFund &&
-            touched["financialTerms.promotionalFund"]
+          onChange={handleValueChange}
+          onBlur={handleBlur}
+          options={yesNoOptions.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+          }))}
+          disabled={disabled}
+          className={
+            errors.promotionalFund && touched["financialTerms.promotionalFund"]
+              ? "border-red-500"
+              : ""
           }
-          disabled={!isEditable}
+          placeholder="Select option"
         />
       </FormField>
 
@@ -678,19 +772,22 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           error={errors.promotionalFundValue}
           touched={touched["financialTerms.promotionalFundValue"]}
         >
-          <TextInput
-            id="promotionalFundValue"
+          <StyledConditionalInput
+            isEditable={isEditable}
+            type="text"
             name="promotionalFundValue"
             value={data.promotionalFundValue || ""}
-            onChange={(e) => onChange("promotionalFundValue", e.target.value)}
-            onBlur={() => onBlur("promotionalFundValue")}
-            placeholder="$0.00"
+            onChange={handleValueChange}
+            onBlur={handleBlur}
+            disabled={disabled}
             required={data.promotionalFund === "yes"}
-            error={
-              !!errors.promotionalFundValue &&
+            className={
+              errors.promotionalFundValue &&
               touched["financialTerms.promotionalFundValue"]
+                ? "border-red-500"
+                : ""
             }
-            disabled={!isEditable}
+            placeholder="$0.00"
           />
         </FormField>
       )}

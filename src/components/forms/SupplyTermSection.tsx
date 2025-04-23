@@ -2,8 +2,7 @@ import React from "react";
 import { styled } from "@mui/material/styles";
 import { VendorData, yesNoOptions } from "../../models/VendorTypes";
 import { FormField } from "../ui/FormField";
-import { TextInput } from "../ui/TextInput";
-import { Dropdown } from "../ui/Dropdown";
+import { ConditionalInput } from "../ui/ConditionalInput";
 
 // Define Props
 interface SupplyTermsSectionProps {
@@ -13,7 +12,7 @@ interface SupplyTermsSectionProps {
   onChange: (field: string, value: any) => void;
   onBlur: (field: string) => void;
   validateField?: (field: string) => void;
-  isEditable?: boolean; // Add isEditable prop with default value true
+  isEditable?: boolean;
 }
 
 // Styled Container
@@ -41,19 +40,6 @@ const Note = styled("p")({
   marginBottom: "15px",
 });
 
-const TextArea = styled("textarea")({
-  width: "100%",
-  height: "150px",
-  padding: "10px",
-  marginBottom: "10px",
-  border: "1px solid #ccc",
-  borderRadius: "4px",
-  boxSizing: "border-box",
-  fontFamily: "inherit",
-  fontSize: "inherit",
-  resize: "vertical",
-});
-
 // Component
 export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
   data,
@@ -63,11 +49,15 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
   onBlur,
   isEditable = true,
 }) => {
-  // Handle number input changes with validation
-  const handleNumberChange = (field: string, value: string) => {
-    // Convert to number or 0 if empty
-    const numValue = value === "" ? 0 : parseFloat(value);
-    onChange(field, numValue);
+  // Handle field changes
+  const handleFieldChange = (field: string, value: any) => {
+    onChange(field, value);
+  };
+
+  // Handle field blur
+  const handleFieldBlur = (e: React.FocusEvent<any>) => {
+    const fieldName = e.target.name;
+    onBlur(fieldName);
   };
 
   return (
@@ -83,18 +73,17 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         touched={touched["supplyTerms.exclusiveSupply"]}
         disabled={!isEditable}
       >
-        <Dropdown
-          id="exclusiveSupply"
+        <ConditionalInput
+          isEditable={isEditable}
+          type="select"
           name="exclusiveSupply"
           value={data.exclusiveSupply}
-          onChange={(e) => onChange("exclusiveSupply", e.target.value)}
-          onBlur={() => onBlur("exclusiveSupply")}
+          onChange={handleFieldChange}
+          onBlur={handleFieldBlur}
           options={yesNoOptions}
-          required
-          error={
-            !!errors.exclusiveSupply && touched["supplyTerms.exclusiveSupply"]
-          }
           disabled={!isEditable}
+          required
+          className="w-full"
         />
         <Note>Product not supplied to other Airport retailers</Note>
       </FormField>
@@ -108,16 +97,17 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         touched={touched["supplyTerms.saleOrReturn"]}
         disabled={!isEditable}
       >
-        <Dropdown
-          id="saleOrReturn"
+        <ConditionalInput
+          isEditable={isEditable}
+          type="select"
           name="saleOrReturn"
           value={data.saleOrReturn}
-          onChange={(e) => onChange("saleOrReturn", e.target.value)}
-          onBlur={() => onBlur("saleOrReturn")}
+          onChange={handleFieldChange}
+          onBlur={handleFieldBlur}
           options={yesNoOptions}
-          required
-          error={!!errors.saleOrReturn && touched["supplyTerms.saleOrReturn"]}
           disabled={!isEditable}
+          required
+          className="w-full"
         />
       </FormField>
 
@@ -130,16 +120,17 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         touched={touched["supplyTerms.authRequired"]}
         disabled={!isEditable}
       >
-        <Dropdown
-          id="authRequired"
+        <ConditionalInput
+          isEditable={isEditable}
+          type="select"
           name="authRequired"
           value={data.authRequired}
-          onChange={(e) => onChange("authRequired", e.target.value)}
-          onBlur={() => onBlur("authRequired")}
+          onChange={handleFieldChange}
+          onBlur={handleFieldBlur}
           options={yesNoOptions}
-          required
-          error={!!errors.authRequired && touched["supplyTerms.authRequired"]}
           disabled={!isEditable}
+          required
+          className="w-full"
         />
       </FormField>
 
@@ -152,21 +143,17 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         touched={touched["supplyTerms.delivery_notice"]}
         disabled={!isEditable}
       >
-        <TextInput
-          id="delivery_notice"
-          name="delivery_notice"
-          value={data.delivery_notice ? data.delivery_notice.toString() : ""}
-          onChange={(e) =>
-            handleNumberChange("delivery_notice", e.target.value)
-          }
-          onBlur={() => onBlur("delivery_notice")}
-          placeholder="working days"
+        <ConditionalInput
+          isEditable={isEditable}
           type="number"
-          required
-          error={
-            !!errors.delivery_notice && touched["supplyTerms.delivery_notice"]
-          }
+          name="delivery_notice"
+          value={data.delivery_notice}
+          onChange={handleFieldChange}
+          onBlur={handleFieldBlur}
+          placeholder="working days"
           disabled={!isEditable}
+          required
+          className="w-full"
         />
       </FormField>
 
@@ -179,16 +166,16 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         touched={touched["supplyTerms.minOrderValue"]}
         disabled={!isEditable}
       >
-        <TextInput
-          id="minOrderValue"
-          name="minOrderValue"
-          value={data.minOrderValue ? data.minOrderValue.toString() : ""}
-          onChange={(e) => handleNumberChange("minOrderValue", e.target.value)}
-          onBlur={() => onBlur("minOrderValue")}
+        <ConditionalInput
+          isEditable={isEditable}
           type="number"
-          required
-          error={!!errors.minOrderValue && touched["supplyTerms.minOrderValue"]}
+          name="minOrderValue"
+          value={data.minOrderValue}
+          onChange={handleFieldChange}
+          onBlur={handleFieldBlur}
           disabled={!isEditable}
+          required
+          className="w-full"
         />
       </FormField>
 
@@ -201,20 +188,16 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         touched={touched["supplyTerms.minOrderQuantity"]}
         disabled={!isEditable}
       >
-        <TextInput
-          id="minOrderQuantity"
-          name="minOrderQuantity"
-          value={data.minOrderQuantity ? data.minOrderQuantity.toString() : ""}
-          onChange={(e) =>
-            handleNumberChange("minOrderQuantity", e.target.value)
-          }
-          onBlur={() => onBlur("minOrderQuantity")}
+        <ConditionalInput
+          isEditable={isEditable}
           type="number"
-          required
-          error={
-            !!errors.minOrderQuantity && touched["supplyTerms.minOrderQuantity"]
-          }
+          name="minOrderQuantity"
+          value={data.minOrderQuantity}
+          onChange={handleFieldChange}
+          onBlur={handleFieldBlur}
           disabled={!isEditable}
+          required
+          className="w-full"
         />
       </FormField>
 
@@ -227,16 +210,16 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         touched={touched["supplyTerms.maxOrderValue"]}
         disabled={!isEditable}
       >
-        <TextInput
-          id="maxOrderValue"
-          name="maxOrderValue"
-          value={data.maxOrderValue ? data.maxOrderValue.toString() : ""}
-          onChange={(e) => handleNumberChange("maxOrderValue", e.target.value)}
-          onBlur={() => onBlur("maxOrderValue")}
+        <ConditionalInput
+          isEditable={isEditable}
           type="number"
-          required
-          error={!!errors.maxOrderValue && touched["supplyTerms.maxOrderValue"]}
+          name="maxOrderValue"
+          value={data.maxOrderValue}
+          onChange={handleFieldChange}
+          onBlur={handleFieldBlur}
           disabled={!isEditable}
+          required
+          className="w-full"
         />
       </FormField>
 
@@ -249,17 +232,19 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
         touched={touched["supplyTerms.otherComments"]}
         disabled={!isEditable}
       >
-        <TextArea
-          id="otherComments"
+        <ConditionalInput
+          isEditable={isEditable}
+          type="textarea"
           name="otherComments"
           value={data.otherComments || ""}
-          onChange={(e) => onChange("otherComments", e.target.value)}
-          onBlur={() => onBlur("otherComments")}
-          className="other_comments"
+          onChange={handleFieldChange}
+          onBlur={handleFieldBlur}
           disabled={!isEditable}
+          className="w-full"
         />
       </FormField>
     </SectionContainer>
   );
 };
+
 export default SupplyTermsSection;
