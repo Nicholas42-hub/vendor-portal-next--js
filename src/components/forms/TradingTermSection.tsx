@@ -53,7 +53,7 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
     vendorType === "OVERHEADS" || vendorType === "OVERHEADANDSTOCK";
 
   // Show back order only for STOCK or OVERHEADANDSTOCK
-  const showBackOrder =
+  const show_back_order =
     !vendorType || vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK";
 
   // Handle field changes
@@ -71,7 +71,7 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0];
     if (onFileChange) {
-      onFileChange("quotesPdf", file);
+      onFileChange("quotes_pdf_url", file);
     }
   };
 
@@ -83,17 +83,17 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
       {showQuotesSection && (
         <FormField
           label="Have 2 quotes been obtained?"
-          htmlFor="quotesObtained"
+          htmlFor="quotes_obtained"
           required
-          error={errors.quotesObtained}
-          touched={touched["tradingTerms.quotesObtained"]}
+          error={errors.quotes_obtained}
+          touched={touched["tradingTerms.quotes_obtained"]}
           disabled={!isEditable}
         >
           <ConditionalInput
             isEditable={isEditable}
             type="select"
-            name="quotesObtained"
-            value={data.quotesObtained}
+            name="quotes_obtained"
+            value={data.quotes_obtained}
             onChange={handleFieldChange}
             onBlur={handleFieldBlur}
             options={yesNoOptions}
@@ -105,30 +105,30 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
         </FormField>
       )}
 
-      {/* PDF upload for quotes - only if quotesObtained is 'yes' */}
-      {showQuotesSection && data.quotesObtained === "yes" && (
+      {/* PDF upload for quotes - only if quotes_obtained is 'yes' */}
+      {showQuotesSection && data.quotes_obtained === "yes" && (
         <FormField
           label="Upload quotes (PDF)"
-          htmlFor="quotesPdf"
+          htmlFor="quotes_pdf_url"
           required
-          error={errors.quotesPdf}
-          touched={touched["tradingTerms.quotesPdf"]}
+          error={errors.quotes_pdf_url}
+          touched={touched["tradingTerms.quotes_pdf_url"]}
           disabled={!isEditable}
         >
           <div className="flex items-center">
             <Input
-              id="quotesPdf"
-              name="quotesPdf"
+              id="quotes_pdf_url"
+              name="quotes_pdf_url"
               type="file"
               accept=".pdf"
               onChange={handleFileChange}
               className="max-w-sm w-full"
               required
             />
-            {data.quotesPdf && (
+            {data.quotes_pdf_url && (
               <span className="ml-2 text-sm text-green-600">
-                {typeof data.quotesPdf === "object"
-                  ? data.quotesPdf.name
+                {typeof data.quotes_pdf_url === "object"
+                  ? data.quotes_pdf_url.name
                   : "File uploaded"}
               </span>
             )}
@@ -136,25 +136,25 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
         </FormField>
       )}
 
-      {/* Reason for no quotes - only if quotesObtained is 'no' */}
-      {showQuotesSection && data.quotesObtained === "no" && (
+      {/* Reason for no quotes - only if quotes_obtained is 'no' */}
+      {showQuotesSection && data.quotes_obtained === "no" && (
         <FormField
           label="If no, please provide a reason"
-          htmlFor="quotesObtainedReason"
+          htmlFor="quotes_obtained_reason"
           required
-          error={errors.quotesObtainedReason}
-          touched={touched["tradingTerms.quotesObtainedReason"]}
+          error={errors.quotes_obtained_reason}
+          touched={touched["tradingTerms.quotes_obtained_reason"]}
           disabled={!isEditable}
         >
           <ConditionalInput
             isEditable={isEditable}
             type="text"
-            name="quotesObtainedReason"
-            value={data.quotesObtainedReason || ""}
+            name="quotes_obtained_reason"
+            value={data.quotes_obtained_reason || ""}
             onChange={handleFieldChange}
             onBlur={handleFieldBlur}
             disabled={!isEditable}
-            required={data.quotesObtained === "no"}
+            required={data.quotes_obtained === "no"}
             placeholder="Enter reason"
             className="w-full"
           />
@@ -162,20 +162,20 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
       )}
 
       {/* Back Order - only for STOCK or OVERHEADANDSTOCK */}
-      {showBackOrder && (
+      {show_back_order && (
         <FormField
           label="Allow Back Order"
-          htmlFor="backOrder"
+          htmlFor="back_order"
           required={false}
-          error={errors.backOrder}
-          touched={touched["tradingTerms.backOrder"]}
+          error={errors.back_order}
+          touched={touched["tradingTerms.back_order"]}
           disabled={!isEditable}
         >
           <ConditionalInput
             isEditable={isEditable}
             type="select"
-            name="backOrder"
-            value={data.backOrder || ""}
+            name="back_order"
+            value={data.back_order || ""}
             onChange={handleFieldChange}
             onBlur={handleFieldBlur}
             options={yesNoOptions}
@@ -188,3 +188,5 @@ export const TradingTermsSection: React.FC<TradingTermsSectionProps> = ({
     </SectionContainer>
   );
 };
+
+export default TradingTermsSection;

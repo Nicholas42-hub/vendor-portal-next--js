@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     // Transform the data if needed
     const formattedData = data.vendorOnboardings.items.map((item: any) => ({
       crb7c_poemail: item.email || "",
-      crb7c_businessname: item.business_name || "",
+      crb7c_business_name: item.business_name || "",
       adx_createdbyusername: item.created_by || "",
       createdon_formatted: item.created_on || "",
       statecodename: item.status_code || "",

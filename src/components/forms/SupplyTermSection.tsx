@@ -67,17 +67,17 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
       {/* Exclusive Supply */}
       <FormField
         label="Exclusive supply to LagardereAwpl"
-        htmlFor="exclusiveSupply"
+        htmlFor="exclusive_supply"
         required
-        error={errors.exclusiveSupply}
-        touched={touched["supplyTerms.exclusiveSupply"]}
+        error={errors.exclusive_supply}
+        touched={touched["supplyTerms.exclusive_supply"]}
         disabled={!isEditable}
       >
         <ConditionalInput
           isEditable={isEditable}
           type="select"
-          name="exclusiveSupply"
-          value={data.exclusiveSupply}
+          name="exclusive_supply"
+          value={data.exclusive_supply}
           onChange={handleFieldChange}
           onBlur={handleFieldBlur}
           options={yesNoOptions}
@@ -91,17 +91,17 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
       {/* Sale or Return */}
       <FormField
         label="Sale or return"
-        htmlFor="saleOrReturn"
+        htmlFor="sale_or_return"
         required
-        error={errors.saleOrReturn}
-        touched={touched["supplyTerms.saleOrReturn"]}
+        error={errors.sale_or_return}
+        touched={touched["supplyTerms.sale_or_return"]}
         disabled={!isEditable}
       >
         <ConditionalInput
           isEditable={isEditable}
           type="select"
-          name="saleOrReturn"
-          value={data.saleOrReturn}
+          name="sale_or_return"
+          value={data.sale_or_return}
           onChange={handleFieldChange}
           onBlur={handleFieldBlur}
           options={yesNoOptions}
@@ -114,17 +114,17 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
       {/* Auth Required for Returns */}
       <FormField
         label="Auth. No Required for Returns"
-        htmlFor="authRequired"
+        htmlFor="auth_required"
         required
-        error={errors.authRequired}
-        touched={touched["supplyTerms.authRequired"]}
+        error={errors.auth_required}
+        touched={touched["supplyTerms.auth_required"]}
         disabled={!isEditable}
       >
         <ConditionalInput
           isEditable={isEditable}
           type="select"
-          name="authRequired"
-          value={data.authRequired}
+          name="auth_required"
+          value={data.auth_required}
           onChange={handleFieldChange}
           onBlur={handleFieldBlur}
           options={yesNoOptions}
@@ -160,17 +160,17 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
       {/* Minimum Order Value */}
       <FormField
         label="Minimum Order Value"
-        htmlFor="minOrderValue"
+        htmlFor="min_order_value"
         required
-        error={errors.minOrderValue}
-        touched={touched["supplyTerms.minOrderValue"]}
+        error={errors.min_order_value}
+        touched={touched["supplyTerms.min_order_value"]}
         disabled={!isEditable}
       >
         <ConditionalInput
           isEditable={isEditable}
           type="number"
-          name="minOrderValue"
-          value={data.minOrderValue}
+          name="min_order_value"
+          value={data.min_order_value}
           onChange={handleFieldChange}
           onBlur={handleFieldBlur}
           disabled={!isEditable}
@@ -182,17 +182,17 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
       {/* Minimum Order Quantity */}
       <FormField
         label="Minimum Order Quantity"
-        htmlFor="minOrderQuantity"
+        htmlFor="min_order_quantity"
         required
-        error={errors.minOrderQuantity}
-        touched={touched["supplyTerms.minOrderQuantity"]}
+        error={errors.min_order_quantity}
+        touched={touched["supplyTerms.min_order_quantity"]}
         disabled={!isEditable}
       >
         <ConditionalInput
           isEditable={isEditable}
           type="number"
-          name="minOrderQuantity"
-          value={data.minOrderQuantity}
+          name="min_order_quantity"
+          value={data.min_order_quantity}
           onChange={handleFieldChange}
           onBlur={handleFieldBlur}
           disabled={!isEditable}
@@ -204,17 +204,17 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
       {/* Maximum Order Value */}
       <FormField
         label="Maximum Order Value"
-        htmlFor="maxOrderValue"
+        htmlFor="max_order_value"
         required
-        error={errors.maxOrderValue}
-        touched={touched["supplyTerms.maxOrderValue"]}
+        error={errors.max_order_value}
+        touched={touched["supplyTerms.max_order_value"]}
         disabled={!isEditable}
       >
         <ConditionalInput
           isEditable={isEditable}
           type="number"
-          name="maxOrderValue"
-          value={data.maxOrderValue}
+          name="max_order_value"
+          value={data.max_order_value}
           onChange={handleFieldChange}
           onBlur={handleFieldBlur}
           disabled={!isEditable}
@@ -226,17 +226,17 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
       {/* Other Comments */}
       <FormField
         label="Other Comments"
-        htmlFor="otherComments"
+        htmlFor="other_comments"
         required={false}
-        error={errors.otherComments}
-        touched={touched["supplyTerms.otherComments"]}
+        error={errors.other_comments}
+        touched={touched["supplyTerms.other_comments"]}
         disabled={!isEditable}
       >
         <ConditionalInput
           isEditable={isEditable}
           type="textarea"
-          name="otherComments"
-          value={data.otherComments || ""}
+          name="other_comments"
+          value={data.other_comments || ""}
           onChange={handleFieldChange}
           onBlur={handleFieldBlur}
           disabled={!isEditable}

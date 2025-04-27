@@ -4,10 +4,10 @@ import { styled } from "@mui/material/styles";
 import {
   VendorData,
   VendorType,
-  PaymentTerms,
+  payment_terms,
   TimePeriod,
   timePeriodOptions,
-  paymentTermsOptions,
+  payment_termsOptions,
   yesNoOptions,
 } from "../../models/VendorTypes";
 import { FormField } from "../ui/FormField";
@@ -101,7 +101,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
   // Determine which sections to show based on vendor type
   const showRebates =
     !vendorType || vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK";
-  const showOrderExpiryDays =
+  const showorder_expiry_days =
     !vendorType || vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK";
 
   return (
@@ -111,26 +111,26 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
       {/* Payment Terms */}
       <FormField
         label="Payment terms"
-        htmlFor="paymentTerms"
+        htmlFor="payment_terms"
         required
-        error={errors.paymentTerms}
-        touched={touched["financialTerms.paymentTerms"]}
+        error={errors.payment_terms}
+        touched={touched["financialTerms.payment_terms"]}
       >
         <StyledConditionalInput
           isEditable={isEditable}
           type="select"
-          name="paymentTerms"
-          value={data.paymentTerms}
+          name="payment_terms"
+          value={data.payment_terms}
           onChange={handleValueChange}
           onBlur={handleBlur}
-          options={paymentTermsOptions.map((opt) => ({
+          options={payment_termsOptions.map((opt) => ({
             value: opt.value,
             label: opt.label,
           }))}
           disabled={disabled}
           required={true}
           className={
-            errors.paymentTerms && touched["financialTerms.paymentTerms"]
+            errors.payment_terms && touched["financialTerms.payment_terms"]
               ? "border-red-500"
               : ""
           }
@@ -140,26 +140,28 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
       </FormField>
 
       {/* Order Expiry Days - only for STOCK or OVERHEADANDSTOCK */}
-      {showOrderExpiryDays && (
+      {showorder_expiry_days && (
         <FormField
           label="Order Expiry Days"
-          htmlFor="orderExpiryDays"
+          htmlFor="order_expiry_days"
           required
-          error={errors.orderExpiryDays}
-          touched={touched["financialTerms.orderExpiryDays"]}
+          error={errors.order_expiry_days}
+          touched={touched["financialTerms.order_expiry_days"]}
         >
           <StyledConditionalInput
             isEditable={isEditable}
             type="number"
-            name="orderExpiryDays"
-            value={data.orderExpiryDays ? data.orderExpiryDays.toString() : ""}
+            name="order_expiry_days"
+            value={
+              data.order_expiry_days ? data.order_expiry_days.toString() : ""
+            }
             onChange={(name, value) => handleNumberChange(name, value)}
             onBlur={handleBlur}
             disabled={disabled}
-            required={showOrderExpiryDays}
+            required={showorder_expiry_days}
             className={
-              errors.orderExpiryDays &&
-              touched["financialTerms.orderExpiryDays"]
+              errors.order_expiry_days &&
+              touched["financialTerms.order_expiry_days"]
                 ? "border-red-500"
                 : ""
             }
@@ -169,25 +171,25 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
       )}
 
       {/* Gross Margin */}
-      {showOrderExpiryDays && (
+      {showorder_expiry_days && (
         <FormField
           label="Gross Margin"
-          htmlFor="grossMargin"
+          htmlFor="gross_margin"
           required
-          error={errors.grossMargin}
-          touched={touched["financialTerms.grossMargin"]}
+          error={errors.gross_margin}
+          touched={touched["financialTerms.gross_margin"]}
         >
           <StyledConditionalInput
             isEditable={isEditable}
             type="text"
-            name="grossMargin"
-            value={data.grossMargin}
+            name="gross_margin"
+            value={data.gross_margin}
             onChange={handleValueChange}
             onBlur={handleBlur}
             disabled={disabled}
             required={true}
             className={
-              errors.grossMargin && touched["financialTerms.grossMargin"]
+              errors.gross_margin && touched["financialTerms.gross_margin"]
                 ? "border-red-500"
                 : ""
             }
@@ -199,16 +201,16 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
       {/* Invoice Discount */}
       <FormField
         label="Purchase Discount"
-        htmlFor="invoiceDiscount"
+        htmlFor="invoice_discount"
         required
-        error={errors.invoiceDiscount}
-        touched={touched["financialTerms.invoiceDiscount"]}
+        error={errors.invoice_discount}
+        touched={touched["financialTerms.invoice_discount"]}
       >
         <StyledConditionalInput
           isEditable={isEditable}
           type="select"
-          name="invoiceDiscount"
-          value={data.invoiceDiscount}
+          name="invoice_discount"
+          value={data.invoice_discount}
           onChange={handleValueChange}
           onBlur={handleBlur}
           options={yesNoOptions.map((opt) => ({
@@ -218,7 +220,8 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           disabled={disabled}
           required={true}
           className={
-            errors.invoiceDiscount && touched["financialTerms.invoiceDiscount"]
+            errors.invoice_discount &&
+            touched["financialTerms.invoice_discount"]
               ? "border-red-500"
               : ""
           }
@@ -226,27 +229,27 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
         />
       </FormField>
 
-      {/* Invoice Discount Value - only if invoiceDiscount is 'yes' */}
-      {data.invoiceDiscount === "yes" && (
+      {/* Invoice Discount Value - only if invoice_discount is 'yes' */}
+      {data.invoice_discount === "yes" && (
         <FormField
           label="Invoice Discount Value"
-          htmlFor="invoiceDiscountValue"
+          htmlFor="invoice_discount_value"
           required
-          error={errors.invoiceDiscountValue}
-          touched={touched["financialTerms.invoiceDiscountValue"]}
+          error={errors.invoice_discount_value}
+          touched={touched["financialTerms.invoice_discount_value"]}
         >
           <StyledConditionalInput
             isEditable={isEditable}
             type="text"
-            name="invoiceDiscountValue"
-            value={data.invoiceDiscountValue || ""}
+            name="invoice_discount_value"
+            value={data.invoice_discount_value || ""}
             onChange={handleValueChange}
             onBlur={handleBlur}
             disabled={disabled}
-            required={data.invoiceDiscount === "yes"}
+            required={data.invoice_discount === "yes"}
             className={
-              errors.invoiceDiscountValue &&
-              touched["financialTerms.invoiceDiscountValue"]
+              errors.invoice_discount_value &&
+              touched["financialTerms.invoice_discount_value"]
                 ? "border-red-500"
                 : ""
             }
@@ -258,16 +261,16 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
       {/* Settlement Discount */}
       <FormField
         label="Settlement Discount"
-        htmlFor="settlementDiscount"
+        htmlFor="settlement_discount"
         required
-        error={errors.settlementDiscount}
-        touched={touched["financialTerms.settlementDiscount"]}
+        error={errors.settlement_discount}
+        touched={touched["financialTerms.settlement_discount"]}
       >
         <StyledConditionalInput
           isEditable={isEditable}
           type="select"
-          name="settlementDiscount"
-          value={data.settlementDiscount}
+          name="settlement_discount"
+          value={data.settlement_discount}
           onChange={handleValueChange}
           onBlur={handleBlur}
           options={yesNoOptions.map((opt) => ({
@@ -277,8 +280,8 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           disabled={disabled}
           required={true}
           className={
-            errors.settlementDiscount &&
-            touched["financialTerms.settlementDiscount"]
+            errors.settlement_discount &&
+            touched["financialTerms.settlement_discount"]
               ? "border-red-500"
               : ""
           }
@@ -286,29 +289,29 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
         />
       </FormField>
 
-      {/* Settlement Discount Fields - only if settlementDiscount is 'yes' */}
-      {data.settlementDiscount === "yes" && (
+      {/* Settlement Discount Fields - only if settlement_discount is 'yes' */}
+      {data.settlement_discount === "yes" && (
         <div className="grid_selection">
           {/* Settlement Discount Value */}
           <FormField
             label="Settlement Discount Value"
-            htmlFor="settlementDiscountValue"
+            htmlFor="settlement_discount_value"
             required
-            error={errors.settlementDiscountValue}
-            touched={touched["financialTerms.settlementDiscountValue"]}
+            error={errors.settlement_discount_value}
+            touched={touched["financialTerms.settlement_discount_value"]}
           >
             <StyledConditionalInput
               isEditable={isEditable}
               type="text"
-              name="settlementDiscountValue"
-              value={data.settlementDiscountValue || ""}
+              name="settlement_discount_value"
+              value={data.settlement_discount_value || ""}
               onChange={handleValueChange}
               onBlur={handleBlur}
               disabled={disabled}
-              required={data.settlementDiscount === "yes"}
+              required={data.settlement_discount === "yes"}
               className={
-                errors.settlementDiscountValue &&
-                touched["financialTerms.settlementDiscountValue"]
+                errors.settlement_discount_value &&
+                touched["financialTerms.settlement_discount_value"]
                   ? "border-red-500"
                   : ""
               }
@@ -319,23 +322,23 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           {/* Settlement Discount Days */}
           <FormField
             label="Settlement Discount Days"
-            htmlFor="settlementDiscountDays"
+            htmlFor="settlement_discount_days"
             required
-            error={errors.settlementDiscountDays}
-            touched={touched["financialTerms.settlementDiscountDays"]}
+            error={errors.settlement_discount_days}
+            touched={touched["financialTerms.settlement_discount_days"]}
           >
             <StyledConditionalInput
               isEditable={isEditable}
               type="text"
-              name="settlementDiscountDays"
-              value={data.settlementDiscountDays || ""}
+              name="settlement_discount_days"
+              value={data.settlement_discount_days || ""}
               onChange={handleValueChange}
               onBlur={handleBlur}
               disabled={disabled}
-              required={data.settlementDiscount === "yes"}
+              required={data.settlement_discount === "yes"}
               className={
-                errors.settlementDiscountDays &&
-                touched["financialTerms.settlementDiscountDays"]
+                errors.settlement_discount_days &&
+                touched["financialTerms.settlement_discount_days"]
                   ? "border-red-500"
                   : ""
               }
@@ -351,16 +354,16 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           {/* Flat Rebate */}
           <FormField
             label="Flat rebate"
-            htmlFor="flatRebate"
+            htmlFor="flat_rebate"
             required
-            error={errors.flatRebate}
-            touched={touched["financialTerms.flatRebate"]}
+            error={errors.flat_rebate}
+            touched={touched["financialTerms.flat_rebate"]}
           >
             <StyledConditionalInput
               isEditable={isEditable}
               type="select"
-              name="flatRebate"
-              value={data.flatRebate}
+              name="flat_rebate"
+              value={data.flat_rebate}
               onChange={handleValueChange}
               onBlur={handleBlur}
               options={yesNoOptions.map((opt) => ({
@@ -370,7 +373,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               disabled={disabled}
               required={showRebates}
               className={
-                errors.flatRebate && touched["financialTerms.flatRebate"]
+                errors.flat_rebate && touched["financialTerms.flat_rebate"]
                   ? "border-red-500"
                   : ""
               }
@@ -378,31 +381,31 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             />
           </FormField>
 
-          {/* Flat Rebate Fields - only if flatRebate is 'yes' */}
-          {data.flatRebate === "yes" && (
+          {/* Flat Rebate Fields - only if flat_rebate is 'yes' */}
+          {data.flat_rebate === "yes" && (
             <RebateRow>
               <RebateField>
                 <FormField
                   label="Flat Rebate Percentage"
-                  htmlFor="flatRebatePercent"
-                  required={!data.flatRebateDollar}
-                  error={errors.flatRebatePercent}
-                  touched={touched["financialTerms.flatRebatePercent"]}
+                  htmlFor="flat_rebate_percent"
+                  required={!data.flat_rebate_dollar}
+                  error={errors.flat_rebate_percent}
+                  touched={touched["financialTerms.flat_rebate_percent"]}
                 >
                   <StyledConditionalInput
                     isEditable={isEditable}
                     type="text"
-                    name="flatRebatePercent"
-                    value={data.flatRebatePercent || ""}
+                    name="flat_rebate_percent"
+                    value={data.flat_rebate_percent || ""}
                     onChange={handleValueChange}
                     onBlur={handleBlur}
                     disabled={disabled}
                     required={
-                      !data.flatRebateDollar && data.flatRebate === "yes"
+                      !data.flat_rebate_dollar && data.flat_rebate === "yes"
                     }
                     className={
-                      errors.flatRebatePercent &&
-                      touched["financialTerms.flatRebatePercent"]
+                      errors.flat_rebate_percent &&
+                      touched["financialTerms.flat_rebate_percent"]
                         ? "border-red-500"
                         : ""
                     }
@@ -414,25 +417,25 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               <RebateField>
                 <FormField
                   label="Flat Rebate Dollar"
-                  htmlFor="flatRebateDollar"
-                  required={!data.flatRebatePercent}
-                  error={errors.flatRebateDollar}
-                  touched={touched["financialTerms.flatRebateDollar"]}
+                  htmlFor="flat_rebate_dollar"
+                  required={!data.flat_rebate_percent}
+                  error={errors.flat_rebate_dollar}
+                  touched={touched["financialTerms.flat_rebate_dollar"]}
                 >
                   <StyledConditionalInput
                     isEditable={isEditable}
                     type="text"
-                    name="flatRebateDollar"
-                    value={data.flatRebateDollar || ""}
+                    name="flat_rebate_dollar"
+                    value={data.flat_rebate_dollar || ""}
                     onChange={handleValueChange}
                     onBlur={handleBlur}
                     disabled={disabled}
                     required={
-                      !data.flatRebatePercent && data.flatRebate === "yes"
+                      !data.flat_rebate_percent && data.flat_rebate === "yes"
                     }
                     className={
-                      errors.flatRebateDollar &&
-                      touched["financialTerms.flatRebateDollar"]
+                      errors.flat_rebate_dollar &&
+                      touched["financialTerms.flat_rebate_dollar"]
                         ? "border-red-500"
                         : ""
                     }
@@ -444,16 +447,16 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               <RebateField>
                 <FormField
                   label="Flat Rebate Term"
-                  htmlFor="flatRebateTerm"
+                  htmlFor="flat_rebate_term"
                   required
-                  error={errors.flatRebateTerm}
-                  touched={touched["financialTerms.flatRebateTerm"]}
+                  error={errors.flat_rebate_term}
+                  touched={touched["financialTerms.flat_rebate_term"]}
                 >
                   <StyledConditionalInput
                     isEditable={isEditable}
                     type="select"
-                    name="flatRebateTerm"
-                    value={data.flatRebateTerm || ""}
+                    name="flat_rebate_term"
+                    value={data.flat_rebate_term || ""}
                     onChange={handleValueChange}
                     onBlur={handleBlur}
                     options={timePeriodOptions.map((opt) => ({
@@ -461,10 +464,10 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       label: opt.label,
                     }))}
                     disabled={disabled}
-                    required={data.flatRebate === "yes"}
+                    required={data.flat_rebate === "yes"}
                     className={
-                      errors.flatRebateTerm &&
-                      touched["financialTerms.flatRebateTerm"]
+                      errors.flat_rebate_term &&
+                      touched["financialTerms.flat_rebate_term"]
                         ? "border-red-500"
                         : ""
                     }
@@ -478,16 +481,16 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           {/* Growth Rebate */}
           <FormField
             label="Growth rebate"
-            htmlFor="growthRebate"
+            htmlFor="growth_rebate"
             required
-            error={errors.growthRebate}
-            touched={touched["financialTerms.growthRebate"]}
+            error={errors.growth_rebate}
+            touched={touched["financialTerms.growth_rebate"]}
           >
             <StyledConditionalInput
               isEditable={isEditable}
               type="select"
-              name="growthRebate"
-              value={data.growthRebate}
+              name="growth_rebate"
+              value={data.growth_rebate}
               onChange={handleValueChange}
               onBlur={handleBlur}
               options={yesNoOptions.map((opt) => ({
@@ -497,7 +500,7 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               disabled={disabled}
               required={showRebates}
               className={
-                errors.growthRebate && touched["financialTerms.growthRebate"]
+                errors.growth_rebate && touched["financialTerms.growth_rebate"]
                   ? "border-red-500"
                   : ""
               }
@@ -505,31 +508,31 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             />
           </FormField>
 
-          {/* Growth Rebate Fields - only if growthRebate is 'yes' */}
-          {data.growthRebate === "yes" && (
+          {/* Growth Rebate Fields - only if growth_rebate is 'yes' */}
+          {data.growth_rebate === "yes" && (
             <RebateRow>
               <RebateField>
                 <FormField
                   label="Growth Rebate Percentage"
-                  htmlFor="growthRebatePercent"
-                  required={!data.growthRebateDollar}
-                  error={errors.growthRebatePercent}
-                  touched={touched["financialTerms.growthRebatePercent"]}
+                  htmlFor="growth_rebate_percent"
+                  required={!data.growth_rebate_dollar}
+                  error={errors.growth_rebate_percent}
+                  touched={touched["financialTerms.growth_rebate_percent"]}
                 >
                   <StyledConditionalInput
                     isEditable={isEditable}
                     type="text"
-                    name="growthRebatePercent"
-                    value={data.growthRebatePercent || ""}
+                    name="growth_rebate_percent"
+                    value={data.growth_rebate_percent || ""}
                     onChange={handleValueChange}
                     onBlur={handleBlur}
                     disabled={disabled}
                     required={
-                      !data.growthRebateDollar && data.growthRebate === "yes"
+                      !data.growth_rebate_dollar && data.growth_rebate === "yes"
                     }
                     className={
-                      errors.growthRebatePercent &&
-                      touched["financialTerms.growthRebatePercent"]
+                      errors.growth_rebate_percent &&
+                      touched["financialTerms.growth_rebate_percent"]
                         ? "border-red-500"
                         : ""
                     }
@@ -541,25 +544,26 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               <RebateField>
                 <FormField
                   label="Growth Rebate Dollar"
-                  htmlFor="growthRebateDollar"
-                  required={!data.growthRebatePercent}
-                  error={errors.growthRebateDollar}
-                  touched={touched["financialTerms.growthRebateDollar"]}
+                  htmlFor="growth_rebate_dollar"
+                  required={!data.growth_rebate_percent}
+                  error={errors.growth_rebate_dollar}
+                  touched={touched["financialTerms.growth_rebate_dollar"]}
                 >
                   <StyledConditionalInput
                     isEditable={isEditable}
                     type="text"
-                    name="growthRebateDollar"
-                    value={data.growthRebateDollar || ""}
+                    name="growth_rebate_dollar"
+                    value={data.growth_rebate_dollar || ""}
                     onChange={handleValueChange}
                     onBlur={handleBlur}
                     disabled={disabled}
                     required={
-                      !data.growthRebatePercent && data.growthRebate === "yes"
+                      !data.growth_rebate_percent &&
+                      data.growth_rebate === "yes"
                     }
                     className={
-                      errors.growthRebateDollar &&
-                      touched["financialTerms.growthRebateDollar"]
+                      errors.growth_rebate_dollar &&
+                      touched["financialTerms.growth_rebate_dollar"]
                         ? "border-red-500"
                         : ""
                     }
@@ -571,16 +575,16 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               <RebateField>
                 <FormField
                   label="Growth Rebate Term"
-                  htmlFor="growthRebateTerm"
+                  htmlFor="growth_rebate_term"
                   required
-                  error={errors.growthRebateTerm}
-                  touched={touched["financialTerms.growthRebateTerm"]}
+                  error={errors.growth_rebate_term}
+                  touched={touched["financialTerms.growth_rebate_term"]}
                 >
                   <StyledConditionalInput
                     isEditable={isEditable}
                     type="select"
-                    name="growthRebateTerm"
-                    value={data.growthRebateTerm || ""}
+                    name="growth_rebate_term"
+                    value={data.growth_rebate_term || ""}
                     onChange={handleValueChange}
                     onBlur={handleBlur}
                     options={timePeriodOptions.map((opt) => ({
@@ -588,10 +592,10 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       label: opt.label,
                     }))}
                     disabled={disabled}
-                    required={data.growthRebate === "yes"}
+                    required={data.growth_rebate === "yes"}
                     className={
-                      errors.growthRebateTerm &&
-                      touched["financialTerms.growthRebateTerm"]
+                      errors.growth_rebate_term &&
+                      touched["financialTerms.growth_rebate_term"]
                         ? "border-red-500"
                         : ""
                     }
@@ -605,16 +609,16 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           {/* Marketing Rebate */}
           <FormField
             label="Marketing rebate"
-            htmlFor="marketingRebate"
+            htmlFor="marketing_rebate"
             required
-            error={errors.marketingRebate}
-            touched={touched["financialTerms.marketingRebate"]}
+            error={errors.marketing_rebate}
+            touched={touched["financialTerms.marketing_rebate"]}
           >
             <StyledConditionalInput
               isEditable={isEditable}
               type="select"
-              name="marketingRebate"
-              value={data.marketingRebate}
+              name="marketing_rebate"
+              value={data.marketing_rebate}
               onChange={handleValueChange}
               onBlur={handleBlur}
               options={yesNoOptions.map((opt) => ({
@@ -624,8 +628,8 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               disabled={disabled}
               required={showRebates}
               className={
-                errors.marketingRebate &&
-                touched["financialTerms.marketingRebate"]
+                errors.marketing_rebate &&
+                touched["financialTerms.marketing_rebate"]
                   ? "border-red-500"
                   : ""
               }
@@ -633,32 +637,32 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
             />
           </FormField>
 
-          {/* Marketing Rebate Fields - only if marketingRebate is 'yes' */}
-          {data.marketingRebate === "yes" && (
+          {/* Marketing Rebate Fields - only if marketing_rebate is 'yes' */}
+          {data.marketing_rebate === "yes" && (
             <RebateRow>
               <RebateField>
                 <FormField
                   label="Marketing Rebate Percentage"
-                  htmlFor="marketingRebatePercent"
-                  required={!data.marketingRebateDollar}
-                  error={errors.marketingRebatePercent}
-                  touched={touched["financialTerms.marketingRebatePercent"]}
+                  htmlFor="marketing_rebate_percent"
+                  required={!data.marketing_rebate_dollar}
+                  error={errors.marketing_rebate_percent}
+                  touched={touched["financialTerms.marketing_rebate_percent"]}
                 >
                   <StyledConditionalInput
                     isEditable={isEditable}
                     type="text"
-                    name="marketingRebatePercent"
-                    value={data.marketingRebatePercent || ""}
+                    name="marketing_rebate_percent"
+                    value={data.marketing_rebate_percent || ""}
                     onChange={handleValueChange}
                     onBlur={handleBlur}
                     disabled={disabled}
                     required={
-                      !data.marketingRebateDollar &&
-                      data.marketingRebate === "yes"
+                      !data.marketing_rebate_dollar &&
+                      data.marketing_rebate === "yes"
                     }
                     className={
-                      errors.marketingRebatePercent &&
-                      touched["financialTerms.marketingRebatePercent"]
+                      errors.marketing_rebate_percent &&
+                      touched["financialTerms.marketing_rebate_percent"]
                         ? "border-red-500"
                         : ""
                     }
@@ -670,26 +674,26 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               <RebateField>
                 <FormField
                   label="Marketing Rebate Dollar"
-                  htmlFor="marketingRebateDollar"
-                  required={!data.marketingRebatePercent}
-                  error={errors.marketingRebateDollar}
-                  touched={touched["financialTerms.marketingRebateDollar"]}
+                  htmlFor="marketing_rebate_dollar"
+                  required={!data.marketing_rebate_percent}
+                  error={errors.marketing_rebate_dollar}
+                  touched={touched["financialTerms.marketing_rebate_dollar"]}
                 >
                   <StyledConditionalInput
                     isEditable={isEditable}
                     type="text"
-                    name="marketingRebateDollar"
-                    value={data.marketingRebateDollar || ""}
+                    name="marketing_rebate_dollar"
+                    value={data.marketing_rebate_dollar || ""}
                     onChange={handleValueChange}
                     onBlur={handleBlur}
                     disabled={disabled}
                     required={
-                      !data.marketingRebatePercent &&
-                      data.marketingRebate === "yes"
+                      !data.marketing_rebate_percent &&
+                      data.marketing_rebate === "yes"
                     }
                     className={
-                      errors.marketingRebateDollar &&
-                      touched["financialTerms.marketingRebateDollar"]
+                      errors.marketing_rebate_dollar &&
+                      touched["financialTerms.marketing_rebate_dollar"]
                         ? "border-red-500"
                         : ""
                     }
@@ -701,16 +705,16 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
               <RebateField>
                 <FormField
                   label="Marketing Rebate Term"
-                  htmlFor="marketingRebateTerm"
+                  htmlFor="marketing_rebate_term"
                   required
-                  error={errors.marketingRebateTerm}
-                  touched={touched["financialTerms.marketingRebateTerm"]}
+                  error={errors.marketing_rebate_term}
+                  touched={touched["financialTerms.marketing_rebate_term"]}
                 >
                   <StyledConditionalInput
                     isEditable={isEditable}
                     type="select"
-                    name="marketingRebateTerm"
-                    value={data.marketingRebateTerm || ""}
+                    name="marketing_rebate_term"
+                    value={data.marketing_rebate_term || ""}
                     onChange={handleValueChange}
                     onBlur={handleBlur}
                     options={timePeriodOptions.map((opt) => ({
@@ -718,10 +722,10 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
                       label: opt.label,
                     }))}
                     disabled={disabled}
-                    required={data.marketingRebate === "yes"}
+                    required={data.marketing_rebate === "yes"}
                     className={
-                      errors.marketingRebateTerm &&
-                      touched["financialTerms.marketingRebateTerm"]
+                      errors.marketing_rebate_term &&
+                      touched["financialTerms.marketing_rebate_term"]
                         ? "border-red-500"
                         : ""
                     }
@@ -737,16 +741,16 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
       {/* Promotional Fund */}
       <FormField
         label="Promotional Fund"
-        htmlFor="promotionalFund"
+        htmlFor="promotional_fund"
         required={false}
-        error={errors.promotionalFund}
-        touched={touched["financialTerms.promotionalFund"]}
+        error={errors.promotional_fund}
+        touched={touched["financialTerms.promotional_fund"]}
       >
         <StyledConditionalInput
           isEditable={isEditable}
           type="select"
-          name="promotionalFund"
-          value={data.promotionalFund || ""}
+          name="promotional_fund"
+          value={data.promotional_fund || ""}
           onChange={handleValueChange}
           onBlur={handleBlur}
           options={yesNoOptions.map((opt) => ({
@@ -755,7 +759,8 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
           }))}
           disabled={disabled}
           className={
-            errors.promotionalFund && touched["financialTerms.promotionalFund"]
+            errors.promotional_fund &&
+            touched["financialTerms.promotional_fund"]
               ? "border-red-500"
               : ""
           }
@@ -763,27 +768,27 @@ export const FinancialTermsSection: React.FC<FinancialTermsSectionProps> = ({
         />
       </FormField>
 
-      {/* Promotional Fund Value - only if promotionalFund is 'yes' */}
-      {data.promotionalFund === "yes" && (
+      {/* Promotional Fund Value - only if promotional_fund is 'yes' */}
+      {data.promotional_fund === "yes" && (
         <FormField
           label="Enter amount in dollars"
-          htmlFor="promotionalFundValue"
+          htmlFor="promotional_fund_value"
           required
-          error={errors.promotionalFundValue}
-          touched={touched["financialTerms.promotionalFundValue"]}
+          error={errors.promotional_fund_value}
+          touched={touched["financialTerms.promotional_fund_value"]}
         >
           <StyledConditionalInput
             isEditable={isEditable}
             type="text"
-            name="promotionalFundValue"
-            value={data.promotionalFundValue || ""}
+            name="promotional_fund_value"
+            value={data.promotional_fund_value || ""}
             onChange={handleValueChange}
             onBlur={handleBlur}
             disabled={disabled}
-            required={data.promotionalFund === "yes"}
+            required={data.promotional_fund === "yes"}
             className={
-              errors.promotionalFundValue &&
-              touched["financialTerms.promotionalFundValue"]
+              errors.promotional_fund_value &&
+              touched["financialTerms.promotional_fund_value"]
                 ? "border-red-500"
                 : ""
             }

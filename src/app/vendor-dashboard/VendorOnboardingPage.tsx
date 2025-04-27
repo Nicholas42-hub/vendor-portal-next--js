@@ -18,7 +18,7 @@ interface StatusFilterProps {
 
 interface VendorData {
   crb7c_poemail: string;
-  crb7c_businessname: string;
+  crb7c_business_name: string;
   adx_createdbyusername: string;
   createdon_formatted: string;
   statecodename: string;
@@ -188,10 +188,10 @@ export default function VendorOnboardingPage() {
 
     const filtered = data.filter((row) => {
       const matchesFilter = filter === "all" || row.originalStatus === filter;
-      const businessName = row.crb7c_businessname
-        ? row.crb7c_businessname.toLowerCase()
+      const business_name = row.crb7c_business_name
+        ? row.crb7c_business_name.toLowerCase()
         : "";
-      const matchesSearch = businessName.includes(search.toLowerCase());
+      const matchesSearch = business_name.includes(search.toLowerCase());
       return matchesFilter && matchesSearch;
     });
 
@@ -457,7 +457,7 @@ export default function VendorOnboardingPage() {
                         onClick={() => handleRowClick(row.crb7c_poemail)}
                       >
                         <td className="p-3 text-sm text-[#4E4E4E]">
-                          {row.crb7c_businessname}
+                          {row.crb7c_business_name}
                         </td>
                         <td className="p-3 text-sm text-[#4E4E4E]">
                           {row.crb7c_poemail}

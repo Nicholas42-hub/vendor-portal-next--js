@@ -9,7 +9,7 @@ type FormSection = {
 };
 
 // This type represents the entire form data structure
-type FormData = VendorData | Record<string, any>;
+type FormData = VendorData;
 
 // This type represents the errors object structure
 type ErrorsType = {
@@ -19,7 +19,7 @@ type ErrorsType = {
 };
 
 // Type for the validation function passed to useForm
-type ValidateFunction = (data: FormData) => ErrorsType | Record<string, any>;
+type ValidateFunction = (data: FormData) => ErrorsType;
 
 // Type for the submission function passed to useForm
 type SubmitFunction = (data: FormData) => Promise<boolean>;

@@ -102,51 +102,51 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
   const initialFormData: VendorData = {
     generalDetails: {
       tradingEntities: [],
-      vendorHomeCountry: "",
-      primaryTradingBusinessUnit: "",
+      vendor_home_country: "",
+      primary_trading_business_unit: "",
       email: "",
-      businessName: "",
-      vendorType: "",
+      business_name: "",
+      vendor_type: "",
     },
     tradingTerms: {
-      quotesObtained: "",
-      quotesObtainedReason: "",
-      quotesPdf: null,
-      backOrder: "",
+      quotes_obtained: "",
+      quotes_obtained_reason: "",
+      quotes_pdf_url: null,
+      back_order: "",
     },
     supplyTerms: {
-      exclusiveSupply: "",
-      saleOrReturn: "",
-      authRequired: "",
+      exclusive_supply: "",
+      sale_or_return: "",
+      auth_required: "",
       delivery_notice: 0,
-      minOrderValue: 0,
-      minOrderQuantity: 0,
-      maxOrderValue: 0,
-      otherComments: "",
+      min_order_value: 0,
+      min_order_quantity: 0,
+      max_order_value: 0,
+      other_comments: "",
     },
     financialTerms: {
-      paymentTerms: "",
-      orderExpiryDays: 0,
-      grossMargin: "",
-      invoiceDiscount: "",
-      invoiceDiscountValue: "",
-      settlementDiscount: "",
-      settlementDiscountValue: "",
-      settlementDiscountDays: "",
-      flatRebate: "",
-      flatRebatePercent: "",
-      flatRebateDollar: "",
-      flatRebateTerm: "",
-      growthRebate: "",
-      growthRebatePercent: "",
-      growthRebateDollar: "",
-      growthRebateTerm: "",
-      marketingRebate: "",
-      marketingRebatePercent: "",
-      marketingRebateDollar: "",
-      marketingRebateTerm: "",
-      promotionalFund: "",
-      promotionalFundValue: "",
+      payment_terms: "",
+      order_expiry_days: 0,
+      gross_margin: "",
+      invoice_discount: "",
+      invoice_discount_value: "",
+      settlement_discount: "",
+      settlement_discount_value: "",
+      settlement_discount_days: "",
+      flat_rebate: "",
+      flat_rebate_percent: "",
+      flat_rebate_dollar: "",
+      flat_rebate_term: "",
+      growth_rebate: "",
+      growth_rebate_percent: "",
+      growth_rebate_dollar: "",
+      growth_rebate_term: "",
+      marketing_rebate: "",
+      marketing_rebate_percent: "",
+      marketing_rebate_dollar: "",
+      marketing_rebate_term: "",
+      promotional_fund: "",
+      promotional_fund_value: "",
     },
   };
 
@@ -332,55 +332,65 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
     return false;
   };
 
-  // Helper function to scroll to the first section with errors
-  const scrollToFirstError = (validationErrors: any): void => {
-    // Type-safe checking to find first section with errors
-    if (
-      validationErrors.generalDetails &&
-      getSectionErrors(validationErrors.generalDetails) &&
-      generalDetailsRef.current
-    ) {
-      generalDetailsRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-      return;
-    }
+  // Improved scrollToFirstError function
+  const scrollToFirstError = (errors: any) => {
+    console.log("Validation errors:", errors);
 
-    if (
-      validationErrors.tradingTerms &&
-      getSectionErrors(validationErrors.tradingTerms) &&
-      tradingTermsRef.current
-    ) {
-      tradingTermsRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-      return;
-    }
+    // Define the sections in order of appearance on the form
+    const sections = [
+      { name: "generalDetails", ref: generalDetailsRef },
+      { name: "tradingTerms", ref: tradingTermsRef },
+      { name: "supplyTerms", ref: supplyTermsRef },
+      { name: "financialTerms", ref: financialTermsRef },
+    ];
 
-    if (
-      validationErrors.supplyTerms &&
-      getSectionErrors(validationErrors.supplyTerms) &&
-      supplyTermsRef.current
-    ) {
-      supplyTermsRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-      return;
-    }
+    // Check each section in order
+    for (const section of sections) {
+      const sectionErrors = errors[section.name];
+      if (sectionErrors && Object.values(sectionErrors).some((e) => !!e)) {
+        console.log(`Found errors in ${section.name}:`, sectionErrors);
 
-    if (
-      validationErrors.financialTerms &&
-      getSectionErrors(validationErrors.financialTerms) &&
-      financialTermsRef.current
-    ) {
-      financialTermsRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-      return;
+        // Scroll to section
+        if (section.ref.current) {
+          section.ref.current.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+
+          // Try to find the first field with error
+          const fieldNames = Object.keys(sectionErrors);
+          for (const field of fieldNames) {
+            if (sectionErrors[field]) {
+              console.log(`First error field: ${field}`);
+
+              // Try multiple selectors to find the element
+              const element =
+                document.getElementById(field) ||
+                document.querySelector(`[name="${field}"]`) ||
+                document.querySelector(`[id="${section.name}.${field}"]`);
+
+              if (element) {
+                console.log("Found element, focusing:", element);
+                setTimeout(() => {
+                  try {
+                    element.focus();
+                    element.scrollIntoView({
+                      behavior: "smooth",
+                      block: "center",
+                    });
+                  } catch (e) {
+                    console.error("Could not focus element:", e);
+                  }
+                }, 500);
+              } else {
+                console.warn(`Could not find element for field: ${field}`);
+              }
+              return; // Exit after finding first field with error
+            }
+          }
+          return; // Exit even if we couldn't find a specific field
+        }
+      }
     }
   };
 
@@ -527,7 +537,7 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
   };
 
   // Determine the vendor type for conditional rendering
-  const vendorType = formData.generalDetails.vendorType || "";
+  const vendorType = formData.generalDetails.vendor_type || "";
 
   // Add global CSS for styling form elements
   useEffect(() => {
@@ -707,7 +717,7 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
           <ul style={{ maxHeight: "200px", overflowY: "auto" }}>
             {similarVendors.map((vendor, index) => (
               <li key={index} style={{ marginBottom: "10px" }}>
-                <strong>{vendor.businessName}</strong>
+                <strong>{vendor.business_name}</strong>
                 <br />
                 Email: {vendor.email}
                 <br />

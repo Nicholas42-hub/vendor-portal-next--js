@@ -132,53 +132,53 @@ export async function POST(req: NextRequest) {
               modified_on: "${currentTimestamp}"
               modified_by: "${userEmail}"
               
-              vendor_home_country: "${generalDetails.vendorHomeCountry || ""}"
-              primary_trading_business_unit: "${generalDetails.primaryTradingBusinessUnit || ""}"
+              vendor_home_country: "${generalDetails.vendor_home_country || ""}"
+              primary_trading_business_unit: "${generalDetails.primary_trading_business_unit || ""}"
               email: "${vendorEmail}"
-              business_name: "${generalDetails.businessName || ""}"
+              business_name: "${generalDetails.business_name || ""}"
               trading_name: "${generalDetails.tradingName || ""}"
-              vendor_type: "${generalDetails.vendorType || ""}"
+              vendor_type: "${generalDetails.vendor_type || ""}"
               
-              quotes_obtained: "${tradingTerms.quotesObtained || ""}"
-              quotes_obtained_reason: "${tradingTerms.quotesObtainedReason || ""}"
+              quotes_obtained: "${tradingTerms.quotes_obtained || ""}"
+              quotes_obtained_reason: "${tradingTerms.quotes_obtained_reason || ""}"
               quotes_pdf_url: ""
-              back_order: "${tradingTerms.backOrder || ""}"
+              back_order: "${tradingTerms. back_order || ""}"
               
-              exclusive_supply: "${supplyTerms.exclusiveSupply || ""}"
-              sale_or_return: "${supplyTerms.saleOrReturn || ""}"
-              auth_required: "${supplyTerms.authRequired || ""}"
+              exclusive_supply: "${supplyTerms.exclusive_supply || ""}"
+              sale_or_return: "${supplyTerms.sale_or_return || ""}"
+              auth_required: "${supplyTerms.auth_required || ""}"
               delivery_notice: ${Number(supplyTerms.delivery_notice) || 0}
-              min_order_value: ${Number(supplyTerms.minOrderValue) || 0}
-              min_order_quantity: ${Number(supplyTerms.minOrderQuantity) || 0}
-              max_order_value: ${Number(supplyTerms.maxOrderValue) || 0}
-              other_comments: "${supplyTerms.otherComments || ""}"
+              min_order_value: ${Number(supplyTerms.min_order_value) || 0}
+              min_order_quantity: ${Number(supplyTerms.min_order_quantity) || 0}
+              max_order_value: ${Number(supplyTerms.max_order_value) || 0}
+              other_comments: "${supplyTerms.other_comments || ""}"
               
-              payment_terms: "${financialTerms.paymentTerms || ""}"
-              order_expiry_days: ${Number(financialTerms.orderExpiryDays) || 0}
-              gross_margin: "${financialTerms.grossMargin || ""}"
-              invoice_discount: "${financialTerms.invoiceDiscount || ""}"
-              invoice_discount_value: "${financialTerms.invoiceDiscountValue || ""}"
-              settlement_discount: "${financialTerms.settlementDiscount || ""}"
-              settlement_discount_value: "${financialTerms.settlementDiscountValue || ""}"
-              settlement_discount_days: "${financialTerms.settlementDiscountDays || ""}"
+              payment_terms: "${financialTerms.payment_terms || ""}"
+              order_expiry_days: ${Number(financialTerms.order_expiry_days) || 0}
+              gross_margin: "${financialTerms.gross_margin || ""}"
+              invoice_discount: "${financialTerms.invoice_discount || ""}"
+              invoice_discount_value: "${financialTerms.invoice_discount_value || ""}"
+              settlement_discount: "${financialTerms.settlement_discount || ""}"
+              settlement_discount_value: "${financialTerms.settlement_discount_value || ""}"
+              settlement_discount_days: "${financialTerms.settlement_discount_days || ""}"
               
-              flat_rebate: "${financialTerms.flatRebate || ""}"
-              flat_rebate_percent: "${financialTerms.flatRebatePercent || ""}"
-              flat_rebate_dollar: "${financialTerms.flatRebateDollar || ""}"
-              flat_rebate_term: "${financialTerms.flatRebateTerm || ""}"
+              flat_rebate: "${financialTerms.flat_rebate || ""}"
+              flat_rebate_percent: "${financialTerms.flat_rebate_percent || ""}"
+              flat_rebate_dollar: "${financialTerms.flat_rebate_dollar || ""}"
+              flat_rebate_term: "${financialTerms.flat_rebate_term || ""}"
               
-              growth_rebate: "${financialTerms.growthRebate || ""}"
-              growth_rebate_percent: "${financialTerms.growthRebatePercent || ""}"
-              growth_rebate_dollar: "${financialTerms.growthRebateDollar || ""}"
-              growth_rebate_term: "${financialTerms.growthRebateTerm || ""}"
+              growth_rebate: "${financialTerms.growth_rebate || ""}"
+              growth_rebate_percent: "${financialTerms.growth_rebate_percent || ""}"
+              growth_rebate_dollar: "${financialTerms.growth_rebate_dollar || ""}"
+              growth_rebate_term: "${financialTerms.growth_rebate_term || ""}"
               
-              marketing_rebate: "${financialTerms.marketingRebate || ""}"
-              marketing_rebate_percent: "${financialTerms.marketingRebatePercent || ""}"
-              marketing_rebate_dollar: "${financialTerms.marketingRebateDollar || ""}"
-              marketing_rebate_term: "${financialTerms.marketingRebateTerm || ""}"
+              marketing_rebate: "${financialTerms.marketing_rebate || ""}"
+              marketing_rebate_percent: "${financialTerms.marketing_rebate_percent || ""}"
+              marketing_rebate_dollar: "${financialTerms.marketing_rebate_dollar || ""}"
+              marketing_rebate_term: "${financialTerms.marketing_rebate_term || ""}"
               
-              promotional_fund: "${financialTerms.promotionalFund || ""}"
-              promotional_fund_value: "${financialTerms.promotionalFundValue || ""}"
+              promotional_fund: "${financialTerms.promotional_fund || ""}"
+              promotional_fund_value: "${financialTerms.promotional_fund_value || ""}"
               
               status_code: "Invitation Sent"
             }

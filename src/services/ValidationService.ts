@@ -425,12 +425,12 @@ export class ValidationService {
     errors: { [field: string]: string | undefined }
   ) {
     // Required fields
-    if (!data.vendorHomeCountry) {
-      errors.vendorHomeCountry = "Vendor Home Country is required";
+    if (!data.vendor_home_country) {
+      errors.vendor_home_country = "Vendor Home Country is required";
     }
 
-    if (!data.primaryTradingBusinessUnit) {
-      errors.primaryTradingBusinessUnit = "Primary Trading Business Unit is required";
+    if (!data.primary_trading_business_unit) {
+      errors.primary_trading_business_unit = "Primary Trading Business Unit is required";
     }
 
     if (!data.email) {
@@ -439,11 +439,11 @@ export class ValidationService {
       errors.email = "Please enter a valid email address";
     }
 
-    if (!data.businessName) {
-      errors.businessName = "Business Name is required";
+    if (!data.business_name) {
+      errors.business_name = "Business Name is required";
     }
 
-    if (!data.vendorType) {
+    if (!data.vendor_type) {
       errors.vendorType = "Vendor Type is required";
     }
 
@@ -461,25 +461,25 @@ export class ValidationService {
   ) {
     // Validate quotes only for OVERHEADS or OVERHEADANDSTOCK
     if (vendorType === "OVERHEADS" || vendorType === "OVERHEADANDSTOCK") {
-      if (!data.quotesObtained) {
-        errors.quotesObtained = "Please specify if quotes were obtained";
-      } else if (data.quotesObtained === "yes") {
+      if (!data.quotes_obtained) {
+        errors.quotes_obtained = "Please specify if quotes were obtained";
+      } else if (data.quotes_obtained === "yes") {
         // If quotes were obtained, the PDF should be provided
-        if (!data.quotesPdf) {
-          errors.quotesPdf = "Please upload quotes PDF";
+        if (!data.quotes_pdf_url) {
+          errors.quotes_pdf_url = "Please upload quotes PDF";
         }
-      } else if (data.quotesObtained === "no") {
+      } else if (data.quotes_obtained === "no") {
         // If quotes were not obtained, a reason should be provided
-        if (!data.quotesObtainedReason) {
-          errors.quotesObtainedReason = "Please provide a reason why quotes were not obtained";
+        if (!data.quotes_obtained_reason) {
+          errors.quotes_obtained_reason = "Please provide a reason why quotes were not obtained";
         }
       }
     }
 
     // Back Order validation for STOCK or OVERHEADANDSTOCK
     if (vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK") {
-      if (!data.backOrder) {
-        errors.backOrder = "Please specify if back orders are allowed";
+      if (!data. back_order) {
+        errors. back_order = "Please specify if back orders are allowed";
       }
     }
   }
@@ -490,16 +490,16 @@ export class ValidationService {
     errors: { [field: string]: string | undefined }
   ) {
     // Required fields
-    if (!data.exclusiveSupply) {
-      errors.exclusiveSupply = "Please specify if this is an exclusive supply";
+    if (!data.exclusive_supply) {
+      errors.exclusive_supply = "Please specify if this is an exclusive supply";
     }
 
-    if (!data.saleOrReturn) {
-      errors.saleOrReturn = "Please specify if this is a sale or return";
+    if (!data.sale_or_return) {
+      errors.sale_or_return = "Please specify if this is a sale or return";
     }
 
-    if (!data.authRequired) {
-      errors.authRequired = "Please specify if authorization is required for returns";
+    if (!data.auth_required) {
+      errors.auth_required = "Please specify if authorization is required for returns";
     }
 
     // Numeric fields
@@ -507,21 +507,21 @@ export class ValidationService {
       errors.delivery_notice = "Delivery notice cannot be negative";
     }
 
-    if (data.minOrderValue < 0) {
-      errors.minOrderValue = "Minimum order value cannot be negative";
+    if (data.min_order_value < 0) {
+      errors.min_order_value = "Minimum order value cannot be negative";
     }
 
-    if (data.minOrderQuantity < 0) {
-      errors.minOrderQuantity = "Minimum order quantity cannot be negative";
+    if (data.min_order_quantity < 0) {
+      errors.min_order_quantity = "Minimum order quantity cannot be negative";
     }
 
-    if (data.maxOrderValue < 0) {
-      errors.maxOrderValue = "Maximum order value cannot be negative";
+    if (data.max_order_value < 0) {
+      errors.max_order_value = "Maximum order value cannot be negative";
     }
 
-    // Validate maxOrderValue > minOrderValue if both are provided
-    if (data.maxOrderValue > 0 && data.minOrderValue > 0 && data.maxOrderValue < data.minOrderValue) {
-      errors.maxOrderValue = "Maximum order value must be greater than minimum order value";
+    // Validate max_order_value > min_order_value if both are provided
+    if (data.max_order_value > 0 && data.min_order_value > 0 && data.max_order_value < data.min_order_value) {
+      errors.max_order_value = "Maximum order value must be greater than minimum order value";
     }
   }
 
@@ -532,85 +532,85 @@ export class ValidationService {
     errors: { [field: string]: string | undefined }
   ) {
     // Required fields
-    if (!data.paymentTerms) {
-      errors.paymentTerms = "Payment terms are required";
+    if (!data.payment_terms) {
+      errors.payment_terms = "Payment terms are required";
     }
 
     // Order Expiry Days - only for STOCK or OVERHEADANDSTOCK
     if (vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK") {
-      if (data.orderExpiryDays <= 0) {
-        errors.orderExpiryDays = "Order expiry days must be greater than 0";
+      if (data.order_expiry_days <= 0) {
+        errors.order_expiry_days = "Order expiry days must be greater than 0";
       }
 
-      if (!data.grossMargin) {
-        errors.grossMargin = "Gross margin is required for stock vendors";
+      if (!data.gross_margin) {
+        errors.gross_margin = "Gross margin is required for stock vendors";
       }
     }
 
     // Invoice Discount
-    if (!data.invoiceDiscount) {
-      errors.invoiceDiscount = "Please specify if there is an invoice discount";
-    } else if (data.invoiceDiscount === "yes" && !data.invoiceDiscountValue) {
-      errors.invoiceDiscountValue = "Invoice discount value is required";
+    if (!data.invoice_discount) {
+      errors.invoice_discount = "Please specify if there is an invoice discount";
+    } else if (data.invoice_discount === "yes" && !data.invoice_discount_value) {
+      errors.invoice_discount_value = "Invoice discount value is required";
     }
 
     // Settlement Discount
-    if (!data.settlementDiscount) {
-      errors.settlementDiscount = "Please specify if there is a settlement discount";
-    } else if (data.settlementDiscount === "yes") {
-      if (!data.settlementDiscountValue) {
-        errors.settlementDiscountValue = "Settlement discount value is required";
+    if (!data.settlement_discount) {
+      errors.settlement_discount = "Please specify if there is a settlement discount";
+    } else if (data.settlement_discount === "yes") {
+      if (!data.settlement_discount_value) {
+        errors.settlement_discount_value = "Settlement discount value is required";
       }
-      if (!data.settlementDiscountDays) {
-        errors.settlementDiscountDays = "Settlement discount days are required";
+      if (!data.settlement_discount_days) {
+        errors.settlement_discount_days = "Settlement discount days are required";
       }
     }
 
     // Rebates - only for STOCK or OVERHEADANDSTOCK
     if (vendorType === "STOCK" || vendorType === "OVERHEADANDSTOCK") {
       // Flat Rebate
-      if (!data.flatRebate) {
-        errors.flatRebate = "Please specify if there is a flat rebate";
-      } else if (data.flatRebate === "yes") {
-        if (!data.flatRebatePercent && !data.flatRebateDollar) {
-          errors.flatRebatePercent = "Either percent or dollar value is required";
-          errors.flatRebateDollar = "Either percent or dollar value is required";
+      if (!data.flat_rebate) {
+        errors.flat_rebate = "Please specify if there is a flat rebate";
+      } else if (data.flat_rebate === "yes") {
+        if (!data.flat_rebate_percent && !data.flat_rebate_dollar) {
+          errors.flat_rebate_percent = "Either percent or dollar value is required";
+          errors.flat_rebate_dollar = "Either percent or dollar value is required";
         }
-        if (!data.flatRebateTerm) {
-          errors.flatRebateTerm = "Flat rebate term is required";
+        if (!data.flat_rebate_term) {
+          errors.flat_rebate_term = "Flat rebate term is required";
         }
       }
 
       // Growth Rebate
-      if (!data.growthRebate) {
-        errors.growthRebate = "Please specify if there is a growth rebate";
-      } else if (data.growthRebate === "yes") {
-        if (!data.growthRebatePercent && !data.growthRebateDollar) {
-          errors.growthRebatePercent = "Either percent or dollar value is required";
-          errors.growthRebateDollar = "Either percent or dollar value is required";
+      if (!data.growth_rebate) {
+        errors.growth_rebate = "Please specify if there is a growth rebate";
+      } else if (data.growth_rebate === "yes") {
+        if (!data.growth_rebate_percent && !data.growth_rebate_dollar) {
+          errors.growth_rebate_percent = "Either percent or dollar value is required";
+          errors.growth_rebate_dollar = "Either percent or dollar value is required";
         }
-        if (!data.growthRebateTerm) {
-          errors.growthRebateTerm = "Growth rebate term is required";
+        if (!data.growth_rebate_term) {
+          errors.growth_rebate_term = "Growth rebate term is required";
         }
       }
 
       // Marketing Rebate
-      if (!data.marketingRebate) {
-        errors.marketingRebate = "Please specify if there is a marketing rebate";
-      } else if (data.marketingRebate === "yes") {
-        if (!data.marketingRebatePercent && !data.marketingRebateDollar) {
-          errors.marketingRebatePercent = "Either percent or dollar value is required";
-          errors.marketingRebateDollar = "Either percent or dollar value is required";
+      if (!data.marketing_rebate) {
+        errors.marketing_rebate = "Please specify if there is a marketing rebate";
+      } else if (data.marketing_rebate === "yes") {
+        if (!data.marketing_rebate_percent && !data.marketing_rebate_dollar) {
+          errors.marketing_rebate_percent = "Either percent or dollar value is required";
+          errors.marketing_rebate_dollar = "Either percent or dollar value is required";
         }
-        if (!data.marketingRebateTerm) {
-          errors.marketingRebateTerm = "Marketing rebate term is required";
+        if (!data.marketing_rebate_term) {
+          errors.marketing_rebate_term = "Marketing rebate term is required";
         }
       }
     }
 
     // Promotional Fund
-    if (data.promotionalFund === "yes" && !data.promotionalFundValue) {
-      errors.promotionalFundValue = "Promotional fund value is required";
+    if (data.promotional_fund === "yes" && !data.promotional_fund_value) {
+      errors.promotional_fund_value = "Promotional fund value is required";
     }
   }
 

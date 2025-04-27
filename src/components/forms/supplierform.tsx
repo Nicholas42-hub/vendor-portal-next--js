@@ -820,11 +820,12 @@ export default function SupplierFormExternal({
               {/* Address - with 100 character limit */}
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
-                <Textarea
+                <ConditionalInput
+                  isEditable={isEditable}
                   id="address"
                   name="address"
                   value={formData.address}
-                  onChange={handleInputChange}
+                  onChange={handleSelectChange}
                   placeholder="Enter your address (max 100 characters)"
                   maxLength={100}
                   className={errors.address ? "border-red-500" : ""}
@@ -991,6 +992,75 @@ export default function SupplierFormExternal({
                   )}
                 </div>
               </div>
+
+              {/* Invoice Currency sections based on trading entities */}
+              {(hasAuEntities || hasNzEntities) && (
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* AU Invoice Currency */}
+                  {hasAuEntities && (
+                    <div className="space-y-2">
+                      <Label htmlFor="au_invoice_currency">
+                        Select the Invoice currency when trading with our
+                        Australian based entity(ies)
+                        <span className="text-red-500">*</span>
+                      </Label>
+                      <ConditionalInput
+                        isEditable={isEditable}
+                        type="select"
+                        name="au_invoice_currency"
+                        value={formData.au_invoice_currency || ""}
+                        onChange={handleSelectChange}
+                        options={currencies.map((currency) => ({
+                          value: currency.value,
+                          label: currency.label,
+                        }))}
+                        required={true}
+                        className={
+                          errors.au_invoice_currency ? "border-red-500" : ""
+                        }
+                        placeholder="Select a currency"
+                      />
+                      {errors.au_invoice_currency && (
+                        <p className="text-red-500 text-sm">
+                          {errors.au_invoice_currency}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* NZ Invoice Currency */}
+                  {hasNzEntities && (
+                    <div className="space-y-2">
+                      <Label htmlFor="nz_invoice_currency">
+                        Select the Invoice currency when trading with NZ based
+                        entity(ies)
+                        <span className="text-red-500">*</span>
+                      </Label>
+                      <ConditionalInput
+                        isEditable={isEditable}
+                        type="select"
+                        name="nz_invoice_currency"
+                        value={formData.nz_invoice_currency || ""}
+                        onChange={handleSelectChange}
+                        options={currencies.map((currency) => ({
+                          value: currency.value,
+                          label: currency.label,
+                        }))}
+                        required={true}
+                        className={
+                          errors.nz_invoice_currency ? "border-red-500" : ""
+                        }
+                        placeholder="Select a currency"
+                      />
+                      {errors.nz_invoice_currency && (
+                        <p className="text-red-500 text-sm">
+                          {errors.nz_invoice_currency}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
