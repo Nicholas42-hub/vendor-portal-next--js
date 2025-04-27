@@ -1,7 +1,11 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React from "react";
 import { styled } from "@mui/material/styles";
 import {
   VendorData,
+  TradingEntity,
+  BusinessUnit,
+  VendorType,
+  YesNo,
   businessUnitOptions,
   tradingEntities,
   vendorTypeOptions,
@@ -11,7 +15,7 @@ import { ConditionalInput } from "../ui/ConditionalInput";
 import { Checkbox } from "../ui/Checkbox";
 import { countries } from "@/lib/countries";
 
-// Component props remain unchanged
+// Define Props
 interface GeneralDetailsSectionProps {
   data: VendorData["generalDetails"];
   errors: { [key: string]: string };
@@ -24,7 +28,7 @@ interface GeneralDetailsSectionProps {
   isEditable?: boolean;
 }
 
-// Styled components unchanged
+// Styled components remain unchanged
 const SectionContainer = styled("div")({
   background: "#f7f7f7",
   padding: "20px",
@@ -62,6 +66,7 @@ const CheckboxColumn = styled("div")({
   minWidth: "250px",
 });
 
+// New styled components for loading and validation indicators
 const LoadingIndicator = styled("div")({
   color: "#2196F3",
   fontSize: "0.8rem",
@@ -84,87 +89,24 @@ const Spinner = styled("span")({
   },
 });
 
-/**
- * GeneralDetailsSection Component
- * IMPORTANT: This component was completely refactored to fix the "Rendered fewer hooks than expected" error
- * The key fixes are:
- * 1. Ensuring all hooks are declared at the top level of the component
- * 2. No conditional hook calls anywhere
- * 3. Safe handling of all props to prevent undefined errors
- * 4. No early returns that might skip hooks
- */
-function GeneralDetailsSectionBase({
-  data = {},
-  errors = {},
-  touched = {},
+// Component
+export const GeneralDetailsSection: React.FC<GeneralDetailsSectionProps> = ({
+  data,
+  errors,
+  touched,
   isChecking = {},
-  onChange = () => {},
-  onCheckboxChange = () => {},
-  onBlur = () => {},
+  onChange,
+  onCheckboxChange,
+  onBlur,
   validateField,
   isEditable = true,
-}: GeneralDetailsSectionProps) {
-  // IMPORTANT: All hooks must be defined here at the top level
-  // This ensures they're called in the same order on every render
-  const [formReady, setFormReady] = useState(true);
-
-  // Always declare all hooks, even if they're not used in all code paths
-  useEffect(() => {
-    // This empty effect is needed to ensure consistent hook ordering
-    return () => {
-      // Cleanup if needed
-    };
-  }, []);
-
-  // Use memo hook to safely process data with fallbacks for undefined values
-  const safeData = useMemo(
-    () => ({
-      tradingEntities: data?.tradingEntities || [],
-      vendor_home_country: data?.vendor_home_country || "",
-      primary_trading_business_unit: data?.primary_trading_business_unit || "",
-      email: data?.email || "",
-      business_name: data?.business_name || "",
-      trading_name: data?.trading_name || "",
-      vendor_type: data?.vendor_type || "",
-      contact_person: data?.contact_person || "",
-      contact_phone: data?.contact_phone || "",
-      website_url: data?.website_url || "",
-      postal_address: data?.postal_address || "",
-      city: data?.city || "",
-      state: data?.state || "",
-      postcode: data?.postcode || "",
-      is_gst_registered: Boolean(data?.is_gst_registered),
-      abn: data?.abn || "",
-      gst: data?.gst || "",
-    }),
-    [data]
-  );
-
-  // Convert tradingEntities data for display
-  const tradingEntitiesData = useMemo(() => {
-    return tradingEntities || [];
-  }, []);
-
-  // Create handler functions with proper memoization to prevent rerenders
-  const handleFieldChange = useMemo(() => {
-    return (field: string) => (name: string, value: any) => {
-      onChange(field, value);
-    };
-  }, [onChange]);
-
-  const handleFieldBlur = useMemo(() => {
-    return (field: string) => () => {
-      onBlur(field);
-    };
-  }, [onBlur]);
-
-  // Always render a complete, consistent component structure
+}) => {
   return (
     <SectionContainer>
       <FormLegend>Vendor Account Set Up Form</FormLegend>
       <SectionTitle>1. General Details</SectionTitle>
 
-      {/* Trading Entities Section */}
+      {/* Trading Entities */}
       <FormField
         label="Select Trading Entity(ies)"
         htmlFor="tradingEntities"
@@ -173,13 +115,13 @@ function GeneralDetailsSectionBase({
         touched={touched["generalDetails.tradingEntities"]}
       >
         <CheckboxContainer>
-          {tradingEntitiesData.map((entity) => (
+          {tradingEntities.map((entity, index) => (
             <CheckboxColumn key={entity.id}>
               <Checkbox
                 id={entity.id}
                 name="tradingEntities"
                 value={entity.id}
-                checked={safeData.tradingEntities.includes(entity.id)}
+                checked={data.tradingEntities.includes(entity.id)}
                 onChange={(e) =>
                   onCheckboxChange(
                     "tradingEntities",
@@ -207,9 +149,8 @@ function GeneralDetailsSectionBase({
           isEditable={isEditable}
           type="select"
           name="vendor_home_country"
-          value={safeData.vendor_home_country}
-          onChange={handleFieldChange("vendor_home_country")}
-          onBlur={handleFieldBlur("vendor_home_country")}
+          value={data.vendor_home_country}
+          onChange={(name, value) => onChange("vendor_home_country", value)}
           options={countries.map((country) => ({
             value: country,
             label: country,
@@ -230,9 +171,10 @@ function GeneralDetailsSectionBase({
           isEditable={isEditable}
           type="select"
           name="primary_trading_business_unit"
-          value={safeData.primary_trading_business_unit}
-          onChange={handleFieldChange("primary_trading_business_unit")}
-          onBlur={handleFieldBlur("primary_trading_business_unit")}
+          value={data.primary_trading_business_unit}
+          onChange={(name, value) =>
+            onChange("primary_trading_business_unit", value)
+          }
           options={businessUnitOptions.map((unit) => ({
             value: unit.value,
             label: unit.label,
@@ -253,9 +195,8 @@ function GeneralDetailsSectionBase({
           isEditable={isEditable}
           type="email"
           name="email"
-          value={safeData.email}
-          onChange={handleFieldChange("email")}
-          onBlur={handleFieldBlur("email")}
+          value={data.email}
+          onChange={(name, value) => onChange("email", value)}
           placeholder="example@domain.com"
         />
         {isChecking["generalDetails.email"] && (
@@ -278,9 +219,8 @@ function GeneralDetailsSectionBase({
           isEditable={isEditable}
           type="text"
           name="business_name"
-          value={safeData.business_name}
-          onChange={handleFieldChange("business_name")}
-          onBlur={handleFieldBlur("business_name")}
+          value={data.business_name}
+          onChange={(name, value) => onChange("business_name", value)}
           placeholder="Business name"
         />
       </FormField>
@@ -296,9 +236,8 @@ function GeneralDetailsSectionBase({
           isEditable={isEditable}
           type="text"
           name="trading_name"
-          value={safeData.trading_name}
-          onChange={handleFieldChange("trading_name")}
-          onBlur={handleFieldBlur("trading_name")}
+          value={data.trading_name || ""}
+          onChange={(name, value) => onChange("trading_name", value)}
           placeholder="Trading name"
         />
       </FormField>
@@ -315,9 +254,9 @@ function GeneralDetailsSectionBase({
           isEditable={isEditable}
           type="select"
           name="vendor_type"
-          value={safeData.vendor_type}
-          onChange={handleFieldChange("vendor_type")}
-          onBlur={handleFieldBlur("vendor_type")}
+          value={data.vendor_type}
+          required={true}
+          onChange={(name, value) => onChange("vendor_type", value)}
           options={vendorTypeOptions.map((type) => ({
             value: type.value,
             label: type.label,
@@ -327,13 +266,6 @@ function GeneralDetailsSectionBase({
       </FormField>
     </SectionContainer>
   );
-}
+};
 
-// Apply React.memo correctly
-export const GeneralDetailsSection = React.memo(GeneralDetailsSectionBase);
-
-// Add a display name for easier debugging
-GeneralDetailsSection.displayName = "GeneralDetailsSection";
-
-// Always provide a default export
 export default GeneralDetailsSection;

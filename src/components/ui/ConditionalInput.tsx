@@ -1,10 +1,4 @@
-import React, {
-  useMemo,
-  useCallback,
-  useRef,
-  useEffect,
-  useState,
-} from "react";
+import React from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -15,22 +9,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/Checkbox";
-import debounce from "lodash/debounce";
-
-// Optimized rendering of select options to prevent excessive re-renders
-const MemoizedSelectOptions = React.memo(
-  ({ options }: { options: Array<{ value: string; label: string }> }) => (
-    <>
-      {options.map((option) => (
-        <SelectItem key={option.value} value={option.value}>
-          {option.label}
-        </SelectItem>
-      ))}
-    </>
-  )
-);
-
-MemoizedSelectOptions.displayName = "MemoizedSelectOptions";
 
 interface Option {
   value: string;
@@ -54,277 +32,189 @@ interface ConditionalInputProps {
   pattern?: string;
 }
 
-export const ConditionalInput: React.FC<ConditionalInputProps> = React.memo(
-  ({
-    isEditable,
-    type,
-    name,
-    value,
-    onChange,
-    onBlur,
-    options,
-    disabled = false,
-    placeholder = "",
-    required = false,
-    className = "",
-    maxLength,
-    inputMode,
-    pattern,
-  }) => {
-    // Use local state for input values to reduce parent component render frequency
-    const [localValue, setLocalValue] = useState(value);
+export const ConditionalInput: React.FC<ConditionalInputProps> = ({
+  isEditable,
+  type,
+  name,
+  value,
+  onChange,
+  onBlur,
+  options,
+  disabled = false,
+  placeholder = "",
+  required = false,
+  className = "",
+  maxLength,
+  inputMode,
+  pattern,
+}) => {
+  // Apply consistent width class to all inputs
+  const widthClass = "w-full";
+  const combinedClassName = `${widthClass} ${className}`.trim();
 
-    // Sync local value with prop value when it changes from outside
-    useEffect(() => {
-      if (value !== localValue) {
-        setLocalValue(value);
-      }
-    }, [value]);
+  // Handle changes for inputs
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    if (onChange) {
+      onChange(name, e.target.value);
+    }
+  };
 
-    // Apply consistent width class to all inputs - memoized
-    const widthClass = "w-full";
-    const combinedClassName = useMemo(() => {
-      return `${widthClass} ${className}`.trim();
-    }, [className]);
+  // Handle changes for selects
+  const handleSelectChange = (selectedValue: string) => {
+    if (onChange) {
+      onChange(name, selectedValue);
+    }
+  };
 
-    // Create debounced change handler correctly
-    const debouncedOnChangeRef = useRef<((value: any) => void) | null>(null);
+  // Handle checkbox changes
+  const handleCheckboxChange = (checked: boolean | "indeterminate") => {
+    if (onChange) {
+      onChange(name, checked === true);
+    }
+  };
 
-    // Set up the debounced function just once
-    useEffect(() => {
-      if (onChange) {
-        debouncedOnChangeRef.current = debounce((value: any) => {
-          onChange(name, value);
-        }, 250);
+  // Filter out options with empty string values to prevent Select.Item errors
+  const validOptions = options?.filter((option) => option.value !== "") || [];
 
-        return () => {
-          if (debouncedOnChangeRef.current) {
-            debouncedOnChangeRef.current.cancel();
-          }
-        };
-      }
-    }, [onChange, name]);
+  // If not editable, render a read-only display
+  if (!isEditable) {
+    if (type === "checkbox") {
+      return <span className="text-gray-700">{value ? "Yes" : "No"}</span>;
+    }
 
-    // Memoize options to prevent unnecessary re-renders
-    const validOptions = useMemo(() => {
-      return options?.filter((option) => option.value !== "") || [];
-    }, [options]);
-
-    // Pre-compute selected option - carefully memoized
-    const selectedOption = useMemo(() => {
-      if (!validOptions.length || value === undefined || value === null)
-        return null;
-      return validOptions.find((opt) => opt.value === value);
-    }, [validOptions, value]);
-
-    // Local selected option label for select
-    const selectedLabel = selectedOption ? selectedOption.label : placeholder;
-
-    // Handle changes for inputs with debounce and local state
-    const handleInputChange = useCallback(
-      (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const newValue = e.target.value;
-        // Update local state immediately for responsive UI
-        setLocalValue(newValue);
-        // Debounce the parent component update
-        if (debouncedOnChangeRef.current) {
-          debouncedOnChangeRef.current(newValue);
-        }
-      },
-      []
-    );
-
-    // Handle changes for selects - use local state for immediate feedback
-    const handleSelectChange = useCallback(
-      (selectedValue: string) => {
-        // Only update if value has changed
-        if (selectedValue !== localValue) {
-          setLocalValue(selectedValue);
-          if (onChange) {
-            onChange(name, selectedValue);
-          }
-        }
-      },
-      [onChange, name, localValue]
-    );
-
-    // Handle checkbox changes
-    const handleCheckboxChange = useCallback(
-      (checked: boolean | "indeterminate") => {
-        const newValue = checked === true;
-        setLocalValue(newValue);
-        if (onChange) {
-          onChange(name, newValue);
-        }
-      },
-      [onChange, name]
-    );
-
-    // Memoize blur handler - simplified to reduce execution time
-    const handleBlur = useCallback(
-      (e: React.FocusEvent<any>) => {
-        if (onBlur) {
-          onBlur(e);
-        }
-      },
-      [onBlur]
-    );
-
-    // If not editable, use simplified read-only renderers
-    if (!isEditable) {
-      if (type === "checkbox") {
-        return (
-          <span id={name} className="text-gray-900 font-medium">
-            {value ? "Yes" : "No"}
-          </span>
-        );
-      }
-
-      if (type === "select" && options) {
-        const readOnlyValue = useMemo(() => {
-          const opt = options.find((opt) => opt.value === value);
-          return opt?.label || value || "";
-        }, [options, value]);
-
-        return (
-          <Input
-            id={name}
-            value={readOnlyValue}
-            readOnly
-            className={`bg-gray-50 cursor-not-allowed text-gray-900 font-medium ${widthClass}`}
-          />
-        );
-      }
-
-      if (type === "textarea") {
-        return (
-          <div
-            id={name}
-            className={`p-2 bg-gray-50 border rounded-md min-h-[80px] text-gray-900 font-medium ${widthClass}`}
-          >
-            {value || ""}
-          </div>
-        );
-      }
-
+    if (type === "select" && options) {
+      // For selects, find the matching label to display
+      const selectedOption = options.find((opt) => opt.value === value);
       return (
         <Input
-          id={name}
-          value={value || ""}
+          value={selectedOption?.label || value || ""}
           readOnly
-          className={`bg-gray-50 cursor-not-allowed text-gray-900 font-medium ${widthClass}`}
+          className={`bg-gray-50 cursor-not-allowed text-gray-700 ${widthClass}`}
         />
       );
     }
 
-    // If editable, render the appropriate input type with local state
-    switch (type) {
-      case "select":
-        return (
-          <div className={widthClass}>
-            <Select
-              // Ensure value is always a string to prevent type changes
-              value={String(localValue || "")}
-              onValueChange={handleSelectChange}
-              disabled={disabled}
-            >
-              <SelectTrigger id={name} className={className}>
-                <SelectValue placeholder={placeholder}>
-                  {selectedLabel}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <MemoizedSelectOptions options={validOptions} />
-              </SelectContent>
-            </Select>
-          </div>
-        );
-
-      case "checkbox":
-        return (
-          <div className={widthClass}>
-            <Checkbox
-              id={name}
-              checked={!!localValue}
-              onCheckedChange={handleCheckboxChange}
-              disabled={disabled}
-              className={className}
-            />
-          </div>
-        );
-
-      case "textarea":
-        return (
-          <Textarea
-            id={name}
-            name={name}
-            value={localValue || ""}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            placeholder={placeholder}
-            disabled={disabled}
-            className={combinedClassName}
-            maxLength={maxLength}
-            required={required}
-          />
-        );
-
-      case "number":
-        return (
-          <Input
-            id={name}
-            type="text"
-            inputMode="numeric"
-            name={name}
-            value={localValue || ""}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            disabled={disabled}
-            placeholder={placeholder}
-            className={combinedClassName}
-            maxLength={maxLength}
-            pattern={pattern}
-            required={required}
-          />
-        );
-
-      case "email":
-        return (
-          <Input
-            id={name}
-            type="email"
-            name={name}
-            value={localValue || ""}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            disabled={disabled}
-            placeholder={placeholder}
-            className={combinedClassName}
-            required={required}
-          />
-        );
-
-      default:
-        return (
-          <Input
-            id={name}
-            type="text"
-            name={name}
-            value={localValue || ""}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            disabled={disabled}
-            placeholder={placeholder}
-            className={combinedClassName}
-            maxLength={maxLength}
-            inputMode={inputMode}
-            pattern={pattern}
-            required={required}
-          />
-        );
+    if (type === "textarea") {
+      return (
+        <div
+          className={`p-2 bg-gray-50 border rounded-md min-h-[80px] text-gray-700 ${widthClass}`}
+        >
+          {value || ""}
+        </div>
+      );
     }
-  }
-);
 
-// Add display name for debugging
-ConditionalInput.displayName = "ConditionalInput";
+    return (
+      <Input
+        value={value || ""}
+        readOnly
+        className={`bg-gray-50 cursor-not-allowed text-gray-700 ${widthClass}`}
+      />
+    );
+  }
+
+  // If editable, render the appropriate input type
+  switch (type) {
+    case "select":
+      return (
+        <div className={widthClass}>
+          <Select
+            value={value || ""}
+            onValueChange={handleSelectChange}
+            disabled={disabled}
+          >
+            <SelectTrigger className={className}>
+              <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+              {validOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+
+    case "checkbox":
+      return (
+        <div className={widthClass}>
+          <Checkbox
+            checked={!!value}
+            onCheckedChange={handleCheckboxChange}
+            disabled={disabled}
+            className={className}
+          />
+        </div>
+      );
+
+    case "textarea":
+      return (
+        <Textarea
+          name={name}
+          value={value || ""}
+          onChange={handleInputChange}
+          onBlur={onBlur}
+          placeholder={placeholder}
+          disabled={disabled}
+          className={combinedClassName}
+          maxLength={maxLength}
+          required={required}
+        />
+      );
+
+    case "number":
+      return (
+        <Input
+          type="text"
+          inputMode="numeric"
+          name={name}
+          value={value || ""}
+          onChange={handleInputChange}
+          onBlur={onBlur}
+          disabled={disabled}
+          placeholder={placeholder}
+          className={combinedClassName}
+          maxLength={maxLength}
+          pattern={pattern}
+          required={required}
+        />
+      );
+
+    case "email":
+      return (
+        <Input
+          type="email"
+          name={name}
+          value={value || ""}
+          onChange={handleInputChange}
+          onBlur={onBlur}
+          disabled={disabled}
+          placeholder={placeholder}
+          className={combinedClassName}
+          required={required}
+        />
+      );
+
+    default:
+      return (
+        <Input
+          type="text"
+          name={name}
+          value={value || ""}
+          onChange={handleInputChange}
+          onBlur={onBlur}
+          disabled={disabled}
+          placeholder={placeholder}
+          className={combinedClassName}
+          maxLength={maxLength}
+          inputMode={inputMode}
+          pattern={pattern}
+          required={required}
+        />
+      );
+  }
+};

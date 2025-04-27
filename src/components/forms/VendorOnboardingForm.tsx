@@ -301,6 +301,7 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
   // Helper function to check if there are any validation errors
   const hasValidationErrors = (validationErrors: any): boolean => {
     // Type-safe checking of validation errors
+    console.log("Checking for validation errors:", validationErrors);
     if (
       validationErrors.generalDetails &&
       getSectionErrors(validationErrors.generalDetails)

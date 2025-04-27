@@ -22,10 +22,10 @@ export class ValidationService {
     }
 
     // Validate Trading Terms based on vendor type if defined
-    if (data.tradingTerms && data.generalDetails?.vendorType) {
+    if (data.tradingTerms && data.generalDetails?.vendor_type) {
       ValidationService.validateTradingTerms(
         data.tradingTerms, 
-        data.generalDetails.vendorType as VendorType, 
+        data.generalDetails.vendor_type as VendorType, 
         errors.tradingTerms
       );
     }
@@ -36,10 +36,10 @@ export class ValidationService {
     }
 
     // Validate Financial Terms based on vendor type if defined
-    if (data.financialTerms && data.generalDetails?.vendorType) {
+    if (data.financialTerms && data.generalDetails?.vendor_type) {
       ValidationService.validateFinancialTerms(
         data.financialTerms, 
-        data.generalDetails.vendorType as VendorType, 
+        data.generalDetails.vendor_type as VendorType, 
         errors.financialTerms
       );
     }
