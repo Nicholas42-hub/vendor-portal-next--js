@@ -30,7 +30,7 @@ interface GeneralDetailsSectionProps {
 
 // Styled components remain unchanged
 const SectionContainer = styled("div")({
-  background: "#f7f7f7",
+  background: "#ffffff",
   padding: "20px",
   margin: "10px 0",
   borderRadius: "8px",

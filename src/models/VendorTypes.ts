@@ -96,16 +96,6 @@ export interface GeneralDetailsData {
   business_name: string;
   trading_name?: string;
   vendor_type: string;
-  contact_person?: string;
-  contact_phone?: string;
-  website_url?: string;
-  postal_address?: string;
-  city?: string;
-  state?: string;
-  postcode?: string;
-  is_gst_registered?: string;
-  abn?: string;
-  gst?: string;
 }
 
 // Type for Trading Terms section - updated to match database fields
@@ -220,10 +210,10 @@ export interface SupplierFormData {
   overseas_iban?: string;
   overseas_swift?: string;
 
-  // BPay
-  biller_code?: string;
-  ref_code?: string;
-
+  au_biller_code: string;
+  au_ref_code: string;
+  nz_biller_code: string;
+  nz_ref_code: string;
   // Terms agreement
   iAgree: boolean;
 }

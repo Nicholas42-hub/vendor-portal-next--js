@@ -1,34 +1,26 @@
-// src/hooks/useForm.ts - Enhanced version
-import { useState, useCallback } from "react";
+// src/hooks/useForm.ts - Improved version to fix validation issues
+import { useState, useCallback, useRef } from "react";
 import { VendorData } from "../models/VendorTypes";
 import axios from "axios";
 
-// This type represents a section of the form with key-value pairs
+// Types for form handling
 type FormSection = {
   [key: string]: any;
 };
 
-// This type represents the entire form data structure
 type FormData = VendorData | Record<string, any>;
 
-// This type represents the errors object structure
 type ErrorsType = {
   [K in keyof VendorData]: {
     [field: string]: string | undefined;
   };
 };
 
-// Type for the validation function passed to useForm
 type ValidateFunction = (data: FormData) => ErrorsType | Record<string, any>;
-
-// Type for the submission function passed to useForm
 type SubmitFunction = (data: FormData) => Promise<boolean>;
 
 /**
- * Custom hook for form handling with validation and submission
- * @param validateFn Function to validate the form data
- * @param submitFn Function to submit the form data when valid
- * @param initialData Initial form data
+ * Improved useForm hook with better field focusing and validation
  */
 export const useForm = (
   validateFn: ValidateFunction,
@@ -42,6 +34,16 @@ export const useForm = (
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValid, setIsValid] = useState(true);
   const [isChecking, setIsChecking] = useState<Record<string, boolean>>({});
+  
+  // Create refs to track field elements for focusing
+  const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  // Register a field element ref
+  const registerFieldRef = useCallback((fieldPath: string, element: HTMLElement | null) => {
+    if (element) {
+      fieldRefs.current[fieldPath] = element;
+    }
+  }, []);
 
   // Validate form data and update errors
   const validateFormData = useCallback(() => {
@@ -208,16 +210,99 @@ export const useForm = (
   
   // Mark field as touched when it loses focus
   const handleBlur = (section: keyof FormData, field: string) => {
+    const fieldPath = `${String(section)}.${field}`;
+    
     setTouched(prev => ({
       ...prev,
-      [`${String(section)}.${field}`]: true
+      [fieldPath]: true
     }));
     
     // Validate the field when it loses focus
     validateField(section, field);
   };
   
-  // Handle form submission
+  // Improved focus on first error field
+  const focusFirstErrorField = useCallback((validationErrors: any) => {
+    // Define sections in order of appearance on the form
+    const sectionOrder = ['generalDetails', 'tradingTerms', 'supplyTerms', 'financialTerms'];
+    
+    // Loop through sections in order
+    for (const section of sectionOrder) {
+      const sectionErrors = validationErrors[section];
+      if (!sectionErrors) continue;
+      
+      // Find first field with error in this section
+      const errorField = Object.keys(sectionErrors).find(field => 
+        sectionErrors[field] !== undefined
+      );
+      
+      if (errorField) {
+        const fieldPath = `${section}.${errorField}`;
+        console.log(`First error found at ${fieldPath}: ${sectionErrors[errorField]}`);
+        
+        // Try to focus the field
+        setTimeout(() => {
+          // First try using our refs system
+          const element = fieldRefs.current[fieldPath];
+          if (element) {
+            console.log(`Focusing element via ref for ${fieldPath}`);
+            if ('focus' in element && typeof element.focus === 'function') {
+              element.focus();
+              return true;
+            }
+          }
+          
+          // Fallback to querySelector methods
+          let fieldElement = document.getElementById(errorField) ||
+                            document.getElementById(`${section}-${errorField}`) ||
+                            document.querySelector(`[name="${errorField}"]`) ||
+                            document.querySelector(`[id="${section}.${errorField}"]`);
+          
+          if (!fieldElement) {
+            // If still not found, try searching for label + neighboring input
+            const label = document.querySelector(`label[for="${errorField}"]`);
+            if (label && label.nextElementSibling) {
+              fieldElement = label.nextElementSibling as HTMLElement;
+            }
+          }
+          
+          if (fieldElement) {
+            console.log(`Focusing element via DOM query for ${fieldPath}`);
+            try {
+              // Try to focus and scroll to the element
+              if ('focus' in fieldElement && typeof fieldElement.focus === 'function') {
+                fieldElement.focus({preventScroll: false});
+                fieldElement.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'center'
+                });
+                return true;
+              }
+            } catch (e) {
+              console.error(`Could not focus element for ${fieldPath}:`, e);
+            }
+          } else {
+            // Last resort - try to scroll to the section container
+            const sectionContainer = document.getElementById(`${section}-section`);
+            if (sectionContainer) {
+              console.log(`Scrolling to section for ${section}`);
+              sectionContainer.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+              });
+              return true;
+            }
+          }
+        }, 100);
+        
+        return true; // Exit after finding first error
+      }
+    }
+    
+    return false; // No errors found
+  }, []);
+  
+  // Handle form submission with improved error handling
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -231,9 +316,15 @@ export const useForm = (
     
     if (!hasErrors) {
       setIsSubmitting(true);
-      const result = await submitFn(formData);
-      setIsSubmitting(false);
-      return result;
+      try {
+        const result = await submitFn(formData);
+        setIsSubmitting(false);
+        return result;
+      } catch (error) {
+        setIsSubmitting(false);
+        console.error("Form submission error:", error);
+        return false;
+      }
     }
     
     // Mark all fields as touched to show all errors
@@ -247,6 +338,10 @@ export const useForm = (
     });
     
     setTouched(allTouched);
+    
+    // Focus the first field with an error
+    focusFirstErrorField(validationErrors);
+    
     return false;
   };
   
@@ -275,7 +370,9 @@ export const useForm = (
     handleSubmit,
     validateFormData,
     validateField,
-    resetForm
+    resetForm,
+    registerFieldRef,
+    focusFirstErrorField
   };
 };
 

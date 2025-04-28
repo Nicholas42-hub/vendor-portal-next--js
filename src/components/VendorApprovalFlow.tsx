@@ -36,7 +36,7 @@ interface VendorData {
   vendor_type?: string;
   contact_person?: string;
   contact_phone?: string;
-  website_url?: string;
+  website?: string;
   postal_address?: string;
   city?: string;
   state?: string;
@@ -110,6 +110,36 @@ interface VendorData {
   current_approver_name?: string;
   next_approver?: string;
   next_approver_name?: string;
+  country: string;
+  gst_registered: string;
+  address: string;
+  primary_contact_email: string;
+  telephone: string;
+  po_email: string;
+  return_order_email: string;
+  trading_entities: string[];
+  has_tax_id: string;
+  ABN_GST: string;
+  // Payment method
+  au_payment_method: string;
+  nz_payment_method: string;
+  // AU specific fields
+  au_biller_code: string;
+  au_ref_code: string;
+  nz_biller_code: string;
+  nz_ref_code: string;
+
+  // Overseas banking
+  au_iban_switch?: string;
+  au_iban?: string;
+  au_swift?: string;
+
+  nz_iban_switch?: string;
+  nz_iban?: string;
+  nz_swift?: string;
+
+  // Terms agreement
+  iAgree: boolean;
   [key: string]: any;
 }
 
@@ -139,16 +169,6 @@ export default function VendorApprovalFlow() {
       business_name: "",
       trading_name: "",
       vendor_type: "",
-      contact_person: "",
-      contact_phone: "",
-      website_url: "",
-      postal_address: "",
-      city: "",
-      state: "",
-      postcode: "",
-      is_gst_registered: false,
-      abn: "",
-      gst: "",
     },
     supplyTerms: {
       exclusive_supply: false,
@@ -189,31 +209,6 @@ export default function VendorApprovalFlow() {
       marketing_rebate_term: "",
       promotional_fund: false,
       promotional_fund_value: "",
-    },
-    bankDetails: {
-      au_invoice_currency: "",
-      au_bank_country: "",
-      au_bank_name: "",
-      au_bank_address: "",
-      au_bank_currency_code: "",
-      au_bank_clearing_code: "",
-      au_remittance_email: "",
-      au_bsb: "",
-      au_account: "",
-      nz_invoice_currency: "",
-      nz_bank_country: "",
-      nz_bank_name: "",
-      nz_bank_address: "",
-      nz_bank_currency_code: "",
-      nz_bank_clearing_code: "",
-      nz_remittance_email: "",
-      nz_bsb: "",
-      nz_account: "",
-      overseas_iban_switch: false,
-      overseas_iban: "",
-      overseas_swift: "",
-      biller_code: "",
-      ref_code: "",
     },
   });
 
@@ -341,7 +336,7 @@ export default function VendorApprovalFlow() {
         vendor_type: vendor.vendor_type || "",
         contact_person: vendor.contact_person || "",
         contact_phone: vendor.contact_phone || "",
-        website_url: vendor.website_url || "",
+        website: vendor.website || "",
         postal_address: vendor.postal_address || "",
         city: vendor.city || "",
         state: vendor.state || "",
@@ -450,19 +445,19 @@ export default function VendorApprovalFlow() {
           vendor_type: vendor.vendor_type || "",
           contact_person: vendor.contact_person || "",
           contact_phone: vendor.contact_phone || "",
-          website_url: vendor.website_url || "",
+          website: vendor.website || "",
           postal_address: vendor.postal_address || "",
           city: vendor.city || "",
           state: vendor.state || "",
           postcode: vendor.postcode || "",
-          is_gst_registered: Boolean(vendor.is_gst_registered),
+          is_gst_registered: vendor.is_gst_registered,
           abn: vendor.abn || "",
           gst: vendor.gst || "",
         },
         supplyTerms: {
-          exclusive_supply: Boolean(vendor.exclusive_supply),
-          sale_or_return: Boolean(vendor.sale_or_return),
-          auth_required: Boolean(vendor.auth_required),
+          exclusive_supply: vendor.exclusive_supply,
+          sale_or_return: vendor.sale_or_return,
+          auth_required: vendor.auth_required,
           delivery_notice: Number(vendor.delivery_notice || 0),
           min_order_value: Number(vendor.min_order_value || 0),
           min_order_quantity: Number(vendor.min_order_quantity || 0),
@@ -470,33 +465,33 @@ export default function VendorApprovalFlow() {
           other_comments: vendor.other_comments || "",
         },
         tradingTerms: {
-          quotes_obtained: Boolean(vendor.quotes_obtained),
+          quotes_obtained: vendor.quotes_obtained,
           quotes_obtained_reason: vendor.quotes_obtained_reason || "",
           quotes_pdf_url: vendor.quotes_pdf_url || "",
-          back_order: Boolean(vendor.back_order),
+          back_order: vendor.back_order,
         },
         financialTerms: {
           payment_terms: vendor.payment_terms || "",
           order_expiry_days: Number(vendor.order_expiry_days || 0),
           gross_margin: vendor.gross_margin || "",
-          invoice_discount: Boolean(vendor.invoice_discount),
+          invoice_discount: vendor.invoice_discount,
           invoice_discount_value: vendor.invoice_discount_value || "",
-          settlement_discount: Boolean(vendor.settlement_discount),
+          settlement_discount: vendor.settlement_discount,
           settlement_discount_value: vendor.settlement_discount_value || "",
           settlement_discount_days: vendor.settlement_discount_days || "",
-          flat_rebate: Boolean(vendor.flat_rebate),
+          flat_rebate: vendor.flat_rebate,
           flat_rebate_percent: vendor.flat_rebate_percent || "",
           flat_rebate_dollar: vendor.flat_rebate_dollar || "",
           flat_rebate_term: vendor.flat_rebate_term || "",
-          growth_rebate: Boolean(vendor.growth_rebate),
+          growth_rebate: vendor.growth_rebate,
           growth_rebate_percent: vendor.growth_rebate_percent || "",
           growth_rebate_dollar: vendor.growth_rebate_dollar || "",
           growth_rebate_term: vendor.growth_rebate_term || "",
-          marketing_rebate: Boolean(vendor.marketing_rebate),
+          marketing_rebate: vendor.marketing_rebate,
           marketing_rebate_percent: vendor.marketing_rebate_percent || "",
           marketing_rebate_dollar: vendor.marketing_rebate_dollar || "",
           marketing_rebate_term: vendor.marketing_rebate_term || "",
-          promotional_fund: Boolean(vendor.promotional_fund),
+          promotional_fund: vendor.promotional_fund,
           promotional_fund_value: vendor.promotional_fund_value || "",
         },
         bankDetails: {
@@ -518,7 +513,7 @@ export default function VendorApprovalFlow() {
           nz_remittance_email: vendor.nz_remittance_email || "",
           nz_bsb: vendor.nz_bsb || "",
           nz_account: vendor.nz_account || "",
-          overseas_iban_switch: Boolean(vendor.overseas_iban_switch),
+          overseas_iban_switch: vendor.overseas_iban_switch,
           overseas_iban: vendor.overseas_iban || "",
           overseas_swift: vendor.overseas_swift || "",
           biller_code: vendor.biller_code || "",
@@ -879,9 +874,6 @@ export default function VendorApprovalFlow() {
               `/api/vendor-approval/${encodeURIComponent(vendorData.email)}`,
               {
                 status_code: newStatus,
-                // Include delivery_notice to ensure it persists through approval flow
-                delivery_notice:
-                  formattedVendorData.supplyTerms.delivery_notice,
               }
             );
 
@@ -941,27 +933,71 @@ export default function VendorApprovalFlow() {
 
       // Collect form data that needs updating
       const formData = {
-        // Only include fields that have changed
-        delivery_notice: formattedVendorData.supplyTerms.delivery_notice,
-
-        // Include business and trading name for better identification
+        // General Details
         business_name: formattedVendorData.generalDetails.business_name,
         trading_name: formattedVendorData.generalDetails.trading_name,
+        primary_contact_email:
+          formattedVendorData.generalDetails.contact_person,
+        telephone: formattedVendorData.generalDetails.contact_phone,
 
-        // Move to next approval state
+        // Address Details
+        website: formattedVendorData.generalDetails.website,
+        address: formattedVendorData.generalDetails.postal_address,
+        city: formattedVendorData.generalDetails.city,
+        state: formattedVendorData.generalDetails.state,
+        postcode: formattedVendorData.generalDetails.postcode,
+
+        // Supply Terms
+        delivery_notice: formattedVendorData.supplyTerms.delivery_notice,
+        abn: formattedVendorData.generalDetails.abn,
+        gst: formattedVendorData.generalDetails.gst,
+
+        // AU Banking Details
+        au_invoice_currency:
+          formattedVendorData.bankDetails.au_invoice_currency,
+        au_bank_country: formattedVendorData.bankDetails.au_bank_country,
+        au_bank_name: formattedVendorData.bankDetails.au_bank_name,
+        au_bank_address: formattedVendorData.bankDetails.au_bank_address,
+        au_bank_currency_code:
+          formattedVendorData.bankDetails.au_bank_currency_code,
+        au_bank_clearing_code:
+          formattedVendorData.bankDetails.au_bank_clearing_code,
+        au_remittance_email:
+          formattedVendorData.bankDetails.au_remittance_email,
+        au_bsb: formattedVendorData.bankDetails.au_bsb,
+        au_account: formattedVendorData.bankDetails.au_account,
+
+        // NZ Banking Details
+        nz_invoice_currency:
+          formattedVendorData.bankDetails.nz_invoice_currency,
+        nz_bank_country: formattedVendorData.bankDetails.nz_bank_country,
+        nz_bank_name: formattedVendorData.bankDetails.nz_bank_name,
+        nz_bank_address: formattedVendorData.bankDetails.nz_bank_address,
+        nz_bank_currency_code:
+          formattedVendorData.bankDetails.nz_bank_currency_code,
+        nz_bank_clearing_code:
+          formattedVendorData.bankDetails.nz_bank_clearing_code,
+        nz_remittance_email:
+          formattedVendorData.bankDetails.nz_remittance_email,
+        nz_bsb: formattedVendorData.bankDetails.nz_bsb,
+        nz_account: formattedVendorData.bankDetails.nz_account,
+
+        // Overseas Banking Details
+        overseas_iban_switch:
+          formattedVendorData.bankDetails.overseas_iban_switch,
+        overseas_iban: formattedVendorData.bankDetails.overseas_iban,
+        overseas_swift: formattedVendorData.bankDetails.overseas_swift,
+
+        // BPAY Details
+        biller_code: formattedVendorData.bankDetails.biller_code,
+        ref_code: formattedVendorData.bankDetails.ref_code,
+        promotional_fund: formattedVendorData.financialTerms.promotional_fund,
+        promotional_fund_value:
+          formattedVendorData.financialTerms.promotional_fund_value,
+        // Approval Flow Data
         status_code: "Procurement Approval",
-
-        // Clear any previous approval comments when resubmitting
         approval_comment: "",
       };
-
-      // Check for required fields before submission
-      if (
-        formData.delivery_notice === undefined ||
-        formData.delivery_notice === null
-      ) {
-        throw new Error("Delivery notice is required");
-      }
 
       console.log("Submitting vendor update with data:", formData);
 
@@ -1030,7 +1066,6 @@ export default function VendorApprovalFlow() {
           {
             status_code: "Declined",
             approval_comment: declineComment,
-            delivery_notice: Number(vendorData.delivery_notice),
           }
         );
 
@@ -1295,9 +1330,10 @@ export default function VendorApprovalFlow() {
                     <SupplierForm
                       isEditable={isEditable}
                       email={vendorData.email}
-                      onDataChange={(data) => {
-                        // Optional: Handle supplier form data changes if needed
-                        console.log("Supplier form data updated:", data);
+                      initialData={vendorData || {}}
+                      hideSubmitButton={true} // Add this prop to hide the submit button
+                      onDataChange={(vendorData) => {
+                        console.log("Supplier form data updated:", vendorData);
                       }}
                     />
                   ) : (

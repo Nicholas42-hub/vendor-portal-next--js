@@ -55,47 +55,58 @@ export default function CreateVendorOnboardingPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="relative min-h-screen">
-        {/* Background image with transparency */}
-        <div
-          className="absolute inset-0 z-0 w-full h-full"
-          style={{
-            backgroundImage: "url(/images/LtrAWPL.jpeg)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-            opacity: 0.2,
-          }}
-        />
+    <div className="relative min-h-screen">
+      {/* Background image with transparency */}
+      <div
+        className="absolute inset-0 z-0 w-full h-full"
+        style={{
+          backgroundImage: "url(/images/LtrAWPL.jpeg)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          opacity: 0.2,
+        }}
+      />
 
-        {/* Header and back button */}
-        <div className="relative z-10 mb-6 flex items-center">
+      {/* Main content - Update max width class */}
+      <div className="relative z-10 max-w-full mx-auto py-8 px-4 md:px-8 lg:px-12">
+        {/* Header section with back button */}
+        <div className="mb-6 flex items-center">
+          {/* Back button remains unchanged */}
           <button
             onClick={() => router.back()}
-            className="mr-4 p-2 rounded-md hover:bg-gray-100"
+            className="mr-4 p-2 rounded-md hover:bg-gray-100 flex items-center justify-center"
+            aria-label="Go back"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
+              width="20"
+              height="20"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              className="text-gray-600"
             >
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-2xl font-bold text-gray-800">
-            Create Vendor Onboarding Form
-          </h1>
+          {/* Title section remains unchanged */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">
+              Create Vendor Onboarding Form
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Please complete all required fields to create a new vendor
+              onboarding request.
+            </p>
+          </div>
         </div>
 
-        {/* Form Container */}
-        <div className="relative z-10 bg-white rounded-lg shadow-md p-6">
+        {/* Form container with custom width */}
+        <div className="w-full max-w-[1600px] mx-auto">
           <VendorOnboardingForm />
         </div>
       </div>

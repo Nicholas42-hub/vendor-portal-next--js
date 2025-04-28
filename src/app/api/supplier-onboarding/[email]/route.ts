@@ -168,10 +168,65 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
           updateVendorOnboarding(
             email: "${email}"
             item: {
+              # Basic supplier information
+              business_name: "${escapeString(formData.business_name || "")}"
+              trading_name: "${escapeString(formData.trading_name || "")}"
+              country: "${escapeString(formData.country || "")}"
+              is_gst_registered: "${escapeString(formData.gst_registered || "")}"
+              gst_registered: "${escapeString(formData.gst_registered || "")}"
+              abn: "${escapeString(formData.abn || "")}"
+              gst: "${escapeString(formData.gst || "")}"
+              address: "${escapeString(formData.address || "")}"
+              website: "${escapeString(formData.website || "")}"
+              city: "${escapeString(formData.city || "")}"
+              state: "${escapeString(formData.state || "")}"
+              postcode: "${escapeString(formData.postcode || "")}"
+              po_email: "${escapeString(formData.po_email || "")}"
+              telephone: "${escapeString(formData.telephone || "")}"
+              primary_contact_email: "${escapeString(formData.primary_contact_email || "")}"
+              contact_phone: "${escapeString(formData.telephone || "")}"
+              return_order_email: "${escapeString(formData.return_order_email || "")}"
               
-              business_name: "${formData.business_name || ""}"
-              trading_name: "${formData.trading_name || ""}"
+              has_tax_id: "${escapeString(formData.has_tax_id || "")}"
+              ABN_GST: "${escapeString(formData.ABN_GST || "")}"
+              
+              au_payment_method: "${escapeString(formData.au_payment_method || "")}"
+              nz_payment_method: "${escapeString(formData.nz_payment_method || "")}"
+              
+              au_invoice_currency: "${escapeString(formData.au_invoice_currency || "")}"
+              au_bank_country: "${escapeString(formData.au_bank_country || "")}"
+              au_bank_address: "${escapeString(formData.au_bank_address || "")}"
+              au_bank_currency_code: "${escapeString(formData.au_bank_currency_code || "")}"
+              au_bank_clearing_code: "${escapeString(formData.au_bank_clearing_code || "")}"
+              au_remittance_email: "${escapeString(formData.au_remittance_email || "")}"
+              au_bsb: "${escapeString(formData.au_bsb || "")}"
+              au_account: "${escapeString(formData.au_account || "")}"
+              
+              au_iban_switch: "${escapeString(formData.au_iban_switch || "")}"
+              au_iban: "${escapeString(formData.au_iban || "")}"
+              au_swift: "${escapeString(formData.au_swift || "")}"
+              au_biller_code: "${escapeString(formData.au_biller_code || "")}"
+              au_ref_code: "${escapeString(formData.au_ref_code || "")}"
+              
+              nz_invoice_currency: "${escapeString(formData.nz_invoice_currency || "")}"
+              nz_bank_country: "${escapeString(formData.nz_bank_country || "")}"
+              nz_bank_address: "${escapeString(formData.nz_bank_address || "")}"
+              nz_bank_currency_code: "${escapeString(formData.nz_bank_currency_code || "")}"
+              nz_bank_clearing_code: "${escapeString(formData.nz_bank_clearing_code || "")}"
+              nz_remittance_email: "${escapeString(formData.nz_remittance_email || "")}"
+              nz_bsb: "${escapeString(formData.nz_bsb || "")}"
+              nz_account: "${escapeString(formData.nz_account || "")}"
+              
+              nz_iban_switch: "${escapeString(formData.nz_iban_switch || "")}"
+              nz_iban: "${escapeString(formData.nz_iban || "")}"
+              nz_swift: "${escapeString(formData.nz_swift || "")}"
+              nz_biller_code: "${escapeString(formData.nz_biller_code || "")}"
+              nz_ref_code: "${escapeString(formData.nz_ref_code || "")}"
+              
               status_code: "Requester review"
+              modified_on: "${currentTimestamp}"
+              modified_by: "${escapeString(userEmail)}"
+
             }
           ) {
             result
@@ -222,4 +277,14 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
       { status: error.response?.status || 500 }
     );
   }
+}
+
+// Helper function to escape GraphQL string values
+function escapeString(value: string): string {
+  if (!value) return "";
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
 }

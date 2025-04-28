@@ -21,7 +21,14 @@ import { countries } from "@/lib/countries";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
 import { ConditionalInput } from "../ui/ConditionalInput";
-
+import { SubmitButton } from "../ui/SubmitButton";
+import { styled } from "@mui/material/styles";
+const FormSubmitContainer = styled("div")({
+  marginTop: "20px",
+  width: "100%",
+  display: "flex",
+  justifyContent: "flex-end",
+});
 // Define interfaces for trading entities
 interface TradingEntity {
   TradingEntityId: string;
@@ -48,10 +55,10 @@ interface SupplierFormData {
   return_order_email: string;
   trading_entities: string[];
   has_tax_id: string;
-  ANB_GST: string;
+  ABN_GST: string;
   // Payment method
-  payment_method: string;
-
+  au_payment_method: string;
+  nz_payment_method: string;
   // AU specific fields
   au_invoice_currency?: string;
   au_bank_country?: string;
@@ -61,6 +68,8 @@ interface SupplierFormData {
   au_remittance_email?: string;
   au_bsb?: string;
   au_account?: string;
+  au_biller_code: string;
+  au_ref_code: string;
 
   // NZ specific fields
   nz_invoice_currency?: string;
@@ -71,15 +80,17 @@ interface SupplierFormData {
   nz_remittance_email?: string;
   nz_bsb?: string;
   nz_account?: string;
+  nz_biller_code: string;
+  nz_ref_code: string;
 
   // Overseas banking
-  overseas_iban_switch?: string;
-  overseas_iban?: string;
-  overseas_swift?: string;
+  au_iban_switch?: string;
+  au_iban?: string;
+  au_swift?: string;
 
-  // BPay
-  biller_code?: string;
-  ref_code?: string;
+  nz_iban_switch?: string;
+  nz_iban?: string;
+  nz_swift?: string;
 
   // Terms agreement
   iAgree: boolean;
@@ -90,17 +101,21 @@ interface FormErrors {
   [key: string]: string;
 }
 
-// Define props interface for SupplierForm
+// Update the props interface for SupplierForm
 interface SupplierFormProps {
   isEditable?: boolean;
   email?: string;
   onDataChange?: (data: SupplierFormData) => void;
+  hideSubmitButton?: boolean; // New prop to control submit button visibility
+  initialData: {};
 }
 
 export default function SupplierFormExternal({
   isEditable = true,
   email: propEmail,
   onDataChange,
+  hideSubmitButton = false, // Add default value of false
+  initialData = {},
 }: SupplierFormProps) {
   const searchParams = useSearchParams();
   const urlEmail = searchParams.get("email");
@@ -119,25 +134,37 @@ export default function SupplierFormExternal({
   const [showTerms, setShowTerms] = useState(false);
   const [vendorCountry, setVendorCountry] = useState<string>("");
   // Initial form state
-  const [formData, setFormData] = useState<SupplierFormData>({
-    business_name: "",
-    trading_name: "",
-    country: "",
-    gst_registered: "",
-    address: "",
-    website: "",
-    city: "",
-    state: "",
-    postcode: "",
-    primary_contact_email: "",
-    telephone: "",
-    po_email: "",
-    return_order_email: "",
-    trading_entities: [],
-    payment_method: "Bank Transfer",
-    iAgree: false,
-    has_tax_id: "",
-    ANB_GST: "",
+  // Initialize formData with defaults, merged with any initialData provided
+  const [formData, setFormData] = useState<SupplierFormData>(() => {
+    // Default form data
+    const defaultData: SupplierFormData = {
+      business_name: "",
+      trading_name: "",
+      country: "",
+      gst_registered: "",
+      address: "",
+      website: "",
+      city: "",
+      state: "",
+      postcode: "",
+      primary_contact_email: email || "",
+      telephone: "",
+      po_email: email || "",
+      return_order_email: email || "",
+      trading_entities: [],
+      au_payment_method: "Bank Transfer",
+      nz_payment_method: "Bank Transfer",
+      au_biller_code: "",
+      au_ref_code: "",
+      nz_biller_code: "",
+      nz_ref_code: "",
+      iAgree: false,
+      has_tax_id: "",
+      ABN_GST: "",
+    };
+
+    // Merge with initial data if provided
+    return { ...defaultData, ...initialData };
   });
   // Currencies list
   const currencies = [
@@ -148,7 +175,109 @@ export default function SupplierFormExternal({
     { value: "GBP", label: "GBP" },
     { value: "CNY", label: "CNY" },
   ];
-  // Add this function to your component
+  // Add these functions to your component, near other validation functions
+
+  // Bank field validation functions
+  const validateBSB = (
+    value: string | undefined
+  ): { isValid: boolean; errorMessage: string } => {
+    if (!value || value.trim() === "") {
+      return {
+        isValid: false,
+        errorMessage: "BSB is required and must be in numerical format.",
+      };
+    }
+
+    // Strip all non-numeric characters
+    const numericValue = value.replace(/\D/g, "");
+
+    // Check if the length is exactly 6 digits after removing non-numeric characters
+    if (numericValue.length !== 6) {
+      return {
+        isValid: false,
+        errorMessage: "BSB must be exactly 6 digits.",
+      };
+    }
+
+    return { isValid: true, errorMessage: "" };
+  };
+
+  const validateAccount = (
+    value: string | undefined
+  ): { isValid: boolean; errorMessage: string } => {
+    if (!value || value.trim() === "") {
+      return {
+        isValid: false,
+        errorMessage:
+          "Account number is required and must be in numerical format.",
+      };
+    }
+
+    // Strip all non-numeric characters
+    const numericValue = value.replace(/\D/g, "");
+
+    // Check if the length is exactly 10 digits after removing non-numeric characters
+    if (numericValue.length !== 10) {
+      return {
+        isValid: false,
+        errorMessage: "Account must be exactly 10 digits.",
+      };
+    }
+
+    return { isValid: true, errorMessage: "" };
+  };
+
+  const validateIBAN = (
+    value: string | undefined
+  ): { isValid: boolean; errorMessage: string } => {
+    if (!value || value.trim() === "") {
+      return {
+        isValid: false,
+        errorMessage: "IBAN is required.",
+      };
+    }
+
+    // Remove spaces and convert to uppercase for validation
+    const cleanValue = value.replace(/\s/g, "").toUpperCase();
+
+    // IBAN format validation (2 letters followed by up to 32 alphanumeric characters)
+    const ibanRegex = /^[A-Z]{2}[0-9A-Z]{2,32}$/;
+
+    if (!ibanRegex.test(cleanValue)) {
+      return {
+        isValid: false,
+        errorMessage:
+          "Invalid IBAN format. Must start with 2 letters followed by alphanumeric characters.",
+      };
+    }
+
+    return { isValid: true, errorMessage: "" };
+  };
+
+  const validateSWIFT = (
+    value: string | undefined
+  ): { isValid: boolean; errorMessage: string } => {
+    if (!value || value.trim() === "") {
+      return {
+        isValid: false,
+        errorMessage: "SWIFT code is required.",
+      };
+    }
+
+    // SWIFT code format validation (8 or 11 alphanumeric characters)
+    const swiftRegex = /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/;
+
+    if (!swiftRegex.test(value.toUpperCase())) {
+      return {
+        isValid: false,
+        errorMessage: "Invalid SWIFT code format. Must be 8 or 11 characters.",
+      };
+    }
+
+    return { isValid: true, errorMessage: "" };
+  };
+
+  // Update the handleInputBlur function to include banking validation
   const handleInputBlur = (
     e: React.FocusEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -174,15 +303,60 @@ export default function SupplierFormExternal({
         }
       }
 
+      // Banking field validations
+      if (name === "au_bsb" || name === "nz_bsb") {
+        const result = validateBSB(value);
+        if (!result.isValid) {
+          error = result.errorMessage;
+        } else {
+          // Update form data with clean numeric value
+          const numericValue = value.replace(/\D/g, "");
+          setFormData((prev) => ({ ...prev, [name]: numericValue }));
+        }
+      }
+
+      if (name === "au_account" || name === "nz_account") {
+        const result = validateAccount(value);
+        if (!result.isValid) {
+          error = result.errorMessage;
+        } else {
+          // Update form data with clean numeric value
+          const numericValue = value.replace(/\D/g, "");
+          setFormData((prev) => ({ ...prev, [name]: numericValue }));
+        }
+      }
+
+      if (name === "au_iban" || name === "nz_iban") {
+        const result = validateIBAN(value);
+        if (!result.isValid) {
+          error = result.errorMessage;
+        }
+      }
+
+      if (name === "au_swift" || name === "nz_swift") {
+        const result = validateSWIFT(value);
+        if (!result.isValid) {
+          error = result.errorMessage;
+        }
+      }
+
       // Update errors state if there's an error
       if (error) {
         setErrors((prev) => ({
           ...prev,
           [name]: error,
         }));
+      } else {
+        // Clear error if validation passes
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
+        });
       }
     }
   };
+
   // Get vendor trading entities on component mount
   useEffect(() => {
     if (session?.accessToken) {
@@ -259,15 +433,36 @@ export default function SupplierFormExternal({
         [name]: checked,
       }));
     } else {
-      // For address field, enforce 100 character limit
-      if (name === "address" && value.length > 100) {
+      // Handle BSB and Account number formatting in real-time
+      if (name === "au_bsb" || name === "nz_bsb") {
+        // Only allow numeric input for BSB
+        const numericValue = value.replace(/\D/g, "");
+        if (numericValue.length <= 6) {
+          // Limit to 6 digits
+          setFormData((prev) => ({
+            ...prev,
+            [name]: numericValue,
+          }));
+        }
+      } else if (name === "au_account" || name === "nz_account") {
+        // Only allow numeric input for account numbers
+        const numericValue = value.replace(/\D/g, "");
+        if (numericValue.length <= 10) {
+          // Limit to 10 digits
+          setFormData((prev) => ({
+            ...prev,
+            [name]: numericValue,
+          }));
+        }
+      } else if (name === "address" && value.length > 100) {
+        // For address field, enforce 100 character limit
         return;
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: value,
+        }));
       }
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
     }
 
     // Clear error when field is changed
@@ -279,7 +474,6 @@ export default function SupplierFormExternal({
       });
     }
   };
-
   // Handle select changes
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({
@@ -349,8 +543,9 @@ export default function SupplierFormExternal({
   const validateForm = () => {
     const newErrors: FormErrors = {};
 
-    // Required fields
+    // Required fields validation
     const requiredFields = [
+      "business_name",
       "trading_name",
       "country",
       "gst_registered",
@@ -361,7 +556,6 @@ export default function SupplierFormExternal({
       "telephone",
       "po_email",
       "return_order_email",
-      "payment_method",
     ];
 
     requiredFields.forEach((field) => {
@@ -370,7 +564,15 @@ export default function SupplierFormExternal({
       }
     });
 
-    // Email validation
+    // Add region-specific payment method validation
+    if (hasAuEntities && !formData.au_payment_method) {
+      newErrors["au_payment_method"] = "This field is required";
+    }
+    if (hasNzEntities && !formData.nz_payment_method) {
+      newErrors["nz_payment_method"] = "This field is required";
+    }
+
+    // Email validation with proper regex pattern
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
     const emailFields = [
       "primary_contact_email",
@@ -378,15 +580,24 @@ export default function SupplierFormExternal({
       "return_order_email",
     ];
 
+    // Add conditional email fields
+    if (hasAuEntities) emailFields.push("au_remittance_email");
+    if (hasNzEntities) emailFields.push("nz_remittance_email");
+
     emailFields.forEach((field) => {
       const value = formData[field as keyof SupplierFormData] as string;
-      if (value && !emailRegex.test(value)) {
-        newErrors[field] = "Please enter a valid email address";
+      if (value) {
+        if (!emailRegex.test(value)) {
+          newErrors[field] = "Please enter a valid email address";
+        }
+      } else if (field !== "au_remittance_email" || hasAuEntities) {
+        // Only mark conditional fields as required when the condition is met
+        newErrors[field] = "This field is required";
       }
     });
 
-    // Country-specific validations for GST/ABN
-    if (vendorCountry === "Australia") {
+    // Country-specific tax ID validations
+    if (formData.country === "Australia" && formData.has_tax_id === "Yes") {
       if (!formData.abn) {
         newErrors["abn"] = "ABN is required";
       } else if (!/^\d{11}$/.test(formData.abn)) {
@@ -394,146 +605,180 @@ export default function SupplierFormExternal({
       }
     }
 
-    if (vendorCountry === "New Zealand") {
+    if (formData.country === "New Zealand" && formData.has_tax_id === "Yes") {
       if (!formData.gst) {
         newErrors["gst"] = "GST number is required";
       }
     }
 
-    // AU invoice currency validation
+    // Validate invoice currencies when trading entities are selected
     if (hasAuEntities && !formData.au_invoice_currency) {
       newErrors["au_invoice_currency"] =
         "Invoice currency is required for Australian entities";
     }
 
-    // NZ invoice currency validation
     if (hasNzEntities && !formData.nz_invoice_currency) {
       newErrors["nz_invoice_currency"] =
         "Invoice currency is required for New Zealand entities";
     }
 
-    // Payment method validations
-    if (formData.payment_method === "Bank Transfer") {
-      // AU Banking validation
-      if (hasAuEntities) {
-        if (!formData.au_bank_country) {
-          newErrors["au_bank_country"] = "Bank country is required";
+    // AU payment validation
+    if (hasAuEntities && formData.au_payment_method === "Bank Transfer") {
+      // Required AU banking fields
+      const requiredAuFields = [
+        "au_bank_country",
+        "au_bank_address",
+        "au_bank_currency_code",
+        "au_remittance_email",
+      ];
+
+      requiredAuFields.forEach((field) => {
+        if (!formData[field as keyof SupplierFormData]) {
+          newErrors[field] = "This field is required";
         }
+      });
 
-        if (!formData.au_bank_address) {
-          newErrors["au_bank_address"] = "Bank address is required";
-        }
-
-        if (!formData.au_bank_currency_code) {
-          newErrors["au_bank_currency_code"] = "Bank currency code is required";
-        }
-
-        if (!formData.au_remittance_email) {
-          newErrors["au_remittance_email"] = "Remittance email is required";
-        }
-
-        // AU domestic banking
-        if (formData.au_bank_country === "Australia") {
-          if (!formData.au_bsb) {
-            newErrors["au_bsb"] = "BSB is required";
-          } else if (!/^\d{6}$/.test(formData.au_bsb)) {
-            newErrors["au_bsb"] = "BSB must be 6 digits";
-          }
-
-          if (!formData.au_account) {
-            newErrors["au_account"] = "Account number is required";
-          } else if (!/^\d{10}$/.test(formData.au_account)) {
-            newErrors["au_account"] = "Account number must be 10 digits";
+      // Australian domestic banking
+      if (formData.au_bank_country === "Australia") {
+        if (!formData.au_bsb) {
+          newErrors["au_bsb"] = "BSB is required";
+        } else {
+          const bsbResult = validateBSB(formData.au_bsb);
+          if (!bsbResult.isValid) {
+            newErrors["au_bsb"] = bsbResult.errorMessage;
           }
         }
-        // Overseas banking for AU entity
-        else if (
-          formData.au_bank_country &&
-          formData.au_bank_country !== "Australia"
-        ) {
-          if (!formData.overseas_iban_switch) {
-            newErrors["overseas_iban_switch"] = "Please select IBAN or SWIFT";
-          } else if (formData.overseas_iban_switch === "IBAN") {
-            if (!formData.overseas_iban) {
-              newErrors["overseas_iban"] = "IBAN is required";
-            }
-          } else if (formData.overseas_iban_switch === "SWIFT") {
-            if (!formData.overseas_swift) {
-              newErrors["overseas_swift"] = "SWIFT is required";
-            }
+
+        if (!formData.au_account) {
+          newErrors["au_account"] = "Account number is required";
+        } else {
+          const accountResult = validateAccount(formData.au_account);
+          if (!accountResult.isValid) {
+            newErrors["au_account"] = accountResult.errorMessage;
           }
         }
       }
+    } else if (hasAuEntities && formData.au_payment_method === "Bpay") {
+      // Required AU Bpay fields
+      const requiredAuBpayFields = ["au_biller_code", "au_ref_code"];
 
-      // NZ Banking validation
-      if (hasNzEntities) {
-        if (!formData.nz_bank_country) {
-          newErrors["nz_bank_country"] = "Bank country is required";
+      requiredAuBpayFields.forEach((field) => {
+        if (!formData[field as keyof SupplierFormData]) {
+          newErrors[field] = "This field is required";
         }
+      });
 
-        if (!formData.nz_bank_address) {
-          newErrors["nz_bank_address"] = "Bank address is required";
-        }
-
-        if (!formData.nz_bank_currency_code) {
-          newErrors["nz_bank_currency_code"] = "Bank currency code is required";
-        }
-
-        if (!formData.nz_remittance_email) {
-          newErrors["nz_remittance_email"] = "Remittance email is required";
-        }
-
-        // NZ domestic banking
-        if (formData.nz_bank_country === "New Zealand") {
-          if (!formData.nz_bsb) {
-            newErrors["nz_bsb"] = "BSB is required";
-          } else if (!/^\d{6}$/.test(formData.nz_bsb)) {
-            newErrors["nz_bsb"] = "BSB must be 6 digits";
-          }
-
-          if (!formData.nz_account) {
-            newErrors["nz_account"] = "Account number is required";
-          } else if (!/^\d{10}$/.test(formData.nz_account)) {
-            newErrors["nz_account"] = "Account number must be 10 digits";
-          }
-        }
-        // Overseas banking for NZ entity
-        else if (
-          formData.nz_bank_country &&
-          formData.nz_bank_country !== "New Zealand"
-        ) {
-          if (!formData.overseas_iban_switch) {
-            newErrors["overseas_iban_switch"] = "Please select IBAN or SWIFT";
-          } else if (formData.overseas_iban_switch === "IBAN") {
-            if (!formData.overseas_iban) {
-              newErrors["overseas_iban"] = "IBAN is required";
-            }
-          } else if (formData.overseas_iban_switch === "SWIFT") {
-            if (!formData.overseas_swift) {
-              newErrors["overseas_swift"] = "SWIFT is required";
-            }
-          }
-        }
+      // Validate AU Bpay fields format
+      if (!/^\d+$/.test(formData.au_biller_code)) {
+        newErrors["au_biller_code"] = "Biller code must contain only numbers";
       }
 
-      // Bank statement validation
-      if (!bankStatement) {
-        setFileError("Bank statement is required");
+      if (!/^\d+$/.test(formData.au_ref_code)) {
+        newErrors["au_ref_code"] = "Reference code must contain only numbers";
       }
     }
-    // BPay validation
-    else if (formData.payment_method === "Bpay") {
-      if (!formData.biller_code) {
-        newErrors["biller_code"] = "Biller code is required";
-      } else if (!/^\d+$/.test(formData.biller_code)) {
-        newErrors["biller_code"] = "Biller code must contain only numbers";
+
+    // NZ payment validation
+    if (hasNzEntities && formData.nz_payment_method === "Bank Transfer") {
+      // Required NZ banking fields
+      const requiredNzFields = [
+        "nz_bank_country",
+        "nz_bank_address",
+        "nz_bank_currency_code",
+        "nz_remittance_email",
+      ];
+
+      requiredNzFields.forEach((field) => {
+        if (!formData[field as keyof SupplierFormData]) {
+          newErrors[field] = "This field is required";
+        }
+      });
+
+      // New Zealand domestic banking
+      if (formData.nz_bank_country === "New Zealand") {
+        if (!formData.nz_bsb) {
+          newErrors["nz_bsb"] = "BSB is required";
+        } else {
+          const bsbResult = validateBSB(formData.nz_bsb);
+          if (!bsbResult.isValid) {
+            newErrors["nz_bsb"] = bsbResult.errorMessage;
+          }
+        }
+
+        if (!formData.nz_account) {
+          newErrors["nz_account"] = "Account number is required";
+        } else {
+          const accountResult = validateAccount(formData.nz_account);
+          if (!accountResult.isValid) {
+            newErrors["nz_account"] = accountResult.errorMessage;
+          }
+        }
+      }
+    } else if (hasNzEntities && formData.nz_payment_method === "Bpay") {
+      // Required NZ Bpay fields
+      const requiredNzBpayFields = ["nz_biller_code", "nz_ref_code"];
+
+      requiredNzBpayFields.forEach((field) => {
+        if (!formData[field as keyof SupplierFormData]) {
+          newErrors[field] = "This field is required";
+        }
+      });
+
+      // Validate NZ Bpay fields format
+      if (!/^\d+$/.test(formData.nz_biller_code)) {
+        newErrors["nz_biller_code"] = "Biller code must contain only numbers";
       }
 
-      if (!formData.ref_code) {
-        newErrors["ref_code"] = "Reference code is required";
-      } else if (!/^\d+$/.test(formData.ref_code)) {
-        newErrors["ref_code"] = "Reference code must contain only numbers";
+      if (!/^\d+$/.test(formData.nz_ref_code)) {
+        newErrors["nz_ref_code"] = "Reference code must contain only numbers";
       }
+    }
+
+    // Azure-compliant banking validation with correct country-specific field naming
+    // AU Overseas banking validation
+    if (formData.au_bank_country && formData.au_bank_country !== "Australia") {
+      if (!formData.au_iban_switch) {
+        newErrors["au_iban_switch"] =
+          "Please select IBAN or SWIFT for AU banking";
+      } else if (formData.au_iban_switch === "IBAN") {
+        const ibanResult = validateIBAN(formData.au_iban);
+        if (!ibanResult.isValid) {
+          newErrors["au_iban"] = ibanResult.errorMessage;
+        }
+      } else if (formData.au_iban_switch === "SWIFT") {
+        const swiftResult = validateSWIFT(formData.au_swift);
+        if (!swiftResult.isValid) {
+          newErrors["au_swift"] = swiftResult.errorMessage;
+        }
+      }
+    }
+
+    // NZ Overseas banking validation
+    if (
+      formData.nz_bank_country &&
+      formData.nz_bank_country !== "New Zealand"
+    ) {
+      if (!formData.nz_iban_switch) {
+        newErrors["nz_iban_switch"] =
+          "Please select IBAN or SWIFT for NZ banking";
+      } else if (formData.nz_iban_switch === "IBAN") {
+        const ibanResult = validateIBAN(formData.nz_iban);
+        if (!ibanResult.isValid) {
+          newErrors["nz_iban"] = ibanResult.errorMessage;
+        }
+      } else if (formData.nz_iban_switch === "SWIFT") {
+        const swiftResult = validateSWIFT(formData.nz_swift);
+        if (!swiftResult.isValid) {
+          newErrors["nz_swift"] = swiftResult.errorMessage;
+        }
+      }
+    }
+
+    // Bank statement validation
+    if (!bankStatement) {
+      setFileError("Bank statement is required");
+    } else {
+      setFileError("");
     }
 
     // Terms agreement validation
@@ -542,7 +787,8 @@ export default function SupplierFormExternal({
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const hasErrors = Object.keys(newErrors).length > 0 || fileError !== "";
+    return !hasErrors;
   };
 
   // Handle form submission
@@ -550,6 +796,21 @@ export default function SupplierFormExternal({
     e.preventDefault();
     console.log("Form submitted");
 
+    // Validate the form first
+    const isValid = validateForm();
+    if (!isValid) {
+      // Scroll to the first error
+      const firstErrorElement = document.querySelector(".border-red-500");
+      if (firstErrorElement) {
+        firstErrorElement.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+      return;
+    }
+
+    // If valid, proceed with confirmation
     setShowConfirmation(true);
   };
 
@@ -559,10 +820,16 @@ export default function SupplierFormExternal({
     setShowConfirmation(false);
 
     try {
-      // Submit form data to the API
+      // Submit form data to the API with authentication token
       const response = await axios.put(
         `/api/supplier-onboarding/${email}`,
-        formData
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${session?.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       if (response.data.success) {
@@ -572,7 +839,25 @@ export default function SupplierFormExternal({
       }
     } catch (error) {
       console.error("Error submitting form:", error);
-      alert("An error occurred while submitting the form. Please try again.");
+      // Enhanced error handling
+      if (axios.isAxiosError(error) && error.response) {
+        if (error.response.status === 403) {
+          alert(
+            "You don't have permission to submit this form. Please contact support."
+          );
+        } else if (error.response.status === 401) {
+          alert("Your session has expired. Please log in again.");
+          // Consider redirecting to login page
+        } else {
+          alert(
+            `Error (${error.response.status}): ${
+              error.response.data.message || "An error occurred"
+            }`
+          );
+        }
+      } else {
+        alert("An error occurred while submitting the form. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -604,16 +889,18 @@ export default function SupplierFormExternal({
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* 1. Supplier Details */}
           <div className="bg-gray-50 p-6 rounded-lg">
-            <h2 className="text-xl font-semibold mb-6">1. Supplier Details</h2>
+            <h2 className="text-xl  font-semibold mb-6">1. Supplier Details</h2>
 
-            <div className="space-y-6">
+            <div className="space-y-6 bg-white rounded-md">
               {/* Business Name (Read-only from Vendor Creation page) */}
               <div className="space-y-2">
                 <Label htmlFor="business_name">Business Name</Label>
                 <ConditionalInput
-                  isEditable={false} // Always read-only
+                  isEditable={isEditable}
                   type="text"
                   name="business_name"
+                  onChange={handleSelectChange}
+                  onBlur={handleInputBlur}
                   value={formData.business_name}
                   placeholder="Business Name"
                 />
@@ -726,11 +1013,12 @@ export default function SupplierFormExternal({
                         { value: "Yes", label: "Yes" },
                         { value: "No", label: "No" },
                       ]}
-                      required={
+                      required={Boolean(
                         formData.country &&
-                        formData.country !== "New Zealand" &&
-                        formData.country !== "Australia"
-                      }
+                          !["New Zealand", "Australia"].includes(
+                            formData.country
+                          )
+                      )}
                       className={errors.has_tax_id ? "border-red-500" : ""}
                       placeholder="Select Yes or No"
                     />
@@ -748,22 +1036,22 @@ export default function SupplierFormExternal({
                 formData.country !== "Australia" &&
                 formData.has_tax_id === "Yes" && (
                   <div className="space-y-2">
-                    <Label htmlFor="ANB_GST">ABN or GST</Label>
+                    <Label htmlFor="ABN_GST">ABN or GST</Label>
                     <ConditionalInput
                       isEditable={isEditable}
                       type="select"
-                      name="ANB_GST"
-                      value={formData.ANB_GST}
+                      name="ABN_GST"
+                      value={formData.ABN_GST}
                       onChange={handleSelectChange}
                       options={[
                         { value: "ABN", label: "ABN" },
                         { value: "GST", label: "GST" },
                       ]}
-                      className={errors.ANB_GST ? "border-red-500" : ""}
+                      className={errors.ABN_GST ? "border-red-500" : ""}
                       placeholder="Select ABN or GST"
                     />
-                    {errors.ANB_GST && (
-                      <p className="text-red-500 text-sm">{errors.ANB_GST}</p>
+                    {errors.ABN_GST && (
+                      <p className="text-red-500 text-sm">{errors.ABN_GST}</p>
                     )}
                   </div>
                 )}
@@ -771,7 +1059,8 @@ export default function SupplierFormExternal({
               {/* GST - Only for New Zealand */}
               {(formData.country === "New Zealand" ||
                 (formData.country !== "New Zealand" &&
-                  formData.ANB_GST === "GST")) && (
+                  formData.ABN_GST === "GST" &&
+                  formData.has_tax_id === "Yes")) && (
                 <div className="space-y-2">
                   <Label htmlFor="gst">
                     New Zealand Goods & Services Tax Number (GST)
@@ -795,7 +1084,8 @@ export default function SupplierFormExternal({
               {/* ABN - Only for Australia */}
               {(formData.country === "Australia" ||
                 (formData.country !== "Australia" &&
-                  formData.ANB_GST === "ABN")) && (
+                  formData.ABN_GST === "ABN" &&
+                  formData.has_tax_id === "Yes")) && (
                 <div className="space-y-2">
                   <Label htmlFor="abn">
                     Australian Business Number (ABN)
@@ -822,7 +1112,7 @@ export default function SupplierFormExternal({
                 <Label htmlFor="address">Address</Label>
                 <ConditionalInput
                   isEditable={isEditable}
-                  id="address"
+                  type="text"
                   name="address"
                   value={formData.address}
                   onChange={handleSelectChange}
@@ -1000,8 +1290,8 @@ export default function SupplierFormExternal({
                   {hasAuEntities && (
                     <div className="space-y-2">
                       <Label htmlFor="au_invoice_currency">
-                        Select the Invoice currency when trading with our
-                        Australian based entity(ies)
+                        Select the Invoice currency when trading with our AU
+                        based entity(ies)
                         <span className="text-red-500">*</span>
                       </Label>
                       <ConditionalInput
@@ -1010,6 +1300,7 @@ export default function SupplierFormExternal({
                         name="au_invoice_currency"
                         value={formData.au_invoice_currency || ""}
                         onChange={handleSelectChange}
+                        onBlur={handleInputBlur}
                         options={currencies.map((currency) => ({
                           value: currency.value,
                           label: currency.label,
@@ -1047,6 +1338,7 @@ export default function SupplierFormExternal({
                           label: currency.label,
                         }))}
                         required={true}
+                        onBlur={handleInputBlur}
                         className={
                           errors.nz_invoice_currency ? "border-red-500" : ""
                         }
@@ -1068,85 +1360,100 @@ export default function SupplierFormExternal({
           <div className="bg-gray-50 p-6 rounded-lg">
             <h2 className="text-xl font-semibold mb-6">2. Banking Details</h2>
 
-            {/* Payment Method */}
-            <div className="space-y-2 mb-6">
-              <Label htmlFor="payment_method">
-                Payment Method<span className="text-red-500">*</span>
-              </Label>
-              <ConditionalInput
-                isEditable={isEditable}
-                type="select"
-                name="payment_method"
-                value={formData.payment_method}
-                onChange={handleSelectChange}
-                options={[
-                  { value: "Bank Transfer", label: "Bank Transfer" },
-                  { value: "Bpay", label: "Bpay" },
-                ]}
-                required={true}
-                className={errors.payment_method ? "border-red-500" : ""}
-                placeholder="Select Payment Method"
-              />
-              {errors.payment_method && (
-                <p className="text-red-500 text-sm">{errors.payment_method}</p>
-              )}
-            </div>
+            {/* AU Payment Container - Always shown when AU entities exist */}
+            {hasAuEntities && (
+              <div className="bg-white p-4 rounded-md border mb-6">
+                <h3 className="font-medium mb-4">
+                  Payment details for Australian entities
+                </h3>
 
-            {/* BPay Fields */}
-            {formData.payment_method === "Bpay" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-md border">
-                <div className="space-y-2">
-                  <Label htmlFor="biller_code">
-                    Biller Code<span className="text-red-500">*</span>
+                {/* AU Payment Method Selection - Now inside the container */}
+                <div className="space-y-2 mb-6">
+                  <Label htmlFor="au_payment_method">
+                    Payment Method<span className="text-red-500">*</span>
                   </Label>
                   <ConditionalInput
                     isEditable={isEditable}
-                    type="text"
-                    name="biller_code"
-                    value={formData.biller_code || ""}
+                    type="select"
+                    name="au_payment_method"
+                    value={formData.au_payment_method || ""}
                     onChange={handleSelectChange}
-                    pattern="\\d+"
-                    inputMode="numeric"
-                    className={errors.biller_code ? "border-red-500" : ""}
+                    options={[
+                      { value: "Bank Transfer", label: "Bank Transfer" },
+                      { value: "Bpay", label: "Bpay" },
+                    ]}
+                    onBlur={handleInputBlur}
+                    required={hasAuEntities}
+                    className={errors.au_payment_method ? "border-red-500" : ""}
+                    placeholder="Select Payment Method for Australia"
                   />
-                  {errors.biller_code && (
-                    <p className="text-red-500 text-sm">{errors.biller_code}</p>
+                  {errors.au_payment_method && (
+                    <p className="text-red-500 text-sm">
+                      {errors.au_payment_method}
+                    </p>
                   )}
-                  <p className="text-xs text-gray-500">Numbers only</p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="ref_code">
-                    Ref Code<span className="text-red-500">*</span>
-                  </Label>
-                  <ConditionalInput
-                    isEditable={isEditable}
-                    type="text"
-                    name="ref_code"
-                    value={formData.ref_code || ""}
-                    onChange={handleSelectChange}
-                    pattern="\\d+"
-                    inputMode="numeric"
-                    className={errors.ref_code ? "border-red-500" : ""}
-                  />
-                  {errors.ref_code && (
-                    <p className="text-red-500 text-sm">{errors.ref_code}</p>
-                  )}
-                  <p className="text-xs text-gray-500">Numbers only</p>
-                </div>
-              </div>
-            )}
+                {/* BPay Fields - Conditionally rendered inside the container */}
+                {formData.au_payment_method === "Bpay" && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-4">BPay details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="au_biller_code">
+                          Biller Code<span className="text-red-500">*</span>
+                        </Label>
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="text"
+                          name="au_biller_code"
+                          value={formData.au_biller_code || ""}
+                          onChange={handleSelectChange}
+                          onBlur={handleInputBlur}
+                          pattern="\\d+"
+                          inputMode="numeric"
+                          className={
+                            errors.au_biller_code ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.au_biller_code && (
+                          <p className="text-red-500 text-sm">
+                            {errors.au_biller_code}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500">Numbers only</p>
+                      </div>
 
-            {/* Bank Transfer Fields */}
-            {formData.payment_method === "Bank Transfer" && (
-              <div className="space-y-6">
-                {/* AU Banking Container */}
-                {hasAuEntities && (
-                  <div className="bg-white p-4 rounded-md border">
-                    <h3 className="font-medium mb-4">
-                      Fill the banking details when trading with Australian
-                      based entity(ies)
-                    </h3>
+                      <div className="space-y-2">
+                        <Label htmlFor="au_ref_code">
+                          Reference Code<span className="text-red-500">*</span>
+                        </Label>
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="text"
+                          name="au_ref_code"
+                          value={formData.au_ref_code || ""}
+                          onChange={handleSelectChange}
+                          onBlur={handleInputBlur}
+                          pattern="\\d+"
+                          inputMode="numeric"
+                          className={errors.au_ref_code ? "border-red-500" : ""}
+                        />
+                        {errors.au_ref_code && (
+                          <p className="text-red-500 text-sm">
+                            {errors.au_ref_code}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500">Numbers only</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bank Transfer Fields - Conditionally rendered inside the container */}
+                {formData.au_payment_method === "Bank Transfer" && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-4">Bank Transfer details</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="au_bank_country">
@@ -1268,7 +1575,7 @@ export default function SupplierFormExternal({
                       </div>
                     </div>
 
-                    {/* AU Domestic Banking */}
+                    {/* AU Domestic Banking - For Australian banks */}
                     {formData.au_bank_country === "Australia" && (
                       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
                         <div className="space-y-2">
@@ -1282,6 +1589,7 @@ export default function SupplierFormExternal({
                             value={formData.au_bsb || ""}
                             onChange={handleSelectChange}
                             maxLength={6}
+                            onBlur={handleInputBlur}
                             inputMode="numeric"
                             className={errors.au_bsb ? "border-red-500" : ""}
                           />
@@ -1290,9 +1598,6 @@ export default function SupplierFormExternal({
                               {errors.au_bsb}
                             </p>
                           )}
-                          <p className="text-xs text-gray-500">
-                            Must be exactly 6 digits
-                          </p>
                         </div>
 
                         <div className="space-y-2">
@@ -1306,6 +1611,7 @@ export default function SupplierFormExternal({
                             name="au_account"
                             value={formData.au_account || ""}
                             onChange={handleSelectChange}
+                            onBlur={handleInputBlur}
                             maxLength={10}
                             inputMode="numeric"
                             className={
@@ -1317,49 +1623,259 @@ export default function SupplierFormExternal({
                               {errors.au_account}
                             </p>
                           )}
-                          <p className="text-xs text-gray-500">
-                            Must be exactly 10 digits
-                          </p>
                         </div>
                       </div>
                     )}
+
+                    {/* NZ Domestic Banking - For New Zealand banks */}
+                    {formData.au_bank_country === "New Zealand" && (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="au_bsb">
+                            NZ Bank Code<span className="text-red-500">*</span>
+                          </Label>
+                          <ConditionalInput
+                            isEditable={isEditable}
+                            type="text"
+                            name="au_bsb"
+                            value={formData.au_bsb || ""}
+                            onChange={handleSelectChange}
+                            onBlur={handleInputBlur}
+                            maxLength={6}
+                            inputMode="numeric"
+                            className={errors.au_bsb ? "border-red-500" : ""}
+                          />
+                          {errors.au_bsb && (
+                            <p className="text-red-500 text-sm">
+                              {errors.au_bsb}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="au_account">
+                            NZ Account Number
+                            <span className="text-red-500">*</span>
+                          </Label>
+                          <ConditionalInput
+                            isEditable={isEditable}
+                            type="text"
+                            name="au_account"
+                            value={formData.au_account || ""}
+                            onChange={handleSelectChange}
+                            onBlur={handleInputBlur}
+                            maxLength={10}
+                            inputMode="numeric"
+                            className={
+                              errors.au_account ? "border-red-500" : ""
+                            }
+                          />
+                          {errors.au_account && (
+                            <p className="text-red-500 text-sm">
+                              {errors.au_account}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Overseas Banking - For non-AU/NZ banks */}
+                    {formData.au_bank_country &&
+                      formData.au_bank_country !== "Australia" &&
+                      formData.au_bank_country !== "New Zealand" && (
+                        <div className="mt-4 grid grid-cols-1 gap-4 border-t pt-4">
+                          <div className="space-y-2 mb-4">
+                            <Label htmlFor="au_iban_switch">
+                              IBAN or SWIFT
+                              <span className="text-red-500">*</span>
+                            </Label>
+                            <ConditionalInput
+                              isEditable={isEditable}
+                              type="select"
+                              name="au_iban_switch"
+                              value={formData.au_iban_switch || ""}
+                              onChange={handleSelectChange}
+                              options={[
+                                { value: "IBAN", label: "IBAN" },
+                                { value: "SWIFT", label: "SWIFT" },
+                              ]}
+                              className={
+                                errors.au_iban_switch ? "border-red-500" : ""
+                              }
+                              placeholder="Select an option"
+                            />
+                            {errors.au_iban_switch && (
+                              <p className="text-red-500 text-sm">
+                                {errors.au_iban_switch}
+                              </p>
+                            )}
+
+                            {formData.au_iban_switch === "IBAN" && (
+                              <div className="space-y-2">
+                                <Label htmlFor="au_iban">
+                                  IBAN<span className="text-red-500">*</span>
+                                </Label>
+                                <ConditionalInput
+                                  isEditable={isEditable}
+                                  type="text"
+                                  name="au_iban"
+                                  value={formData.au_iban || ""}
+                                  onChange={handleSelectChange}
+                                  onBlur={handleInputBlur}
+                                  className={
+                                    errors.au_iban ? "border-red-500" : ""
+                                  }
+                                />
+                                {errors.au_iban && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.au_iban}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {formData.au_iban_switch === "SWIFT" && (
+                              <div className="space-y-2">
+                                <Label htmlFor="au_swift">
+                                  SWIFT<span className="text-red-500">*</span>
+                                </Label>
+                                <ConditionalInput
+                                  isEditable={isEditable}
+                                  type="text"
+                                  name="au_swift"
+                                  value={formData.au_swift || ""}
+                                  onChange={handleSelectChange}
+                                  onBlur={handleInputBlur}
+                                  className={
+                                    errors.au_swift ? "border-red-500" : ""
+                                  }
+                                />
+                                {errors.au_swift && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.au_swift}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* NZ Payment Container - Always shown when NZ entities exist */}
+            {hasNzEntities && (
+              <div className="bg-white p-4 rounded-md border mb-6">
+                <h3 className="font-medium mb-4">
+                  Payment details for New Zealand entities
+                </h3>
+
+                {/* NZ Payment Method Selection - Inside the container */}
+                <div className="space-y-2 mb-6">
+                  <Label htmlFor="nz_payment_method">
+                    Payment Method<span className="text-red-500">*</span>
+                  </Label>
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="select"
+                    name="nz_payment_method"
+                    value={formData.nz_payment_method || ""}
+                    onChange={handleSelectChange}
+                    options={[
+                      { value: "Bank Transfer", label: "Bank Transfer" },
+                      { value: "Bpay", label: "Bpay" },
+                    ]}
+                    required={hasNzEntities}
+                    className={errors.nz_payment_method ? "border-red-500" : ""}
+                    placeholder="Select Payment Method for New Zealand"
+                  />
+                  {errors.nz_payment_method && (
+                    <p className="text-red-500 text-sm">
+                      {errors.nz_payment_method}
+                    </p>
+                  )}
+                </div>
+
+                {/* BPay Fields - Conditionally rendered inside the container */}
+                {formData.nz_payment_method === "Bpay" && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-4">BPay details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="nz_biller_code">
+                          Biller Code<span className="text-red-500">*</span>
+                        </Label>
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="text"
+                          name="nz_biller_code"
+                          value={formData.nz_biller_code || ""}
+                          onChange={handleSelectChange}
+                          pattern="\\d+"
+                          inputMode="numeric"
+                          className={
+                            errors.nz_biller_code ? "border-red-500" : ""
+                          }
+                        />
+                        {errors.nz_biller_code && (
+                          <p className="text-red-500 text-sm">
+                            {errors.nz_biller_code}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500">Numbers only</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="nz_ref_code">
+                          Reference Code<span className="text-red-500">*</span>
+                        </Label>
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="text"
+                          name="nz_ref_code"
+                          value={formData.nz_ref_code || ""}
+                          onChange={handleSelectChange}
+                          pattern="\\d+"
+                          inputMode="numeric"
+                          className={errors.nz_ref_code ? "border-red-500" : ""}
+                        />
+                        {errors.nz_ref_code && (
+                          <p className="text-red-500 text-sm">
+                            {errors.nz_ref_code}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500">Numbers only</p>
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* NZ Banking Container */}
-                {hasNzEntities && (
-                  <div className="bg-white p-4 rounded-md border">
-                    <h3 className="font-medium mb-4">
-                      Fill banking details when trading with our NZ based
-                      entity(ies)
-                    </h3>
+                {/* Bank Transfer Fields - Conditionally rendered inside the container */}
+                {formData.nz_payment_method === "Bank Transfer" && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-4">Bank Transfer details</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="nz_bank_country">
                           Bank Country<span className="text-red-500">*</span>
                         </Label>
-                        <Select
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="select"
+                          name="nz_bank_country"
                           value={formData.nz_bank_country || ""}
-                          onValueChange={(value) =>
-                            handleSelectChange("nz_bank_country", value)
+                          onChange={handleSelectChange}
+                          options={countries.map((country) => ({
+                            value: country,
+                            label: country,
+                          }))}
+                          className={
+                            errors.nz_bank_country ? "border-red-500" : ""
                           }
-                        >
-                          <SelectTrigger
-                            id="nz_bank_country"
-                            className={
-                              errors.nz_bank_country ? "border-red-500" : ""
-                            }
-                          >
-                            <SelectValue placeholder="Select a country" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {countries.map((country) => (
-                              <SelectItem key={country} value={country}>
-                                {country}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Select a country"
+                        />
                         {errors.nz_bank_country && (
                           <p className="text-red-500 text-sm">
                             {errors.nz_bank_country}
@@ -1371,11 +1887,12 @@ export default function SupplierFormExternal({
                         <Label htmlFor="nz_bank_address">
                           Bank Address<span className="text-red-500">*</span>
                         </Label>
-                        <Input
-                          id="nz_bank_address"
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="text"
                           name="nz_bank_address"
                           value={formData.nz_bank_address || ""}
-                          onChange={handleInputChange}
+                          onChange={handleSelectChange}
                           className={
                             errors.nz_bank_address ? "border-red-500" : ""
                           }
@@ -1392,33 +1909,21 @@ export default function SupplierFormExternal({
                           Bank Currency Code
                           <span className="text-red-500">*</span>
                         </Label>
-                        <Select
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="select"
+                          name="nz_bank_currency_code"
                           value={formData.nz_bank_currency_code || ""}
-                          onValueChange={(value) =>
-                            handleSelectChange("nz_bank_currency_code", value)
+                          onChange={handleSelectChange}
+                          options={currencies.map((currency) => ({
+                            value: currency.value,
+                            label: currency.label,
+                          }))}
+                          className={
+                            errors.nz_bank_currency_code ? "border-red-500" : ""
                           }
-                        >
-                          <SelectTrigger
-                            id="nz_bank_currency_code"
-                            className={
-                              errors.nz_bank_currency_code
-                                ? "border-red-500"
-                                : ""
-                            }
-                          >
-                            <SelectValue placeholder="Select a currency" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {currencies.map((currency) => (
-                              <SelectItem
-                                key={currency.value}
-                                value={currency.value}
-                              >
-                                {currency.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Select a currency"
+                        />
                         {errors.nz_bank_currency_code && (
                           <p className="text-red-500 text-sm">
                             {errors.nz_bank_currency_code}
@@ -1430,11 +1935,12 @@ export default function SupplierFormExternal({
                         <Label htmlFor="nz_bank_clearing_code">
                           Bank Clearing Code
                         </Label>
-                        <Input
-                          id="nz_bank_clearing_code"
+                        <ConditionalInput
+                          isEditable={isEditable}
+                          type="text"
                           name="nz_bank_clearing_code"
                           value={formData.nz_bank_clearing_code || ""}
-                          onChange={handleInputChange}
+                          onChange={handleSelectChange}
                           className={
                             errors.nz_bank_clearing_code ? "border-red-500" : ""
                           }
@@ -1451,12 +1957,12 @@ export default function SupplierFormExternal({
                           Remittance Email
                           <span className="text-red-500">*</span>
                         </Label>
-                        <Input
-                          id="nz_remittance_email"
-                          name="nz_remittance_email"
+                        <ConditionalInput
+                          isEditable={isEditable}
                           type="email"
+                          name="nz_remittance_email"
                           value={formData.nz_remittance_email || ""}
-                          onChange={handleInputChange}
+                          onChange={handleSelectChange}
                           onBlur={handleInputBlur}
                           placeholder="example@domain.com"
                           className={
@@ -1471,19 +1977,21 @@ export default function SupplierFormExternal({
                       </div>
                     </div>
 
-                    {/* NZ Domestic Banking */}
+                    {/* NZ Domestic Banking - For New Zealand banks */}
                     {formData.nz_bank_country === "New Zealand" && (
                       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
                         <div className="space-y-2">
                           <Label htmlFor="nz_bsb">
-                            BSB<span className="text-red-500">*</span>
+                            NZ Bank Code<span className="text-red-500">*</span>
                           </Label>
-                          <Input
-                            id="nz_bsb"
+                          <ConditionalInput
+                            isEditable={isEditable}
+                            type="text"
                             name="nz_bsb"
                             value={formData.nz_bsb || ""}
-                            onChange={handleInputChange}
+                            onChange={handleSelectChange}
                             maxLength={6}
+                            onBlur={handleInputBlur}
                             inputMode="numeric"
                             className={errors.nz_bsb ? "border-red-500" : ""}
                           />
@@ -1492,22 +2000,21 @@ export default function SupplierFormExternal({
                               {errors.nz_bsb}
                             </p>
                           )}
-                          <p className="text-xs text-gray-500">
-                            Must be exactly 6 digits
-                          </p>
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="nz_account">
-                            Account Number
+                            NZ Account Number
                             <span className="text-red-500">*</span>
                           </Label>
-                          <Input
-                            id="nz_account"
+                          <ConditionalInput
+                            isEditable={isEditable}
+                            type="text"
                             name="nz_account"
                             value={formData.nz_account || ""}
-                            onChange={handleInputChange}
+                            onChange={handleSelectChange}
                             maxLength={10}
+                            onBlur={handleInputBlur}
                             inputMode="numeric"
                             className={
                               errors.nz_account ? "border-red-500" : ""
@@ -1518,186 +2025,188 @@ export default function SupplierFormExternal({
                               {errors.nz_account}
                             </p>
                           )}
-                          <p className="text-xs text-gray-500">
-                            Must be exactly 10 digits
-                          </p>
                         </div>
                       </div>
                     )}
-                    {formData.au_bank_country === "Australia" && (
+
+                    {/* AU Domestic Banking - For Australian banks */}
+                    {formData.nz_bank_country === "Australia" && (
                       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
                         <div className="space-y-2">
-                          <Label htmlFor="au_bsb">
+                          <Label htmlFor="nz_bsb">
                             BSB<span className="text-red-500">*</span>
                           </Label>
-                          <Input
-                            id="au_bsb"
-                            name="au_bsb"
-                            value={formData.au_bsb || ""}
-                            onChange={handleInputChange}
+                          <ConditionalInput
+                            isEditable={isEditable}
+                            type="text"
+                            name="nz_bsb"
+                            value={formData.nz_bsb || ""}
+                            onChange={handleSelectChange}
                             maxLength={6}
+                            onBlur={handleInputBlur}
                             inputMode="numeric"
-                            className={errors.au_bsb ? "border-red-500" : ""}
+                            className={errors.nz_bsb ? "border-red-500" : ""}
                           />
-                          {errors.au_bsb && (
+                          {errors.nz_bsb && (
                             <p className="text-red-500 text-sm">
-                              {errors.au_bsb}
+                              {errors.nz_bsb}
                             </p>
                           )}
-                          <p className="text-xs text-gray-500">
-                            Must be exactly 6 digits
-                          </p>
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="au_account">
+                          <Label htmlFor="nz_account">
                             Account Number
                             <span className="text-red-500">*</span>
                           </Label>
-                          <Input
-                            id="au_account"
-                            name="au_account"
-                            value={formData.au_account || ""}
-                            onChange={handleInputChange}
+                          <ConditionalInput
+                            isEditable={isEditable}
+                            type="text"
+                            name="nz_account"
+                            value={formData.nz_account || ""}
+                            onChange={handleSelectChange}
                             maxLength={10}
+                            onBlur={handleInputBlur}
                             inputMode="numeric"
                             className={
-                              errors.au_account ? "border-red-500" : ""
+                              errors.nz_account ? "border-red-500" : ""
                             }
                           />
-                          {errors.au_account && (
+                          {errors.nz_account && (
                             <p className="text-red-500 text-sm">
-                              {errors.au_account}
+                              {errors.nz_account}
                             </p>
                           )}
-                          <p className="text-xs text-gray-500">
-                            Must be exactly 10 digits
-                          </p>
                         </div>
                       </div>
                     )}
-                    {/* NZ Overseas Banking */}
+
+                    {/* NZ Overseas Banking - Conditionally rendered */}
                     {formData.nz_bank_country &&
-                      formData.nz_bank_country !== "New Zealand" && (
-                        <div className="mt-4 border-t pt-4">
-                          {/* Overseas Banking (IBAN/SWIFT) */}
+                      formData.nz_bank_country !== "New Zealand" &&
+                      formData.nz_bank_country !== "Australia" && (
+                        <div className="mt-4 grid grid-cols-1 gap-4 border-t pt-4">
                           <div className="space-y-2 mb-4">
-                            <Label htmlFor="overseas_iban_switch">
+                            <Label htmlFor="nz_iban_switch">
                               IBAN or SWIFT
                               <span className="text-red-500">*</span>
                             </Label>
                             <ConditionalInput
                               isEditable={isEditable}
                               type="select"
-                              name="overseas_iban_switch"
-                              value={formData.overseas_iban_switch || ""}
+                              name="nz_iban_switch"
+                              value={formData.nz_iban_switch || ""}
                               onChange={handleSelectChange}
+                              onBlur={handleInputBlur}
                               options={[
                                 { value: "IBAN", label: "IBAN" },
                                 { value: "SWIFT", label: "SWIFT" },
                               ]}
                               className={
-                                errors.overseas_iban_switch
-                                  ? "border-red-500"
-                                  : ""
+                                errors.nz_iban_switch ? "border-red-500" : ""
                               }
                               placeholder="Select an option"
                             />
-                            {errors.overseas_iban_switch && (
+                            {errors.nz_iban_switch && (
                               <p className="text-red-500 text-sm">
-                                {errors.overseas_iban_switch}
+                                {errors.nz_iban_switch}
                               </p>
                             )}
+
+                            {formData.nz_iban_switch === "IBAN" && (
+                              <div className="space-y-2">
+                                <Label htmlFor="nz_iban">
+                                  IBAN<span className="text-red-500">*</span>
+                                </Label>
+                                <ConditionalInput
+                                  isEditable={isEditable}
+                                  type="text"
+                                  name="nz_iban"
+                                  value={formData.nz_iban || ""}
+                                  onChange={handleSelectChange}
+                                  onBlur={handleInputBlur}
+                                  className={
+                                    errors.nz_iban ? "border-red-500" : ""
+                                  }
+                                />
+                                {errors.nz_iban && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.nz_iban}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {formData.nz_iban_switch === "SWIFT" && (
+                              <div className="space-y-2">
+                                <Label htmlFor="nz_swift">
+                                  SWIFT<span className="text-red-500">*</span>
+                                </Label>
+                                <ConditionalInput
+                                  isEditable={isEditable}
+                                  type="text"
+                                  name="nz_swift"
+                                  value={formData.nz_swift || ""}
+                                  onBlur={handleInputBlur}
+                                  onChange={handleSelectChange}
+                                  className={
+                                    errors.nz_swift ? "border-red-500" : ""
+                                  }
+                                />
+                                {errors.nz_swift && (
+                                  <p className="text-red-500 text-sm">
+                                    {errors.nz_swift}
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
-
-                          {formData.overseas_iban_switch === "IBAN" && (
-                            <div className="space-y-2">
-                              <Label htmlFor="overseas_iban">
-                                IBAN<span className="text-red-500">*</span>
-                              </Label>
-                              <ConditionalInput
-                                isEditable={isEditable}
-                                type="text"
-                                name="overseas_iban"
-                                value={formData.overseas_iban || ""}
-                                onChange={handleSelectChange}
-                                className={
-                                  errors.overseas_iban ? "border-red-500" : ""
-                                }
-                              />
-                              {errors.overseas_iban && (
-                                <p className="text-red-500 text-sm">
-                                  {errors.overseas_iban}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {formData.overseas_iban_switch === "SWIFT" && (
-                            <div className="space-y-2">
-                              <Label htmlFor="overseas_swift">
-                                SWIFT<span className="text-red-500">*</span>
-                              </Label>
-                              <ConditionalInput
-                                isEditable={isEditable}
-                                type="text"
-                                name="overseas_swift"
-                                value={formData.overseas_swift || ""}
-                                onChange={handleSelectChange}
-                                className={
-                                  errors.overseas_swift ? "border-red-500" : ""
-                                }
-                              />
-                              {errors.overseas_swift && (
-                                <p className="text-red-500 text-sm">
-                                  {errors.overseas_swift}
-                                </p>
-                              )}
-                            </div>
-                          )}
                         </div>
                       )}
                   </div>
                 )}
+              </div>
+            )}
 
-                {/* Add Bank Statement Upload */}
-                <div className="bg-white p-4 rounded-md border mt-4">
-                  <h3 className="font-medium mb-4">Bank Statement</h3>
-                  <div className="space-y-2">
-                    <Label htmlFor="bank_statement">
-                      Upload Bank Statement (PDF only)
-                      <span className="text-red-500">*</span>
-                    </Label>
-                    {isEditable ? (
-                      <div className="space-y-2">
-                        <Input
-                          id="bank_statement"
-                          type="file"
-                          accept="application/pdf"
-                          onChange={handleFileChange}
-                          className={fileError ? "border-red-500" : ""}
-                        />
-                        {bankStatement && (
-                          <p className="text-sm text-green-600">
-                            File selected: {bankStatement.name}
-                          </p>
-                        )}
-                        {fileError && (
-                          <p className="text-red-500 text-sm">{fileError}</p>
-                        )}
-                        <p className="text-xs text-gray-500">
-                          Please upload a PDF copy of your bank statement or
-                          document showing your bank details
+            {/* Add Bank Statement Upload */}
+            {((hasAuEntities &&
+              formData.au_payment_method === "Bank Transfer") ||
+              (hasNzEntities &&
+                formData.nz_payment_method === "Bank Transfer")) && (
+              <div className="bg-white p-4 rounded-md border mt-4">
+                <h3 className="font-medium mb-4">Bank Statement</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="bank_statement">
+                    Upload Bank Statement (PDF only)
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  {isEditable ? (
+                    <div className="space-y-2">
+                      <Input
+                        id="bank_statement"
+                        type="file"
+                        accept="application/pdf"
+                        onChange={handleFileChange}
+                        className={fileError ? "border-red-500" : ""}
+                      />
+                      {bankStatement && (
+                        <p className="text-sm text-green-600">
+                          File selected: {bankStatement.name}
                         </p>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">
-                        {bankStatement
-                          ? bankStatement.name
-                          : "No file uploaded"}
+                      )}
+                      {fileError && (
+                        <p className="text-red-500 text-sm">{fileError}</p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        Please upload a PDF copy of your bank statement or
+                        document showing your bank details
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      {bankStatement ? bankStatement.name : "No file uploaded"}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -1762,8 +2271,8 @@ export default function SupplierFormExternal({
             </div>
           </div>
 
-          {/* Submit Button - only show when form is editable */}
-          {isEditable && (
+          {/* Submit Button - only show when form is editable and not hidden */}
+          {isEditable && !hideSubmitButton && (
             <div className="flex justify-end">
               <Button
                 type="submit"

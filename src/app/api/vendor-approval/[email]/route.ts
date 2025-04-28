@@ -3,6 +3,22 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import axios from "axios";
 
+/**
+ * Sanitizes and escapes string values for GraphQL queries to prevent injection attacks
+ * @param value The string value to escape
+ * @returns Escaped string safe for GraphQL queries
+ */
+function escapeGraphQLString(value: string | number | undefined | null): string {
+  if (value === undefined || value === null) return "";
+  const stringValue = String(value);
+  return stringValue
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r')
+    .replace(/\t/g, '\\t');
+}
+
 export async function GET(req: NextRequest, context: { params: { email: string } }) {
   
   try {
@@ -39,87 +55,108 @@ export async function GET(req: NextRequest, context: { params: { email: string }
           }
           vendorOnboardings(filter: { email: { eq: $email } }) {
             items {
-    primary_trading_business_unit
-    email
-    business_name
-    trading_name
-    vendor_type
-    contact_person
-    contact_phone
-    website_url
-    postal_address
-    city
-    state
-    postcode
-    is_gst_registered
-    abn
-    gst
-    quotes_obtained
-    quotes_obtained_reason
-    quotes_pdf_url
-    back_order
-    exclusive_supply
-    sale_or_return
-    auth_required
-    delivery_notice
-    min_order_value
-    min_order_quantity
-    max_order_value
-    other_comments
-    payment_terms
-    order_expiry_days
-    gross_margin
-    invoice_discount
-    invoice_discount_value
-    settlement_discount
-    settlement_discount_value
-    settlement_discount_days
-    flat_rebate
-    flat_rebate_percent
-    flat_rebate_dollar
-    flat_rebate_term
-    growth_rebate
-    growth_rebate_percent
-    growth_rebate_dollar
-    growth_rebate_term
-    marketing_rebate
-    marketing_rebate_percent
-    marketing_rebate_dollar
-    marketing_rebate_term
-    promotional_fund
-    promotional_fund_value
-    au_invoice_currency
-    au_bank_country
-    au_bank_name
-    au_bank_address
-    au_bank_currency_code
-    au_bank_clearing_code
-    au_remittance_email
-    au_bsb
-    au_account
-    nz_invoice_currency
-    nz_bank_country
-    nz_bank_name
-    nz_bank_address
-    nz_bank_currency_code
-    nz_bank_clearing_code
-    nz_remittance_email
-    nz_bsb
-    nz_account
-    overseas_iban_switch
-    overseas_iban
-    overseas_swift
-    biller_code
-    ref_code
-    vendor_setup_status
-    status_code
-    status_code_record
-    status_update_time
-    approval_comment
-    current_approver
-    current_approver_name
-    next_approver
-    next_approver_name
+              created_on
+              created_by
+              modified_on
+              modified_by
+              vendor_home_country
+              primary_trading_business_unit
+              email
+              business_name
+              trading_name
+              vendor_type
+              contact_person
+              contact_phone
+              website
+              postal_address
+              city
+              state
+              postcode
+              is_gst_registered
+              abn
+              gst
+              quotes_obtained
+              quotes_obtained_reason
+              quotes_pdf_url
+              back_order
+              exclusive_supply
+              sale_or_return
+              auth_required
+              delivery_notice
+              min_order_value
+              min_order_quantity
+              max_order_value
+              other_comments
+              payment_terms
+              order_expiry_days
+              gross_margin
+              invoice_discount
+              invoice_discount_value
+              settlement_discount
+              settlement_discount_value
+              settlement_discount_days
+              flat_rebate
+              flat_rebate_percent
+              flat_rebate_dollar
+              flat_rebate_term
+              growth_rebate
+              growth_rebate_percent
+              growth_rebate_dollar
+              growth_rebate_term
+              marketing_rebate
+              marketing_rebate_percent
+              marketing_rebate_dollar
+              marketing_rebate_term
+              promotional_fund
+              promotional_fund_value
+              au_invoice_currency
+              au_bank_country
+              au_bank_name
+              au_bank_address
+              au_bank_currency_code
+              au_bank_clearing_code
+              au_remittance_email
+              au_bsb
+              au_account
+              nz_invoice_currency
+              nz_bank_country
+              nz_bank_name
+              nz_bank_address
+              nz_bank_currency_code
+              nz_bank_clearing_code
+              nz_remittance_email
+              nz_bsb
+              nz_account
+              vendor_setup_status
+              status_code
+              status_code_record
+              status_update_time
+              approval_comment
+              current_approver
+              current_approver_name
+              next_approver
+              next_approver_name
+              au_iban_switch
+              au_iban
+              au_swift
+              au_biller_code
+              au_ref_code
+              nz_iban_switch
+              nz_iban
+              nz_swift
+              nz_biller_code
+              nz_ref_code
+              country
+              gst_registered
+              address
+              primary_contact_email
+              return_order_email
+              has_tax_id
+              ABN_GST
+              au_payment_method
+              nz_payment_method
+              po_email
+              telephone
             }
           }
         }
@@ -243,9 +280,8 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
 
     // Current timestamp for modified_on
     const currentTimestamp = new Date().toISOString();
-
     // Check if this is a status update (approval flow) or a form update
-    if (formData.status_code) {
+    if (formData.status_code === "Declined" || formData.status_code === "Requester review") {
       // This is an approval action - only update status fields
       console.log(`Updating approval status to: ${formData.status_code}`);
       
@@ -257,12 +293,7 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
         vendorSetupStatus = "Declined";
       }
       
-      // If declined, set status to "Requester review" to send it back to requester
-      // Otherwise use the provided status code
-      const effectiveStatusCode = formData.status_code === "Declined" 
-        ? "Requester review" 
-        : formData.status_code;
-      
+
 // For status updates, use a minimal mutation
 const updateStatusMutation = {
   query: `
@@ -272,7 +303,7 @@ const updateStatusMutation = {
             item: {
           status_code: "${formData.status_code}"
           status_update_time: "${currentTimestamp}"
-          delivery_notice: ${formData.delivery_notice || 0}
+          approval_comment: "${formData.approval_comment || ''}"
         }
       ) {
         result
@@ -324,56 +355,75 @@ const updateStatusMutation = {
             updateVendorOnboarding(
               email: "${email}"
               item: {
-                business_name: "${formData.business_name || ""}"
-                trading_name: "${formData.trading_name || ""}"
-                contact_person: "${formData.primary_contact_email || ""}"
-                contact_phone: "${formData.telephone || ""}"
+                business_name: "${escapeGraphQLString(formData.business_name)}"
+                trading_name: "${escapeGraphQLString(formData.trading_name)}"
+                country: "${escapeGraphQLString(formData.country)}"
+                address: "${escapeGraphQLString(formData.address)}"
+                website: "${escapeGraphQLString(formData.website)}"
+                city: "${escapeGraphQLString(formData.city)}"
+                state: "${escapeGraphQLString(formData.state)}"
+                postcode: "${escapeGraphQLString(formData.postcode)}"
                 
-                website_url: "${formData.website || ""}"
-                postal_address: "${formData.address || ""}"
-                city: "${formData.city || ""}"
-                state: "${formData.state || ""}"
-                postcode: "${formData.postcode || ""}"
-                delivery_notice: "${formData.delivery_notice || ""}"
-                is_gst_registered: "${formData.gst_registered || ""}"
-                abn: "${formData.abn || ""}"
-                gst: "${formData.gst || ""}"
+                # Contact information
+                contact_person: "${escapeGraphQLString(formData.primary_contact_email)}"
+                contact_phone: "${escapeGraphQLString(formData.telephone)}"
+                primary_contact_email: "${escapeGraphQLString(formData.primary_contact_email)}"
+                po_email: "${escapeGraphQLString(formData.po_email)}"
+                return_order_email: "${escapeGraphQLString(formData.return_order_email)}"
+                telephone: "${escapeGraphQLString(formData.telephone)}"
                 
-                // AU Banking details
-                au_invoice_currency: "${formData.au_invoice_currency || ""}"
-                au_bank_country: "${formData.au_bank_country || ""}"
-                au_bank_name: "${formData.au_bank_name || ""}"
-                au_bank_address: "${formData.au_bank_address || ""}"
-                au_bank_currency_code: "${formData.au_bank_currency_code || ""}"
-                au_bank_clearing_code: "${formData.au_bank_clearing_code || ""}"
-                au_remittance_email: "${formData.au_remittance_email || ""}"
-                au_bsb: "${formData.au_bsb || ""}"
-                au_account: "${formData.au_account || ""}"
+                # Tax information
+                is_gst_registered: "${escapeGraphQLString(formData.gst_registered)}"
+                gst_registered: "${escapeGraphQLString(formData.gst_registered)}"
+                abn: "${escapeGraphQLString(formData.abn)}"
+                gst: "${escapeGraphQLString(formData.gst)}"
+                has_tax_id: "${escapeGraphQLString(formData.has_tax_id)}"
+                ABN_GST: "${escapeGraphQLString(formData.ABN_GST)}"
                 
-                // NZ Banking details
-                nz_invoice_currency: "${formData.nz_invoice_currency || ""}"
-                nz_bank_country: "${formData.nz_bank_country || ""}"
-                nz_bank_name: "${formData.nz_bank_name || ""}"
-                nz_bank_address: "${formData.nz_bank_address || ""}"
-                nz_bank_currency_code: "${formData.nz_bank_currency_code || ""}"
-                nz_bank_clearing_code: "${formData.nz_bank_clearing_code || ""}"
-                nz_remittance_email: "${formData.nz_remittance_email || ""}"
-                nz_bsb: "${formData.nz_bsb || ""}"
-                nz_account: "${formData.nz_account || ""}"
+                # Delivery information
+                delivery_notice: ${parseInt(formData.delivery_notice) || 0}
                 
-                // Overseas Banking details
-                overseas_iban_switch: "${formData.overseas_iban_switch || ""}"
-                overseas_iban: "${formData.overseas_iban || ""}"
-                overseas_swift: "${formData.overseas_swift || ""}"
+                # AU banking details
+                au_payment_method: "${escapeGraphQLString(formData.au_payment_method)}"
+                au_invoice_currency: "${escapeGraphQLString(formData.au_invoice_currency)}"
+                au_bank_country: "${escapeGraphQLString(formData.au_bank_country)}"
+                au_bank_name: "${escapeGraphQLString(formData.au_bank_name)}"
+                au_bank_address: "${escapeGraphQLString(formData.au_bank_address)}"
+                au_bank_currency_code: "${escapeGraphQLString(formData.au_bank_currency_code)}"
+                au_bank_clearing_code: "${escapeGraphQLString(formData.au_bank_clearing_code)}"
+                au_remittance_email: "${escapeGraphQLString(formData.au_remittance_email)}"
+                au_bsb: "${escapeGraphQLString(formData.au_bsb)}"
+                au_account: "${escapeGraphQLString(formData.au_account)}"
+                au_iban_switch: "${escapeGraphQLString(formData.au_iban_switch)}"
+                au_iban: "${escapeGraphQLString(formData.au_iban)}"
+                au_swift: "${escapeGraphQLString(formData.au_swift)}"
+                au_biller_code: "${escapeGraphQLString(formData.au_biller_code)}"
+                au_ref_code: "${escapeGraphQLString(formData.au_ref_code)}"
                 
-                // BPay details
-                biller_code: "${formData.biller_code || ""}"
-                ref_code: "${formData.ref_code || ""}"
+                # NZ banking details
+                nz_payment_method: "${escapeGraphQLString(formData.nz_payment_method)}"
+                nz_invoice_currency: "${escapeGraphQLString(formData.nz_invoice_currency)}"
+                nz_bank_country: "${escapeGraphQLString(formData.nz_bank_country)}"
+                nz_bank_name: "${escapeGraphQLString(formData.nz_bank_name)}"
+                nz_bank_address: "${escapeGraphQLString(formData.nz_bank_address)}"
+                nz_bank_currency_code: "${escapeGraphQLString(formData.nz_bank_currency_code)}"
+                nz_bank_clearing_code: "${escapeGraphQLString(formData.nz_bank_clearing_code)}"
+                nz_remittance_email: "${escapeGraphQLString(formData.nz_remittance_email)}"
+                nz_bsb: "${escapeGraphQLString(formData.nz_bsb)}"
+                nz_account: "${escapeGraphQLString(formData.nz_account)}"
+                nz_iban_switch: "${escapeGraphQLString(formData.nz_iban_switch)}"
+                nz_iban: "${escapeGraphQLString(formData.nz_iban)}"
+                nz_swift: "${escapeGraphQLString(formData.nz_swift)}"
+                nz_biller_code: "${escapeGraphQLString(formData.nz_biller_code)}"
+                nz_ref_code: "${escapeGraphQLString(formData.nz_ref_code)}"
                 
-                // Update status fields
+                # Promotional information
+                promotional_fund: "${escapeGraphQLString(formData.promotional_fund)}"
+                promotional_fund_value: "${escapeGraphQLString(formData.promotional_fund_value)}"
+                
+                # Status information - preserved as hardcoded values
                 status_code: "Procurement Approval"
                 status_update_time: "${currentTimestamp}"
-                vendor_setup_status: "Pending"
                 approval_comment: ""
               }
             ) {
@@ -427,122 +477,6 @@ const updateStatusMutation = {
         stack: errorStack
       }, 
       { status: errorStatus }
-    );
-  }
-}
-
-
-export async function formresubmit(
-  req: NextRequest,
-  context: { params: { email: string } }
-) {
-  try {
-    // Authenticate
-    const session = await getServerSession(authOptions);
-    if (!session?.accessToken) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    // Get and validate email param
-    const { email } = context.params;
-    if (!email || typeof email !== "string") {
-      return NextResponse.json({ error: "Invalid email parameter" }, { status: 400 });
-    }
-
-    // Parse body
-    const formData = await req.json();
-    const { status_code, delivery_notice } = formData;
-
-    // GraphQL endpoint config
-    const workspaceId = process.env.NEXT_PUBLIC_FABRIC_WORKSPACE_ID!;
-    const graphqlId   = process.env.NEXT_PUBLIC_GRAPHQL_ID!;
-    const endpoint = `https://${workspaceId}.zaa.graphql.fabric.microsoft.com/v1/workspaces/${workspaceId}/graphqlapis/${graphqlId}/graphql`;
-
-    // 1) Verify vendor exists
-    const checkResponse = await axios.post(
-      endpoint,
-      {
-        query: `
-          query($email: String!) {
-            vendorOnboardings(filter: { email: { eq: $email } }) {
-              items { email }
-            }
-          }
-        `,
-        variables: { email },
-      },
-      { headers: { 
-          Authorization: `Bearer ${session.accessToken}`, 
-          "Content-Type": "application/json" 
-        } }
-    );
-    const items = checkResponse.data.data.vendorOnboardings.items;
-    if (items.length === 0) {
-      return NextResponse.json(
-        { success: false, message: `No vendor with email "${email}"` },
-        { status: 404 }
-      );
-    }
-
-    // 2) Perform the status update
-    const now = new Date().toISOString();
-    const mutation = `
-      mutation(
-        $email: String!
-        $status: String!
-        $time: DateTime!
-        $notice: Int
-      ) {
-        updateVendorOnboarding(
-          email: $email
-          item: {
-            status_code: $status
-            status_update_time: $time
-            ${delivery_notice != null ? "delivery_notice: $notice" : ""}
-          }
-        ) {
-          result
-        }
-      }
-    `;
-    const variables: any = { email, status: status_code, time: now };
-    if (typeof delivery_notice === "number") {
-      variables.notice = delivery_notice;
-    }
-
-    const updateResp = await axios.post(
-      endpoint,
-      { query: mutation, variables },
-      {
-        headers: { 
-          Authorization: `Bearer ${session.accessToken}`, 
-          "Content-Type": "application/json" 
-        },
-        timeout: 30000,
-      }
-    );
-    if (updateResp.data.errors) {
-      throw new Error(updateResp.data.errors[0].message);
-    }
-
-    // Prepare response message
-    let message = `Vendor status updated to ${status_code}.`;
-    if (status_code === "Declined") {
-      message = "Vendor declined and sent back for requester review.";
-    } else if (status_code === "Creation approved") {
-      message = "Vendor fully approved—setup complete.";
-    }
-
-    return NextResponse.json({
-      success: true,
-      message,
-      data: { email, status: status_code, result: updateResp.data.data.updateVendorOnboarding.result },
-    });
-  } catch (err: any) {
-    console.error("formresubmit error:", err);
-    return NextResponse.json(
-      { success: false, message: err.message || "Internal Server Error" },
-      { status: 500 }
     );
   }
 }

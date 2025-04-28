@@ -44,9 +44,6 @@ export default function SupplierFormPage() {
       {/* Main content */}
       <div className="relative z-10 max-w-7xl mx-auto py-8 px-4">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Supplier Onboarding
-          </h1>
           <p className="text-gray-600 mt-2">
             Please complete all fields in this form to setup your account as a
             supplier.

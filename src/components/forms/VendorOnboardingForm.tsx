@@ -44,11 +44,12 @@ const FormContainer = styled("div")({
 });
 
 const FormSection = styled("div")({
-  backgroundColor: "#f9fafb", // Light gray background for sections
+  backgroundColor: "rgba(240, 245, 250, 1)", // Azure light blue background (customColors.primaryLight)
   padding: "24px",
   marginBottom: "24px",
   borderRadius: "0.5rem",
-  border: "1px solid #f0f0f0",
+  border: "1px solid #e5e7eb",
+  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
 });
 
 const SectionTitle = styled("h2")({
