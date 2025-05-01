@@ -77,14 +77,22 @@ const ErrorMessage = styled("div")({
   boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
 });
 
-interface VendorOnboardingFormProps {}
+interface VendorOnboardingFormProps {
+  initialFormData: {};
+  isEditable: true;
+  hideSubmitButton?: boolean;
+}
 
 // Helper function for type-safe property access
 function getSectionErrors(sectionErrors: Record<string, string | undefined>) {
   return Object.values(sectionErrors).some((error) => !!error);
 }
 
-export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
+export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = ({
+  initialFormData = {},
+  isEditable = true,
+  hideSubmitButton = false,
+}) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
@@ -98,58 +106,6 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
   const tradingTermsRef = useRef<HTMLDivElement>(null);
   const supplyTermsRef = useRef<HTMLDivElement>(null);
   const financialTermsRef = useRef<HTMLDivElement>(null);
-
-  // Initialize form with empty data
-  const initialFormData: VendorData = {
-    generalDetails: {
-      tradingEntities: [],
-      vendor_home_country: "",
-      primary_trading_business_unit: "",
-      email: "",
-      business_name: "",
-      vendor_type: "",
-    },
-    tradingTerms: {
-      quotes_obtained: "",
-      quotes_obtained_reason: "",
-      quotes_pdf_url: null,
-      back_order: "",
-    },
-    supplyTerms: {
-      exclusive_supply: "",
-      sale_or_return: "",
-      auth_required: "",
-      delivery_notice: 0,
-      min_order_value: 0,
-      min_order_quantity: 0,
-      max_order_value: 0,
-      other_comments: "",
-    },
-    financialTerms: {
-      payment_terms: "",
-      order_expiry_days: 0,
-      gross_margin: "",
-      invoice_discount: "",
-      invoice_discount_value: "",
-      settlement_discount: "",
-      settlement_discount_value: "",
-      settlement_discount_days: "",
-      flat_rebate: "",
-      flat_rebate_percent: "",
-      flat_rebate_dollar: "",
-      flat_rebate_term: "",
-      growth_rebate: "",
-      growth_rebate_percent: "",
-      growth_rebate_dollar: "",
-      growth_rebate_term: "",
-      marketing_rebate: "",
-      marketing_rebate_percent: "",
-      marketing_rebate_dollar: "",
-      marketing_rebate_term: "",
-      promotional_fund: "",
-      promotional_fund_value: "",
-    },
-  };
 
   // Submit vendor data to API
   async function submitVendorData(data: VendorData): Promise<boolean> {
@@ -203,9 +159,9 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
             setIsLoading(false);
 
             // Email exists, show validation error
-            setValidationError(
-              `A vendor with email "${email}" already exists. Please use a different email.`
-            );
+            // setValidationError(
+            //   `A vendor with email "${email}" already exists. Please use a different email.`
+            // );
 
             // Scroll to email field
             if (generalDetailsRef.current) {
@@ -495,9 +451,9 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
 
       if (response.data && response.data.exists) {
         // Email exists, show validation error
-        setValidationError(
-          `A vendor with email "${email}" already exists. Please use a different email.`
-        );
+        // setValidationError(
+        //   `A vendor with email "${email}" already exists. Please use a different email.`
+        // );
 
         // Scroll to the email field
         if (generalDetailsRef.current) {
@@ -619,6 +575,7 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
             onChange={handleTradingTermsChange}
             onBlur={(field) => handleBlur("tradingTerms", field)}
             onFileChange={handleTradingTermsFileChange}
+            isEditable={isEditable}
           />
         </FormSection>
 
@@ -630,6 +587,7 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
             touched={touched}
             onChange={handleSupplyTermsChange}
             onBlur={(field) => handleBlur("supplyTerms", field)}
+            isEditable={isEditable}
           />
         </FormSection>
 
@@ -642,34 +600,37 @@ export const VendorOnboardingForm: React.FC<VendorOnboardingFormProps> = () => {
             touched={touched}
             onChange={handleFinancialTermsChange}
             onBlur={(field) => handleBlur("financialTerms", field)}
+            isEditable={isEditable}
           />
         </FormSection>
 
         {/* Submit Button */}
-        <FormSubmitContainer>
-          <SubmitButton
-            text="Send a vendor portal invite"
-            loadingText="Processing..."
-            isLoading={isLoading}
-            type="submit"
-            variant="primary"
-            fullWidth={false}
-            customStyle={{
-              backgroundColor: customColors.buttonPrimary,
-              color: "white",
-              borderRadius: "6px",
-              padding: "12px 24px",
-              fontSize: "14px",
-              fontWeight: "500",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              "&:hover": {
-                backgroundColor: customColors.buttonHover,
-                transform: "translateY(-1px)",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
-              },
-            }}
-          />
-        </FormSubmitContainer>
+        {!hideSubmitButton && (
+          <FormSubmitContainer>
+            <SubmitButton
+              text="Send a vendor portal invite"
+              loadingText="Processing..."
+              isLoading={isLoading}
+              type="submit"
+              variant="primary"
+              fullWidth={false}
+              customStyle={{
+                backgroundColor: customColors.buttonPrimary,
+                color: "white",
+                borderRadius: "6px",
+                padding: "12px 24px",
+                fontSize: "14px",
+                fontWeight: "500",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                "&:hover": {
+                  backgroundColor: customColors.buttonHover,
+                  transform: "translateY(-1px)",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+                },
+              }}
+            />
+          </FormSubmitContainer>
+        )}
       </form>
 
       {/* Popups remain unchanged */}

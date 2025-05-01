@@ -82,6 +82,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
           onBlur={handleFieldBlur}
           options={yesNoOptions}
           disabled={!isEditable}
+          placeholder="Select option"
           required
           className="w-full"
         />
@@ -106,6 +107,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
           onBlur={handleFieldBlur}
           options={yesNoOptions}
           disabled={!isEditable}
+          placeholder="Select option"
           required
           className="w-full"
         />
@@ -129,6 +131,7 @@ export const SupplyTermsSection: React.FC<SupplyTermsSectionProps> = ({
           onBlur={handleFieldBlur}
           options={yesNoOptions}
           disabled={!isEditable}
+          placeholder="Select option"
           required
           className="w-full"
         />

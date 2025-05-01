@@ -165,7 +165,6 @@ export interface SupplierFormData {
   business_name: string;
   trading_name: string;
   country: string;
-  is_gst_registered: string;
   abn?: string;
   gst?: string;
   postal_address: string; // Changed from address to postal_address

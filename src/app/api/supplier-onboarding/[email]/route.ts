@@ -168,11 +168,9 @@ export async function PUT(req: NextRequest, context: { params: { email: string }
           updateVendorOnboarding(
             email: "${email}"
             item: {
-              # Basic supplier information
               business_name: "${escapeString(formData.business_name || "")}"
               trading_name: "${escapeString(formData.trading_name || "")}"
               country: "${escapeString(formData.country || "")}"
-              is_gst_registered: "${escapeString(formData.gst_registered || "")}"
               gst_registered: "${escapeString(formData.gst_registered || "")}"
               abn: "${escapeString(formData.abn || "")}"
               gst: "${escapeString(formData.gst || "")}"

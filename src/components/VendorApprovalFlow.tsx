@@ -4,10 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
-import GeneralDetailsSection from "@/components/forms/GeneralDetailSection";
-import SupplyTermsSection from "@/components/forms/SupplyTermSection";
-import { TradingTermsSection } from "./forms/TradingTermSection";
-import { FinancialTermsSection } from "./forms/FinancialTermSection";
+import VendorOnboardingForm from "./forms/VendorOnboardingForm";
 import SupplierForm from "@/components/forms/supplierform";
 
 // Define types for approval states
@@ -21,95 +18,72 @@ type ApprovalStatus =
   | "Declined"
   | "Invitation Sent";
 
-// Type definitions for VendorData
-interface VendorData {
-  vendor_onboarding_id?: string;
-  created_on?: string;
-  created_by?: string;
-  modified_on?: string;
-  modified_by?: string;
-  vendor_home_country?: string;
-  primary_trading_business_unit?: string;
-  email?: string;
-  business_name?: string;
-  trading_name?: string;
-  vendor_type?: string;
-  contact_person?: string;
-  contact_phone?: string;
-  website?: string;
-  postal_address?: string;
-  city?: string;
-  state?: string;
-  postcode?: string;
-  is_gst_registered?: boolean;
-  abn?: string;
-  gst?: string;
-  quotes_obtained?: boolean;
-  quotes_obtained_reason?: string;
-  quotes_pdf_url?: string;
-  back_order?: boolean;
-  exclusive_supply?: boolean;
-  sale_or_return?: boolean;
-  auth_required?: boolean;
-  delivery_notice?: number;
-  min_order_value?: number;
-  min_order_quantity?: number;
-  max_order_value?: number;
-  other_comments?: string;
-  payment_terms?: string;
-  order_expiry_days?: number;
-  gross_margin?: string;
-  invoice_discount?: boolean;
-  invoice_discount_value?: string;
-  settlement_discount?: boolean;
-  settlement_discount_value?: string;
-  settlement_discount_days?: string;
-  flat_rebate?: boolean;
-  flat_rebate_percent?: string;
-  flat_rebate_dollar?: string;
-  flat_rebate_term?: string;
-  growth_rebate?: boolean;
-  growth_rebate_percent?: string;
-  growth_rebate_dollar?: string;
-  growth_rebate_term?: string;
-  marketing_rebate?: boolean;
-  marketing_rebate_percent?: string;
-  marketing_rebate_dollar?: string;
-  marketing_rebate_term?: string;
-  promotional_fund?: boolean;
-  promotional_fund_value?: string;
-  au_invoice_currency?: string;
-  au_bank_country?: string;
-  au_bank_name?: string;
-  au_bank_address?: string;
-  au_bank_currency_code?: string;
-  au_bank_clearing_code?: string;
-  au_remittance_email?: string;
-  au_bsb?: string;
-  au_account?: string;
-  nz_invoice_currency?: string;
-  nz_bank_country?: string;
-  nz_bank_name?: string;
-  nz_bank_address?: string;
-  nz_bank_currency_code?: string;
-  nz_bank_clearing_code?: string;
-  nz_remittance_email?: string;
-  nz_bsb?: string;
-  nz_account?: string;
-  overseas_iban_switch?: boolean;
-  overseas_iban?: string;
-  overseas_swift?: string;
-  biller_code?: string;
-  ref_code?: string;
-  vendor_setup_status?: string;
-  status_code?: ApprovalStatus;
-  status_code_record?: string;
-  status_update_time?: string;
-  approval_comment?: string;
-  current_approver?: string;
-  current_approver_name?: string;
-  next_approver?: string;
-  next_approver_name?: string;
+// Define interfaces for vendor data structure
+interface GeneralDetails {
+  tradingEntities: string[];
+  vendor_home_country: string;
+  primary_trading_business_unit: string;
+  email: string;
+  business_name: string;
+  vendor_type: string;
+}
+
+interface TradingTerms {
+  quotes_obtained: string;
+  quotes_obtained_reason: string;
+  quotes_pdf_url: string | null;
+  back_order: string;
+}
+
+interface SupplyTerms {
+  exclusive_supply: string;
+  sale_or_return: string;
+  auth_required: string;
+  delivery_notice: number;
+  min_order_value: number;
+  min_order_quantity: number;
+  max_order_value: number;
+  other_comments: string;
+}
+
+interface FinancialTerms {
+  payment_terms: string;
+  order_expiry_days: number;
+  gross_margin: string;
+  invoice_discount: string;
+  invoice_discount_value: string;
+  settlement_discount: string;
+  settlement_discount_value: string;
+  settlement_discount_days: string;
+  flat_rebate: string;
+  flat_rebate_percent: string;
+  flat_rebate_dollar: string;
+  flat_rebate_term: string;
+  growth_rebate: string;
+  growth_rebate_percent: string;
+  growth_rebate_dollar: string;
+  growth_rebate_term: string;
+  marketing_rebate: string;
+  marketing_rebate_percent: string;
+  marketing_rebate_dollar: string;
+  marketing_rebate_term: string;
+  promotional_fund: string;
+  promotional_fund_value: string;
+}
+
+interface SupplierFormData {
+  // Company details
+  business_name: string;
+  trading_name: string;
+  contact_person: string;
+  contact_phone: string;
+  website: string;
+  postal_address: string;
+  city: string;
+  state: string;
+  postcode: string;
+  abn: string;
+  gst: string;
   country: string;
   gst_registered: string;
   address: string;
@@ -117,31 +91,209 @@ interface VendorData {
   telephone: string;
   po_email: string;
   return_order_email: string;
-  trading_entities: string[];
   has_tax_id: string;
   ABN_GST: string;
-  // Payment method
+
+  // Banking details - AU
+  au_invoice_currency: string;
+  au_bank_country: string;
+  au_bank_name: string;
+  au_bank_address: string;
+  au_bank_currency_code: string;
+  au_bank_clearing_code: string;
+  au_remittance_email: string;
+  au_bsb: string;
+  au_account: string;
   au_payment_method: string;
-  nz_payment_method: string;
-  // AU specific fields
   au_biller_code: string;
   au_ref_code: string;
+  au_iban_switch: string;
+  au_iban: string;
+  au_swift: string;
+
+  // Banking details - NZ
+  nz_invoice_currency: string;
+  nz_bank_country: string;
+  nz_bank_name: string;
+  nz_bank_address: string;
+  nz_bank_currency_code: string;
+  nz_bank_clearing_code: string;
+  nz_remittance_email: string;
+  nz_bsb: string;
+  nz_account: string;
+  nz_payment_method: string;
   nz_biller_code: string;
   nz_ref_code: string;
+  nz_iban_switch: string;
+  nz_iban: string;
+  nz_swift: string;
 
-  // Overseas banking
-  au_iban_switch?: string;
-  au_iban?: string;
-  au_swift?: string;
+  // Approval and status fields
+  vendor_setup_status: string;
+  status_code?: ApprovalStatus;
+  status_code_record: string;
+  status_update_time: string;
+  approval_comment: string;
+  current_approver: string;
+  current_approver_name: string;
+  next_approver: string;
+  next_approver_name: string;
 
-  nz_iban_switch?: string;
-  nz_iban?: string;
-  nz_swift?: string;
+  // Metadata
+  created_on: string;
+  created_by: string;
+  modified_on: string;
+  modified_by: string;
 
   // Terms agreement
   iAgree: boolean;
-  [key: string]: any;
+
+  // Available trading entities (for dropdown)
+  availableTradingEntities: TradingEntity[];
 }
+
+interface VendorData {
+  generalDetails?: GeneralDetails;
+  tradingTerms?: TradingTerms;
+  supplyTerms?: SupplyTerms;
+  financialTerms?: FinancialTerms;
+  supplierForm?: SupplierFormData;
+  status_code?: ApprovalStatus;
+  email?: string;
+  [key: string]: any; // For any additional properties
+}
+
+// Default initial values
+const initialVendorData: VendorData = {
+  generalDetails: {
+    tradingEntities: [],
+    vendor_home_country: "",
+    primary_trading_business_unit: "",
+    email: "",
+    business_name: "",
+    vendor_type: "",
+  },
+  tradingTerms: {
+    quotes_obtained: "",
+    quotes_obtained_reason: "",
+    quotes_pdf_url: null,
+    back_order: "",
+  },
+  supplyTerms: {
+    exclusive_supply: "",
+    sale_or_return: "",
+    auth_required: "",
+    delivery_notice: 0,
+    min_order_value: 0,
+    min_order_quantity: 0,
+    max_order_value: 0,
+    other_comments: "",
+  },
+  financialTerms: {
+    payment_terms: "",
+    order_expiry_days: 0,
+    gross_margin: "",
+    invoice_discount: "",
+    invoice_discount_value: "",
+    settlement_discount: "",
+    settlement_discount_value: "",
+    settlement_discount_days: "",
+    flat_rebate: "",
+    flat_rebate_percent: "",
+    flat_rebate_dollar: "",
+    flat_rebate_term: "",
+    growth_rebate: "",
+    growth_rebate_percent: "",
+    growth_rebate_dollar: "",
+    growth_rebate_term: "",
+    marketing_rebate: "",
+    marketing_rebate_percent: "",
+    marketing_rebate_dollar: "",
+    marketing_rebate_term: "",
+    promotional_fund: "",
+    promotional_fund_value: "",
+  },
+  supplierForm: {
+    // Default values for all fields
+    business_name: "",
+    trading_name: "",
+    contact_person: "",
+    contact_phone: "",
+    website: "",
+    postal_address: "",
+    city: "",
+    state: "",
+    postcode: "",
+    abn: "",
+    gst: "",
+    country: "",
+    gst_registered: "",
+    address: "",
+    primary_contact_email: "",
+    telephone: "",
+    po_email: "",
+    return_order_email: "",
+    has_tax_id: "",
+    ABN_GST: "",
+
+    // Banking details - AU
+    au_invoice_currency: "",
+    au_bank_country: "",
+    au_bank_name: "",
+    au_bank_address: "",
+    au_bank_currency_code: "",
+    au_bank_clearing_code: "",
+    au_remittance_email: "",
+    au_bsb: "",
+    au_account: "",
+    au_payment_method: "",
+    au_biller_code: "",
+    au_ref_code: "",
+    au_iban_switch: "",
+    au_iban: "",
+    au_swift: "",
+
+    // Banking details - NZ
+    nz_invoice_currency: "",
+    nz_bank_country: "",
+    nz_bank_name: "",
+    nz_bank_address: "",
+    nz_bank_currency_code: "",
+    nz_bank_clearing_code: "",
+    nz_remittance_email: "",
+    nz_bsb: "",
+    nz_account: "",
+    nz_payment_method: "",
+    nz_biller_code: "",
+    nz_ref_code: "",
+    nz_iban_switch: "",
+    nz_iban: "",
+    nz_swift: "",
+
+    // Approval and status fields
+    vendor_setup_status: "",
+    status_code: undefined,
+    status_code_record: "",
+    status_update_time: "",
+    approval_comment: "",
+    current_approver: "",
+    current_approver_name: "",
+    next_approver: "",
+    next_approver_name: "",
+
+    // Metadata
+    created_on: "",
+    created_by: "",
+    modified_on: "",
+    modified_by: "",
+
+    // Terms agreement
+    iAgree: false,
+
+    // Available trading entities (for dropdown)
+    availableTradingEntities: [],
+  },
+};
 
 interface TradingEntity {
   TradingEntityId: string;
@@ -157,60 +309,8 @@ export default function VendorApprovalFlow() {
   const { data: session, status } = useSession();
   const email = searchParams?.get("email");
 
-  // State variables
+  // State variables - update to use the interface
   const [vendorData, setVendorData] = useState<VendorData>({});
-  const [formattedVendorData, setFormattedVendorData] = useState({
-    generalDetails: {
-      availableTradingEntities: [],
-      tradingEntities: [],
-      vendor_home_country: "",
-      primary_trading_business_unit: "",
-      email: "",
-      business_name: "",
-      trading_name: "",
-      vendor_type: "",
-    },
-    supplyTerms: {
-      exclusive_supply: false,
-      sale_or_return: false,
-      auth_required: false,
-      delivery_notice: 0,
-      min_order_value: 0,
-      min_order_quantity: 0,
-      max_order_value: 0,
-      other_comments: "",
-    },
-    tradingTerms: {
-      quotes_obtained: false,
-      quotes_obtained_reason: "",
-      quotes_pdf_url: "",
-      back_order: false,
-    },
-    financialTerms: {
-      payment_terms: "",
-      order_expiry_days: 0,
-      gross_margin: "",
-      invoice_discount: false,
-      invoice_discount_value: "",
-      settlement_discount: false,
-      settlement_discount_value: "",
-      settlement_discount_days: "",
-      flat_rebate: false,
-      flat_rebate_percent: "",
-      flat_rebate_dollar: "",
-      flat_rebate_term: "",
-      growth_rebate: false,
-      growth_rebate_percent: "",
-      growth_rebate_dollar: "",
-      growth_rebate_term: "",
-      marketing_rebate: false,
-      marketing_rebate_percent: "",
-      marketing_rebate_dollar: "",
-      marketing_rebate_term: "",
-      promotional_fund: false,
-      promotional_fund_value: "",
-    },
-  });
 
   const [availableTradingEntities, setAvailableTradingEntities] = useState<
     TradingEntity[]
@@ -326,92 +426,6 @@ export default function VendorApprovalFlow() {
       );
       setRequiresFinanceApproval(needsFinanceApproval);
 
-      // Set vendor data with defaults for missing fields
-      setVendorData({
-        primary_trading_business_unit:
-          vendor.primary_trading_business_unit || "",
-        email: vendor.email || "",
-        business_name: vendor.business_name || "",
-        trading_name: vendor.trading_name || "",
-        vendor_type: vendor.vendor_type || "",
-        contact_person: vendor.contact_person || "",
-        contact_phone: vendor.contact_phone || "",
-        website: vendor.website || "",
-        postal_address: vendor.postal_address || "",
-        city: vendor.city || "",
-        state: vendor.state || "",
-        postcode: vendor.postcode || "",
-        is_gst_registered: vendor.is_gst_registered || false,
-        abn: vendor.abn || "",
-        gst: vendor.gst || "",
-        quotes_obtained: vendor.quotes_obtained || false,
-        quotes_obtained_reason: vendor.quotes_obtained_reason || "",
-        quotes_pdf_url: vendor.quotes_pdf_url || "",
-        back_order: vendor.back_order || false,
-        exclusive_supply: vendor.exclusive_supply || false,
-        sale_or_return: vendor.sale_or_return || false,
-        auth_required: vendor.auth_required || false,
-        delivery_notice: vendor.delivery_notice || 0,
-        min_order_value: vendor.min_order_value || 0,
-        min_order_quantity: vendor.min_order_quantity || 0,
-        max_order_value: vendor.max_order_value || 0,
-        other_comments: vendor.other_comments || "",
-        payment_terms: vendor.payment_terms || "",
-        order_expiry_days: vendor.order_expiry_days || 0,
-        gross_margin: vendor.gross_margin || "",
-        invoice_discount: vendor.invoice_discount || false,
-        invoice_discount_value: vendor.invoice_discount_value || "",
-        settlement_discount: vendor.settlement_discount || false,
-        settlement_discount_value: vendor.settlement_discount_value || "",
-        settlement_discount_days: vendor.settlement_discount_days || "",
-        flat_rebate: vendor.flat_rebate || false,
-        flat_rebate_percent: vendor.flat_rebate_percent || "",
-        flat_rebate_dollar: vendor.flat_rebate_dollar || "",
-        flat_rebate_term: vendor.flat_rebate_term || "",
-        growth_rebate: vendor.growth_rebate || false,
-        growth_rebate_percent: vendor.growth_rebate_percent || "",
-        growth_rebate_dollar: vendor.growth_rebate_dollar || "",
-        growth_rebate_term: vendor.growth_rebate_term || "",
-        marketing_rebate: vendor.marketing_rebate || false,
-        marketing_rebate_percent: vendor.marketing_rebate_percent || "",
-        marketing_rebate_dollar: vendor.marketing_rebate_dollar || "",
-        marketing_rebate_term: vendor.marketing_rebate_term || "",
-        promotional_fund: vendor.promotional_fund || false,
-        promotional_fund_value: vendor.promotional_fund_value || "",
-        au_invoice_currency: vendor.au_invoice_currency || "",
-        au_bank_country: vendor.au_bank_country || "",
-        au_bank_name: vendor.au_bank_name || "",
-        au_bank_address: vendor.au_bank_address || "",
-        au_bank_currency_code: vendor.au_bank_currency_code || "",
-        au_bank_clearing_code: vendor.au_bank_clearing_code || "",
-        au_remittance_email: vendor.au_remittance_email || "",
-        au_bsb: vendor.au_bsb || "",
-        au_account: vendor.au_account || "",
-        nz_invoice_currency: vendor.nz_invoice_currency || "",
-        nz_bank_country: vendor.nz_bank_country || "",
-        nz_bank_name: vendor.nz_bank_name || "",
-        nz_bank_address: vendor.nz_bank_address || "",
-        nz_bank_currency_code: vendor.nz_bank_currency_code || "",
-        nz_bank_clearing_code: vendor.nz_bank_clearing_code || "",
-        nz_remittance_email: vendor.nz_remittance_email || "",
-        nz_bsb: vendor.nz_bsb || "",
-        nz_account: vendor.nz_account || "",
-        overseas_iban_switch: vendor.overseas_iban_switch || false,
-        overseas_iban: vendor.overseas_iban || "",
-        overseas_swift: vendor.overseas_swift || "",
-        biller_code: vendor.biller_code || "",
-        ref_code: vendor.ref_code || "",
-        vendor_setup_status: vendor.vendor_setup_status || "",
-        status_code: vendor.status_code || "Invitation Sent",
-        status_code_record: vendor.status_code_record || "",
-        status_update_time: vendor.status_update_time || "",
-        approval_comment: vendor.approval_comment || "",
-        current_approver: vendor.current_approver || "",
-        current_approver_name: vendor.current_approver_name || "",
-        next_approver: vendor.next_approver || "",
-        next_approver_name: vendor.next_approver_name || "",
-      });
-
       // Store available trading entities
       setAvailableTradingEntities(tradingEntities_data || []);
 
@@ -432,17 +446,60 @@ export default function VendorApprovalFlow() {
 
       // Format the data for form sections using the vendor data we just stored
       // This ensures we're using the same values with defaults already applied
-      setFormattedVendorData({
+      setVendorData({
         generalDetails: {
-          availableTradingEntities: tradingEntities_data || [],
           tradingEntities: selectedEntityIds,
           vendor_home_country: vendor.vendor_home_country || "",
           primary_trading_business_unit:
             vendor.primary_trading_business_unit || "",
           email: vendor.email || "",
           business_name: vendor.business_name || "",
-          trading_name: vendor.trading_name || "",
           vendor_type: vendor.vendor_type || "",
+        },
+        tradingTerms: {
+          quotes_obtained: vendor.quotes_obtained || "",
+          quotes_obtained_reason: vendor.quotes_obtained_reason || "",
+          quotes_pdf_url: vendor.quotes_pdf_url || null,
+          back_order: vendor.back_order || "",
+        },
+        supplyTerms: {
+          exclusive_supply: vendor.exclusive_supply || "",
+          sale_or_return: vendor.sale_or_return || "",
+          auth_required: vendor.auth_required || "",
+          delivery_notice: Number(vendor.delivery_notice || 0),
+          min_order_value: Number(vendor.min_order_value || 0),
+          min_order_quantity: Number(vendor.min_order_quantity || 0),
+          max_order_value: Number(vendor.max_order_value || 0),
+          other_comments: vendor.other_comments || "",
+        },
+        financialTerms: {
+          payment_terms: vendor.payment_terms || "",
+          order_expiry_days: Number(vendor.order_expiry_days || 0),
+          gross_margin: vendor.gross_margin || "",
+          invoice_discount: vendor.invoice_discount || "",
+          invoice_discount_value: vendor.invoice_discount_value || "",
+          settlement_discount: vendor.settlement_discount || "",
+          settlement_discount_value: vendor.settlement_discount_value || "",
+          settlement_discount_days: vendor.settlement_discount_days || "",
+          flat_rebate: vendor.flat_rebate || "",
+          flat_rebate_percent: vendor.flat_rebate_percent || "",
+          flat_rebate_dollar: vendor.flat_rebate_dollar || "",
+          flat_rebate_term: vendor.flat_rebate_term || "",
+          growth_rebate: vendor.growth_rebate || "",
+          growth_rebate_percent: vendor.growth_rebate_percent || "",
+          growth_rebate_dollar: vendor.growth_rebate_dollar || "",
+          growth_rebate_term: vendor.growth_rebate_term || "",
+          marketing_rebate: vendor.marketing_rebate || "",
+          marketing_rebate_percent: vendor.marketing_rebate_percent || "",
+          marketing_rebate_dollar: vendor.marketing_rebate_dollar || "",
+          marketing_rebate_term: vendor.marketing_rebate_term || "",
+          promotional_fund: vendor.promotional_fund || "",
+          promotional_fund_value: vendor.promotional_fund_value || "",
+        },
+        supplierForm: {
+          // Default values for all fields
+          business_name: vendor.business_name || "",
+          trading_name: vendor.trading_name || "",
           contact_person: vendor.contact_person || "",
           contact_phone: vendor.contact_phone || "",
           website: vendor.website || "",
@@ -450,51 +507,19 @@ export default function VendorApprovalFlow() {
           city: vendor.city || "",
           state: vendor.state || "",
           postcode: vendor.postcode || "",
-          is_gst_registered: vendor.is_gst_registered,
           abn: vendor.abn || "",
           gst: vendor.gst || "",
-        },
-        supplyTerms: {
-          exclusive_supply: vendor.exclusive_supply,
-          sale_or_return: vendor.sale_or_return,
-          auth_required: vendor.auth_required,
-          delivery_notice: Number(vendor.delivery_notice || 0),
-          min_order_value: Number(vendor.min_order_value || 0),
-          min_order_quantity: Number(vendor.min_order_quantity || 0),
-          max_order_value: Number(vendor.max_order_value || 0),
-          other_comments: vendor.other_comments || "",
-        },
-        tradingTerms: {
-          quotes_obtained: vendor.quotes_obtained,
-          quotes_obtained_reason: vendor.quotes_obtained_reason || "",
-          quotes_pdf_url: vendor.quotes_pdf_url || "",
-          back_order: vendor.back_order,
-        },
-        financialTerms: {
-          payment_terms: vendor.payment_terms || "",
-          order_expiry_days: Number(vendor.order_expiry_days || 0),
-          gross_margin: vendor.gross_margin || "",
-          invoice_discount: vendor.invoice_discount,
-          invoice_discount_value: vendor.invoice_discount_value || "",
-          settlement_discount: vendor.settlement_discount,
-          settlement_discount_value: vendor.settlement_discount_value || "",
-          settlement_discount_days: vendor.settlement_discount_days || "",
-          flat_rebate: vendor.flat_rebate,
-          flat_rebate_percent: vendor.flat_rebate_percent || "",
-          flat_rebate_dollar: vendor.flat_rebate_dollar || "",
-          flat_rebate_term: vendor.flat_rebate_term || "",
-          growth_rebate: vendor.growth_rebate,
-          growth_rebate_percent: vendor.growth_rebate_percent || "",
-          growth_rebate_dollar: vendor.growth_rebate_dollar || "",
-          growth_rebate_term: vendor.growth_rebate_term || "",
-          marketing_rebate: vendor.marketing_rebate,
-          marketing_rebate_percent: vendor.marketing_rebate_percent || "",
-          marketing_rebate_dollar: vendor.marketing_rebate_dollar || "",
-          marketing_rebate_term: vendor.marketing_rebate_term || "",
-          promotional_fund: vendor.promotional_fund,
-          promotional_fund_value: vendor.promotional_fund_value || "",
-        },
-        bankDetails: {
+          country: vendor.country || "",
+          gst_registered: vendor.gst_registered || "",
+          address: vendor.address || "",
+          primary_contact_email: vendor.primary_contact_email || "",
+          telephone: vendor.telephone || "",
+          po_email: vendor.po_email || "",
+          return_order_email: vendor.return_order_email || "",
+          has_tax_id: vendor.has_tax_id || "",
+          ABN_GST: vendor.ABN_GST || "",
+
+          // Banking details - AU
           au_invoice_currency: vendor.au_invoice_currency || "",
           au_bank_country: vendor.au_bank_country || "",
           au_bank_name: vendor.au_bank_name || "",
@@ -504,6 +529,14 @@ export default function VendorApprovalFlow() {
           au_remittance_email: vendor.au_remittance_email || "",
           au_bsb: vendor.au_bsb || "",
           au_account: vendor.au_account || "",
+          au_payment_method: vendor.au_payment_method || "",
+          au_biller_code: vendor.au_biller_code || "",
+          au_ref_code: vendor.au_ref_code || "",
+          au_iban_switch: vendor.au_iban_switch || "",
+          au_iban: vendor.au_iban || "",
+          au_swift: vendor.au_swift || "",
+
+          // Banking details - NZ
           nz_invoice_currency: vendor.nz_invoice_currency || "",
           nz_bank_country: vendor.nz_bank_country || "",
           nz_bank_name: vendor.nz_bank_name || "",
@@ -513,16 +546,42 @@ export default function VendorApprovalFlow() {
           nz_remittance_email: vendor.nz_remittance_email || "",
           nz_bsb: vendor.nz_bsb || "",
           nz_account: vendor.nz_account || "",
-          overseas_iban_switch: vendor.overseas_iban_switch,
-          overseas_iban: vendor.overseas_iban || "",
-          overseas_swift: vendor.overseas_swift || "",
-          biller_code: vendor.biller_code || "",
-          ref_code: vendor.ref_code || "",
+          nz_payment_method: vendor.nz_payment_method || "",
+          nz_biller_code: vendor.nz_biller_code || "",
+          nz_ref_code: vendor.nz_ref_code || "",
+          nz_iban_switch: vendor.nz_iban_switch || "",
+          nz_iban: vendor.nz_iban || "",
+          nz_swift: vendor.nz_swift || "",
+
+          // Approval and status fields
+          vendor_setup_status: vendor.vendor_setup_status || "",
+          status_code: vendor.status_code,
+          status_code_record: vendor.status_code_record || "",
+          status_update_time: vendor.status_update_time || "",
+          approval_comment: vendor.approval_comment || "",
+          current_approver: vendor.current_approver || "",
+          current_approver_name: vendor.current_approver_name || "",
+          next_approver: vendor.next_approver || "",
+          next_approver_name: vendor.next_approver_name || "",
+
+          // Metadata
+          created_on: vendor.created_on || "",
+          created_by: vendor.created_by || "",
+          modified_on: vendor.modified_on || "",
+          modified_by: vendor.modified_by || "",
+
+          // Terms agreement
+          iAgree: false,
+
+          // Available trading entities (for dropdown)
+          availableTradingEntities: tradingEntities_data || [],
         },
+        // Keep top-level status fields for easier access
+        status_code: vendor.status_code,
+        email: vendor.email || "",
       });
 
       // Debug log
-      console.log("Formatted vendor data:", formattedVendorData);
       console.log("Trading entities data:", tradingEntities_data);
       console.log("Selected trading entity IDs:", selectedEntityIds);
 
@@ -655,64 +714,18 @@ export default function VendorApprovalFlow() {
   // Form field change handlers
   const handleChange = (field: string, value: any) => {
     console.log(`Field ${field} changed to ${value}`);
-    // Update the formattedVendorData state based on which section the field belongs to
-    const sections = {
-      vendor_home_country: "generalDetails",
-      primary_trading_business_unit: "generalDetails",
-      email: "generalDetails",
-      business_name: "generalDetails",
-      tradingName: "generalDetails",
-      vendorType: "generalDetails",
-      quotes_obtained: "tradingTerms",
-      quotes_obtained_reason: "tradingTerms",
-      quotes_pdf_url: "tradingTerms",
-      back_order: "tradingTerms",
-      exclusive_supply: "supplyTerms",
-      sale_or_return: "supplyTerms",
-      auth_required: "supplyTerms",
-      delivery_notice: "supplyTerms",
-      min_order_value: "supplyTerms",
-      min_order_quantity: "supplyTerms",
-      max_order_value: "supplyTerms",
-      other_comments: "supplyTerms",
-      payment_terms: "financialTerms",
-      order_expiry_days: "financialTerms",
-      gross_margin: "financialTerms",
-      invoice_discount: "financialTerms",
-      invoice_discount_value: "financialTerms",
-      settlement_discount: "financialTerms",
-      settlement_discount_value: "financialTerms",
-      settlement_discount_days: "financialTerms",
-      flat_rebate: "financialTerms",
-      flat_rebate_percent: "financialTerms",
-      flat_rebate_dollar: "financialTerms",
-      flat_rebate_term: "financialTerms",
-      growth_rebate: "financialTerms",
-      growth_rebate_percent: "financialTerms",
-      growth_rebate_dollar: "financialTerms",
-      growth_rebate_term: "financialTerms",
-      marketing_rebate: "financialTerms",
-      marketing_rebate_percent: "financialTerms",
-      marketing_rebate_dollar: "financialTerms",
-      marketing_rebate_term: "financialTerms",
-      promotional_fund: "financialTerms",
-      promotional_fund_value: "financialTerms",
-    };
 
-    const section = sections[field] || "generalDetails";
-
-    setFormattedVendorData((prevData) => ({
+    setVendorData((prevData) => ({
       ...prevData,
-      [section]: {
-        ...prevData[section],
-        [field]: value,
-      },
+      [field]: value,
     }));
   };
+
   // Handle supply terms section changes
   const handleSupplyTermsChange = (field: string, value: any) => {
-    handleChange("supplyTerms", field, value);
+    handleChange(field, value);
   };
+
   const handleCheckboxChange = (
     field: string,
     value: string,
@@ -726,8 +739,10 @@ export default function VendorApprovalFlow() {
 
     // Handle trading entities checkbox selection
     if (field === "tradingEntities") {
-      setFormattedVendorData((prevData) => {
-        const currentEntities = [...prevData.generalDetails.tradingEntities];
+      setVendorData((prevData) => {
+        const currentEntities = Array.isArray(prevData.tradingEntities)
+          ? [...prevData.tradingEntities]
+          : [];
 
         if (checked) {
           // Add the entity ID if it's not already in the array
@@ -744,23 +759,17 @@ export default function VendorApprovalFlow() {
 
         return {
           ...prevData,
-          generalDetails: {
-            ...prevData.generalDetails,
-            tradingEntities: currentEntities,
-          },
+          tradingEntities: currentEntities,
         };
       });
     }
   };
 
   useEffect(() => {
-    if (formattedVendorData.generalDetails.tradingEntities.length > 0) {
-      console.log(
-        "Updated trading entities:",
-        formattedVendorData.generalDetails.tradingEntities
-      );
+    if (vendorData.tradingEntities && vendorData.tradingEntities.length > 0) {
+      console.log("Updated trading entities:", vendorData.tradingEntities);
     }
-  }, [formattedVendorData.generalDetails.tradingEntities]);
+  }, [vendorData.tradingEntities]);
 
   const handleBlur = (field: string) => {
     console.log(`Field ${field} blurred`);
@@ -934,66 +943,48 @@ export default function VendorApprovalFlow() {
       // Collect form data that needs updating
       const formData = {
         // General Details
-        business_name: formattedVendorData.generalDetails.business_name,
-        trading_name: formattedVendorData.generalDetails.trading_name,
-        primary_contact_email:
-          formattedVendorData.generalDetails.contact_person,
-        telephone: formattedVendorData.generalDetails.contact_phone,
+        business_name: vendorData.business_name,
+        trading_name: vendorData.trading_name,
+        primary_contact_email: vendorData.contact_person,
+        telephone: vendorData.contact_phone,
 
         // Address Details
-        website: formattedVendorData.generalDetails.website,
-        address: formattedVendorData.generalDetails.postal_address,
-        city: formattedVendorData.generalDetails.city,
-        state: formattedVendorData.generalDetails.state,
-        postcode: formattedVendorData.generalDetails.postcode,
+        website: vendorData.website,
+        address: vendorData.postal_address,
+        city: vendorData.city,
+        state: vendorData.state,
+        postcode: vendorData.postcode,
 
         // Supply Terms
-        delivery_notice: formattedVendorData.supplyTerms.delivery_notice,
-        abn: formattedVendorData.generalDetails.abn,
-        gst: formattedVendorData.generalDetails.gst,
+        delivery_notice: vendorData.delivery_notice,
+        abn: vendorData.abn,
+        gst: vendorData.gst,
 
         // AU Banking Details
-        au_invoice_currency:
-          formattedVendorData.bankDetails.au_invoice_currency,
-        au_bank_country: formattedVendorData.bankDetails.au_bank_country,
-        au_bank_name: formattedVendorData.bankDetails.au_bank_name,
-        au_bank_address: formattedVendorData.bankDetails.au_bank_address,
-        au_bank_currency_code:
-          formattedVendorData.bankDetails.au_bank_currency_code,
-        au_bank_clearing_code:
-          formattedVendorData.bankDetails.au_bank_clearing_code,
-        au_remittance_email:
-          formattedVendorData.bankDetails.au_remittance_email,
-        au_bsb: formattedVendorData.bankDetails.au_bsb,
-        au_account: formattedVendorData.bankDetails.au_account,
+        au_invoice_currency: vendorData.au_invoice_currency,
+        au_bank_country: vendorData.au_bank_country,
+        au_bank_name: vendorData.au_bank_name,
+        au_bank_address: vendorData.au_bank_address,
+        au_bank_currency_code: vendorData.au_bank_currency_code,
+        au_bank_clearing_code: vendorData.au_bank_clearing_code,
+        au_remittance_email: vendorData.au_remittance_email,
+        au_bsb: vendorData.au_bsb,
+        au_account: vendorData.au_account,
 
         // NZ Banking Details
-        nz_invoice_currency:
-          formattedVendorData.bankDetails.nz_invoice_currency,
-        nz_bank_country: formattedVendorData.bankDetails.nz_bank_country,
-        nz_bank_name: formattedVendorData.bankDetails.nz_bank_name,
-        nz_bank_address: formattedVendorData.bankDetails.nz_bank_address,
-        nz_bank_currency_code:
-          formattedVendorData.bankDetails.nz_bank_currency_code,
-        nz_bank_clearing_code:
-          formattedVendorData.bankDetails.nz_bank_clearing_code,
-        nz_remittance_email:
-          formattedVendorData.bankDetails.nz_remittance_email,
-        nz_bsb: formattedVendorData.bankDetails.nz_bsb,
-        nz_account: formattedVendorData.bankDetails.nz_account,
+        nz_invoice_currency: vendorData.nz_invoice_currency,
+        nz_bank_country: vendorData.nz_bank_country,
+        nz_bank_name: vendorData.nz_bank_name,
+        nz_bank_address: vendorData.nz_bank_address,
+        nz_bank_currency_code: vendorData.nz_bank_currency_code,
+        nz_bank_clearing_code: vendorData.nz_bank_clearing_code,
+        nz_remittance_email: vendorData.nz_remittance_email,
+        nz_bsb: vendorData.nz_bsb,
+        nz_account: vendorData.nz_account,
 
-        // Overseas Banking Details
-        overseas_iban_switch:
-          formattedVendorData.bankDetails.overseas_iban_switch,
-        overseas_iban: formattedVendorData.bankDetails.overseas_iban,
-        overseas_swift: formattedVendorData.bankDetails.overseas_swift,
+        promotional_fund: vendorData.promotional_fund,
+        promotional_fund_value: vendorData.promotional_fund_value,
 
-        // BPAY Details
-        biller_code: formattedVendorData.bankDetails.biller_code,
-        ref_code: formattedVendorData.bankDetails.ref_code,
-        promotional_fund: formattedVendorData.financialTerms.promotional_fund,
-        promotional_fund_value:
-          formattedVendorData.financialTerms.promotional_fund_value,
         // Approval Flow Data
         status_code: "Procurement Approval",
         approval_comment: "",
@@ -1265,64 +1256,13 @@ export default function VendorApprovalFlow() {
               }}
             >
               {activeSection === "vendorOnboardingForm" && (
-                <form onSubmit={handleRequesterSubmit}>
-                  <div className="vendor-onboarding-container space-y-6">
-                    {/* General Details Section */}
-                    <div className="general-details-container">
-                      <GeneralDetailsSection
-                        data={formattedVendorData.generalDetails}
-                        errors={errors}
-                        touched={touched}
-                        onChange={isEditable ? handleChange : undefined}
-                        onCheckboxChange={
-                          isEditable ? handleCheckboxChange : undefined
-                        }
-                        onBlur={isEditable ? handleBlur : undefined}
-                        isEditable={isEditable}
-                      />
-                    </div>
-                    {/* Trading Terms Section */}
-                    <div className="trading-terms-container mt-6">
-                      <TradingTermsSection
-                        data={formattedVendorData.tradingTerms}
-                        vendorType={
-                          formattedVendorData.generalDetails.vendor_type
-                        }
-                        errors={errors}
-                        touched={touched}
-                        onChange={isEditable ? handleChange : undefined}
-                        onBlur={isEditable ? handleBlur : undefined}
-                        isEditable={isEditable}
-                      />
-                    </div>
-                    {/* Supply Terms Section */}
-                    <div className="supply-terms-container mt-6">
-                      <SupplyTermsSection
-                        data={formattedVendorData.supplyTerms}
-                        errors={errors}
-                        touched={touched}
-                        onChange={isEditable ? handleChange : undefined}
-                        onBlur={isEditable ? handleBlur : undefined}
-                        isEditable={isEditable}
-                      />
-                    </div>
-                    {/* Financial Terms Section */}
-                    <div className="financial-terms-container">
-                      <FinancialTermsSection
-                        data={formattedVendorData.financialTerms}
-                        vendorType={
-                          formattedVendorData.generalDetails.vendor_type
-                        }
-                        errors={errors}
-                        touched={touched}
-                        onChange={isEditable ? handleChange : undefined}
-                        onBlur={isEditable ? handleBlur : undefined}
-                        isEditable={isEditable}
-                        disabled={!isEditable}
-                      />
-                    </div>
-                  </div>
-                </form>
+                <div className="vendor-onboarding-form-container">
+                  <VendorOnboardingForm
+                    initialFormData={vendorData || {}}
+                    isEditable // Pass the dynamic vendorData state instead of the static VendorData
+                    hideSubmitButton={true}
+                  />
+                </div>
               )}
               {activeSection === "supplierForm" && (
                 <div className="supplier-form-container">
@@ -1330,7 +1270,7 @@ export default function VendorApprovalFlow() {
                     <SupplierForm
                       isEditable={isEditable}
                       email={vendorData.email}
-                      initialData={vendorData || {}}
+                      initialData={vendorData.supplierForm || {}}
                       hideSubmitButton={true} // Add this prop to hide the submit button
                       onDataChange={(vendorData) => {
                         console.log("Supplier form data updated:", vendorData);

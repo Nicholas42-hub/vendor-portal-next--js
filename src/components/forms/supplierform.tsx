@@ -29,6 +29,31 @@ const FormSubmitContainer = styled("div")({
   display: "flex",
   justifyContent: "flex-end",
 });
+const FormContainer = styled("div")({
+  maxWidth: "1400px",
+  width: "100%",
+  margin: "0 auto",
+  padding: "20px",
+  fontFamily:
+    '-apple-system, "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+});
+const SectionContainer = styled("div")({
+  background: "#ffffff",
+  padding: "20px",
+  margin: "10px 0",
+  borderRadius: "8px",
+  boxShadow: "0 0 15px rgba(0, 0, 0, 0.1)",
+  width: "100%",
+});
+
+const FormLegend = styled("legend")({
+  fontFamily:
+    '-apple-system, "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+  fontSize: "24px",
+  fontWeight: 800,
+  color: "rgb(31, 31, 35)",
+  marginBottom: "20px",
+});
 // Define interfaces for trading entities
 interface TradingEntity {
   TradingEntityId: string;
@@ -375,7 +400,8 @@ export default function SupplierFormExternal({
 
       const response = await axios.get(`/api/supplier-onboarding/${email}`);
 
-      const { vendorInfo, tradingEntities } = response.data;
+      // Safely destructure and handle potentially undefined values
+      const { vendorInfo = {}, tradingEntities = [] } = response.data || {};
 
       console.log(vendorInfo);
       setTradingEntities(tradingEntities);
@@ -390,11 +416,20 @@ export default function SupplierFormExternal({
       setHasAuEntities(auEntities.length > 0);
       setHasNzEntities(nzEntities.length > 0);
 
-      setFormData((prev) => ({
-        ...prev,
-        business_name: vendorInfo.business_name,
-      }));
-      setVendorCountry(vendorCountry);
+      // Only update business_name if vendorInfo exists and has that property
+      if (vendorInfo && vendorInfo.business_name) {
+        setFormData((prev) => ({
+          ...prev,
+          business_name: vendorInfo.business_name,
+        }));
+      }
+
+      // Make sure vendorCountry is defined before using it
+      if (vendorInfo && vendorInfo.country) {
+        setVendorCountry(vendorInfo.country);
+      } else {
+        setVendorCountry("");
+      }
     } catch (error) {
       console.error("Error fetching trading entities:", error);
     } finally {
@@ -539,7 +574,7 @@ export default function SupplierFormExternal({
     }
   };
 
-  // Validate form
+  // Modify validateForm to return an object with validation status
   const validateForm = () => {
     const newErrors: FormErrors = {};
 
@@ -774,21 +809,16 @@ export default function SupplierFormExternal({
       }
     }
 
-    // Bank statement validation
-    if (!bankStatement) {
-      setFileError("Bank statement is required");
-    } else {
-      setFileError("");
-    }
-
     // Terms agreement validation
     if (!formData.iAgree) {
       newErrors["iAgree"] = "You must agree to the terms and conditions";
     }
 
     setErrors(newErrors);
-    const hasErrors = Object.keys(newErrors).length > 0 || fileError !== "";
-    return !hasErrors;
+    return {
+      isValid: Object.keys(newErrors).length === 0,
+      errors: newErrors,
+    };
   };
 
   // Handle form submission
@@ -796,16 +826,57 @@ export default function SupplierFormExternal({
     e.preventDefault();
     console.log("Form submitted");
 
-    // Validate the form first
-    const isValid = validateForm();
-    if (!isValid) {
-      // Scroll to the first error
-      const firstErrorElement = document.querySelector(".border-red-500");
-      if (firstErrorElement) {
-        firstErrorElement.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
+    // Always expand terms section if not agreed
+    if (!formData.iAgree) {
+      setShowTerms(true);
+    }
+
+    // Check for bank statement first
+    let localFileError = "";
+    if (
+      (hasAuEntities && formData.au_payment_method === "Bank Transfer") ||
+      (hasNzEntities && formData.nz_payment_method === "Bank Transfer")
+    ) {
+      if (!bankStatement) {
+        localFileError = "Bank statement is required";
+        setFileError(localFileError);
+      } else {
+        setFileError("");
+      }
+    }
+
+    // Validate the form
+    const validationResult = validateForm();
+    if (!validationResult.isValid || localFileError !== "") {
+      // Handle errors
+      if (errors.iAgree) {
+        setTimeout(() => {
+          const termsElement = document.getElementById("termsSection");
+          if (termsElement) {
+            termsElement.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          }
+        }, 100);
+      } else if (localFileError) {
+        // Scroll to bank statement section
+        const bankStatementElement = document.getElementById("bank_statement");
+        if (bankStatementElement) {
+          bankStatementElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
+      } else {
+        // Otherwise scroll to first error
+        const firstErrorElement = document.querySelector(".border-red-500");
+        if (firstErrorElement) {
+          firstErrorElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
       }
       return;
     }
@@ -879,487 +950,479 @@ export default function SupplierFormExternal({
   );
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>
-          Supplier {isEditable ? "Onboarding Form" : "Details"}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* 1. Supplier Details */}
-          <div className="bg-gray-50 p-6 rounded-lg">
+    <FormContainer>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* 1. Supplier Details */}
+        <div
+          className="p-6 rounded-lg"
+          style={{ backgroundColor: "rgba(240, 245, 250, 1)" }}
+        >
+          <div className="bg-white p-2 rounded-md border mb-6">
+            {/* Business Name (Read-only from Vendor Creation page) */}
+            <FormLegend>Supplier Form</FormLegend>
             <h2 className="text-xl  font-semibold mb-6">1. Supplier Details</h2>
+            <div className="space-y-4 mb-8">
+              <Label htmlFor="business_name">Business Name</Label>
+              <ConditionalInput
+                isEditable={isEditable}
+                type="text"
+                name="business_name"
+                onChange={handleSelectChange}
+                onBlur={handleInputBlur}
+                value={formData.business_name}
+                placeholder="Business Name"
+              />
+            </div>
 
-            <div className="space-y-6 bg-white rounded-md">
-              {/* Business Name (Read-only from Vendor Creation page) */}
-              <div className="space-y-2">
-                <Label htmlFor="business_name">Business Name</Label>
-                <ConditionalInput
-                  isEditable={isEditable}
-                  type="text"
-                  name="business_name"
-                  onChange={handleSelectChange}
-                  onBlur={handleInputBlur}
-                  value={formData.business_name}
-                  placeholder="Business Name"
-                />
-              </div>
+            {/* Trading Name */}
+            <div className="space-y-2 mb-8">
+              <Label htmlFor="trading_name">
+                Trading Name (if different to Business Name)
+                {isEditable && <span className="text-red-500">*</span>}
+              </Label>
+              <ConditionalInput
+                isEditable={isEditable}
+                type="text"
+                name="trading_name"
+                value={formData.trading_name || ""}
+                onChange={handleSelectChange}
+                onBlur={handleInputBlur}
+                required={isEditable}
+                placeholder="Trading Name"
+                className={errors.trading_name ? "border-red-500" : ""}
+              />
+              {errors.trading_name && isEditable && (
+                <p className="text-red-500 text-sm">{errors.trading_name}</p>
+              )}
+            </div>
 
-              {/* Trading Name */}
-              <div className="space-y-2">
-                <Label htmlFor="trading_name">
-                  Trading Name (if different to Business Name)
-                  {isEditable && <span className="text-red-500">*</span>}
+            {/* Website */}
+            <div className="space-y-2 mb-8">
+              <Label htmlFor="website">Website</Label>
+              <ConditionalInput
+                isEditable={isEditable}
+                type="text"
+                name="website"
+                value={formData.website || ""}
+                onChange={handleSelectChange}
+                placeholder="https://example.com"
+              />
+            </div>
+
+            {/* GST Registered - MOVED ABOVE COUNTRY */}
+            <div className="space-y-2 mb-8">
+              <Label htmlFor="gst_registered">
+                Registered for GST?<span className="text-red-500">*</span>
+              </Label>
+              <ConditionalInput
+                isEditable={isEditable}
+                type="select"
+                name="gst_registered"
+                value={formData.gst_registered}
+                onChange={handleSelectChange}
+                onBlur={handleInputBlur}
+                options={[
+                  { value: "Yes", label: "Yes" },
+                  { value: "No", label: "No" },
+                ]}
+                required={true}
+                className={errors.gst_registered ? "border-red-500" : ""}
+                placeholder="Select Yes or No"
+              />
+              {errors.gst_registered && (
+                <p className="text-red-500 text-sm">{errors.gst_registered}</p>
+              )}
+            </div>
+
+            {/* Country */}
+            <div className="space-y-2 mb-8">
+              <Label htmlFor="country">
+                Country<span className="text-red-500">*</span>
+              </Label>
+              <ConditionalInput
+                isEditable={isEditable}
+                type="select"
+                name="country"
+                value={formData.country}
+                onChange={handleSelectChange}
+                onBlur={handleInputBlur}
+                options={countries.map((country) => ({
+                  value: country,
+                  label: country,
+                }))}
+                required={true}
+                className={errors.country ? "border-red-500" : ""}
+                placeholder="Select a country"
+              />
+              {errors.country && (
+                <p className="text-red-500 text-sm">{errors.country}</p>
+              )}
+            </div>
+
+            {/* Has tax id - MOVED TO FULL WIDTH */}
+            {formData.country &&
+              formData.country !== "New Zealand" &&
+              formData.country !== "Australia" && (
+                <div className="space-y-2 mb-8">
+                  <Label htmlFor="has_tax_id">
+                    If you have an ABN or NZ GST, please provide your details
+                    below.
+                  </Label>
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="select"
+                    name="has_tax_id"
+                    value={formData.has_tax_id}
+                    onChange={handleSelectChange}
+                    onBlur={handleInputBlur}
+                    options={[
+                      { value: "Yes", label: "Yes" },
+                      { value: "No", label: "No" },
+                    ]}
+                    required={Boolean(
+                      formData.country &&
+                        !["New Zealand", "Australia"].includes(formData.country)
+                    )}
+                    className={errors.has_tax_id ? "border-red-500" : ""}
+                    placeholder="Select Yes or No"
+                  />
+                  {errors.has_tax_id && (
+                    <p className="text-red-500 text-sm">{errors.has_tax_id}</p>
+                  )}
+                </div>
+              )}
+
+            {/* ABN or GST */}
+            {formData.country &&
+              formData.country !== "New Zealand" &&
+              formData.country !== "Australia" &&
+              formData.has_tax_id === "Yes" && (
+                <div className="space-y-2 mb-8">
+                  <Label htmlFor="ABN_GST">ABN or GST</Label>
+                  <ConditionalInput
+                    isEditable={isEditable}
+                    type="select"
+                    name="ABN_GST"
+                    value={formData.ABN_GST}
+                    onChange={handleSelectChange}
+                    options={[
+                      { value: "ABN", label: "ABN" },
+                      { value: "GST", label: "GST" },
+                    ]}
+                    className={errors.ABN_GST ? "border-red-500" : ""}
+                    placeholder="Select ABN or GST"
+                  />
+                  {errors.ABN_GST && (
+                    <p className="text-red-500 text-sm">{errors.ABN_GST}</p>
+                  )}
+                </div>
+              )}
+
+            {/* GST - Only for New Zealand */}
+            {(formData.country === "New Zealand" ||
+              (formData.country !== "New Zealand" &&
+                formData.ABN_GST === "GST" &&
+                formData.has_tax_id === "Yes")) && (
+              <div className="space-y-2 mb-8">
+                <Label htmlFor="gst">
+                  New Zealand Goods & Services Tax Number (GST)
+                  <span className="text-red-500">*</span>
                 </Label>
                 <ConditionalInput
                   isEditable={isEditable}
                   type="text"
-                  name="trading_name"
-                  value={formData.trading_name || ""}
+                  name="gst"
+                  value={formData.gst || ""}
                   onChange={handleSelectChange}
-                  onBlur={handleInputBlur}
-                  required={isEditable}
-                  placeholder="Trading Name"
-                  className={errors.trading_name ? "border-red-500" : ""}
+                  inputMode="numeric"
+                  className={errors.gst ? "border-red-500" : ""}
                 />
-                {errors.trading_name && isEditable && (
-                  <p className="text-red-500 text-sm">{errors.trading_name}</p>
+                {errors.gst && (
+                  <p className="text-red-500 text-sm">{errors.gst}</p>
+                )}
+              </div>
+            )}
+
+            {/* ABN - Only for Australia */}
+            {(formData.country === "Australia" ||
+              (formData.country !== "Australia" &&
+                formData.ABN_GST === "ABN" &&
+                formData.has_tax_id === "Yes")) && (
+              <div className="space-y-2 mb-8">
+                <Label htmlFor="abn">
+                  Australian Business Number (ABN)
+                  <span className="text-red-500">*</span>
+                </Label>
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="text"
+                  name="abn"
+                  value={formData.abn || ""}
+                  onChange={handleSelectChange}
+                  inputMode="numeric"
+                  maxLength={11}
+                  className={errors.abn ? "border-red-500" : ""}
+                />
+                {errors.abn && (
+                  <p className="text-red-500 text-sm">{errors.abn}</p>
+                )}
+              </div>
+            )}
+
+            {/* Address - with 100 character limit */}
+            <div className="space-y-2 mb-8">
+              <Label htmlFor="address">Address</Label>
+              <ConditionalInput
+                isEditable={isEditable}
+                type="text"
+                name="address"
+                value={formData.address}
+                onChange={handleSelectChange}
+                placeholder="Enter your address (max 100 characters)"
+                maxLength={100}
+                className={errors.address ? "border-red-500" : ""}
+              />
+              <p className="text-xs text-gray-500">
+                {formData.address.length}/100 characters
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* City */}
+              <div className="space-y-2 mb-8">
+                <Label htmlFor="city">
+                  City<span className="text-red-500">*</span>
+                </Label>
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleSelectChange}
+                  required={true}
+                  className={errors.city ? "border-red-500" : ""}
+                  placeholder="Enter city"
+                />
+                {errors.city && (
+                  <p className="text-red-500 text-sm">{errors.city}</p>
                 )}
               </div>
 
-              {/* Website */}
-              <div className="space-y-2">
-                <Label htmlFor="website">Website</Label>
-                <ConditionalInput
-                  isEditable={isEditable}
-                  type="text"
-                  name="website"
-                  value={formData.website || ""}
-                  onChange={handleSelectChange}
-                  placeholder="https://example.com"
-                />
-              </div>
-
-              {/* GST Registered - MOVED ABOVE COUNTRY */}
-              <div className="space-y-2">
-                <Label htmlFor="gst_registered">
-                  Registered for GST?<span className="text-red-500">*</span>
+              {/* State */}
+              <div className="space-y-2 mb-8">
+                <Label htmlFor="state">
+                  State<span className="text-red-500">*</span>
                 </Label>
                 <ConditionalInput
                   isEditable={isEditable}
-                  type="select"
-                  name="gst_registered"
-                  value={formData.gst_registered}
+                  type="text"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleSelectChange}
+                  required={true}
+                  className={errors.state ? "border-red-500" : ""}
+                  placeholder="Enter state"
+                />
+                {errors.state && (
+                  <p className="text-red-500 text-sm">{errors.state}</p>
+                )}
+              </div>
+
+              {/* Postcode */}
+              <div className="space-y-2">
+                <Label htmlFor="postcode">
+                  Postcode<span className="text-red-500">*</span>
+                </Label>
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="text"
+                  name="postcode"
+                  value={formData.postcode}
+                  onChange={handleSelectChange}
+                  inputMode="numeric"
+                  required={true}
+                  className={errors.postcode ? "border-red-500" : ""}
+                  placeholder="Enter postcode"
+                />
+                {errors.postcode && (
+                  <p className="text-red-500 text-sm">{errors.postcode}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="grid grid-cols-1 gap-6">
+              {/* Primary Contact Email */}
+              <div className="space-y-2">
+                <Label htmlFor="primary_contact_email">
+                  Primary Contact Email<span className="text-red-500">*</span>
+                </Label>
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="email"
+                  name="primary_contact_email"
+                  value={formData.primary_contact_email}
                   onChange={handleSelectChange}
                   onBlur={handleInputBlur}
-                  options={[
-                    { value: "Yes", label: "Yes" },
-                    { value: "No", label: "No" },
-                  ]}
                   required={true}
-                  className={errors.gst_registered ? "border-red-500" : ""}
-                  placeholder="Select Yes or No"
+                  placeholder="example@domain.com"
+                  className={
+                    errors.primary_contact_email ? "border-red-500" : ""
+                  }
                 />
-                {errors.gst_registered && (
+                {errors.primary_contact_email && (
                   <p className="text-red-500 text-sm">
-                    {errors.gst_registered}
+                    {errors.primary_contact_email}
                   </p>
                 )}
               </div>
 
-              {/* Country */}
+              {/* Telephone */}
               <div className="space-y-2">
-                <Label htmlFor="country">
-                  Country<span className="text-red-500">*</span>
+                <Label htmlFor="telephone">
+                  Telephone<span className="text-red-500">*</span>
                 </Label>
                 <ConditionalInput
                   isEditable={isEditable}
-                  type="select"
-                  name="country"
-                  value={formData.country}
+                  type="text"
+                  name="telephone"
+                  value={formData.telephone}
                   onChange={handleSelectChange}
-                  onBlur={handleInputBlur}
-                  options={countries.map((country) => ({
-                    value: country,
-                    label: country,
-                  }))}
+                  inputMode="numeric"
                   required={true}
-                  className={errors.country ? "border-red-500" : ""}
-                  placeholder="Select a country"
+                  className={errors.telephone ? "border-red-500" : ""}
+                  placeholder="Enter telephone number"
                 />
-                {errors.country && (
-                  <p className="text-red-500 text-sm">{errors.country}</p>
+                {errors.telephone && (
+                  <p className="text-red-500 text-sm">{errors.telephone}</p>
                 )}
               </div>
 
-              {/* Has tax id - MOVED TO FULL WIDTH */}
-              {formData.country &&
-                formData.country !== "New Zealand" &&
-                formData.country !== "Australia" && (
+              {/* PO Email */}
+              <div className="space-y-2">
+                <Label htmlFor="po_email">
+                  PO Email<span className="text-red-500">*</span>
+                </Label>
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="email"
+                  name="po_email"
+                  value={formData.po_email || ""}
+                  onChange={handleSelectChange}
+                  onBlur={handleInputBlur}
+                  required={true}
+                  placeholder="example@domain.com"
+                  className={errors.po_email ? "border-red-500" : ""}
+                />
+                {errors.po_email && (
+                  <p className="text-red-500 text-sm">{errors.po_email}</p>
+                )}
+              </div>
+
+              {/* Return Order Email */}
+              <div className="space-y-2">
+                <Label htmlFor="return_order_email">
+                  Return Order Email<span className="text-red-500">*</span>
+                </Label>
+                <ConditionalInput
+                  isEditable={isEditable}
+                  type="email"
+                  name="return_order_email"
+                  value={formData.return_order_email}
+                  onChange={handleSelectChange}
+                  onBlur={handleInputBlur}
+                  required={true}
+                  placeholder="example@domain.com"
+                  className={errors.return_order_email ? "border-red-500" : ""}
+                />
+                {errors.return_order_email && (
+                  <p className="text-red-500 text-sm">
+                    {errors.return_order_email}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Invoice Currency sections based on trading entities */}
+            {(hasAuEntities || hasNzEntities) && (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* AU Invoice Currency */}
+                {hasAuEntities && (
                   <div className="space-y-2">
-                    <Label htmlFor="has_tax_id">
-                      If you have an ABN or NZ GST, please provide your details
-                      below.
+                    <Label htmlFor="au_invoice_currency">
+                      Select the Invoice currency when trading with our AU based
+                      entity(ies)
+                      <span className="text-red-500">*</span>
                     </Label>
                     <ConditionalInput
                       isEditable={isEditable}
                       type="select"
-                      name="has_tax_id"
-                      value={formData.has_tax_id}
+                      name="au_invoice_currency"
+                      value={formData.au_invoice_currency || ""}
                       onChange={handleSelectChange}
                       onBlur={handleInputBlur}
-                      options={[
-                        { value: "Yes", label: "Yes" },
-                        { value: "No", label: "No" },
-                      ]}
-                      required={Boolean(
-                        formData.country &&
-                          !["New Zealand", "Australia"].includes(
-                            formData.country
-                          )
-                      )}
-                      className={errors.has_tax_id ? "border-red-500" : ""}
-                      placeholder="Select Yes or No"
+                      options={currencies.map((currency) => ({
+                        value: currency.value,
+                        label: currency.label,
+                      }))}
+                      required={true}
+                      className={
+                        errors.au_invoice_currency ? "border-red-500" : ""
+                      }
+                      placeholder="Select a currency"
                     />
-                    {errors.has_tax_id && (
+                    {errors.au_invoice_currency && (
                       <p className="text-red-500 text-sm">
-                        {errors.has_tax_id}
+                        {errors.au_invoice_currency}
                       </p>
                     )}
                   </div>
                 )}
 
-              {/* ABN or GST */}
-              {formData.country &&
-                formData.country !== "New Zealand" &&
-                formData.country !== "Australia" &&
-                formData.has_tax_id === "Yes" && (
+                {/* NZ Invoice Currency */}
+                {hasNzEntities && (
                   <div className="space-y-2">
-                    <Label htmlFor="ABN_GST">ABN or GST</Label>
+                    <Label htmlFor="nz_invoice_currency">
+                      Select the Invoice currency when trading with NZ based
+                      entity(ies)
+                      <span className="text-red-500">*</span>
+                    </Label>
                     <ConditionalInput
                       isEditable={isEditable}
                       type="select"
-                      name="ABN_GST"
-                      value={formData.ABN_GST}
+                      name="nz_invoice_currency"
+                      value={formData.nz_invoice_currency || ""}
                       onChange={handleSelectChange}
-                      options={[
-                        { value: "ABN", label: "ABN" },
-                        { value: "GST", label: "GST" },
-                      ]}
-                      className={errors.ABN_GST ? "border-red-500" : ""}
-                      placeholder="Select ABN or GST"
+                      options={currencies.map((currency) => ({
+                        value: currency.value,
+                        label: currency.label,
+                      }))}
+                      required={true}
+                      onBlur={handleInputBlur}
+                      className={
+                        errors.nz_invoice_currency ? "border-red-500" : ""
+                      }
+                      placeholder="Select a currency"
                     />
-                    {errors.ABN_GST && (
-                      <p className="text-red-500 text-sm">{errors.ABN_GST}</p>
+                    {errors.nz_invoice_currency && (
+                      <p className="text-red-500 text-sm">
+                        {errors.nz_invoice_currency}
+                      </p>
                     )}
                   </div>
                 )}
-
-              {/* GST - Only for New Zealand */}
-              {(formData.country === "New Zealand" ||
-                (formData.country !== "New Zealand" &&
-                  formData.ABN_GST === "GST" &&
-                  formData.has_tax_id === "Yes")) && (
-                <div className="space-y-2">
-                  <Label htmlFor="gst">
-                    New Zealand Goods & Services Tax Number (GST)
-                    <span className="text-red-500">*</span>
-                  </Label>
-                  <ConditionalInput
-                    isEditable={isEditable}
-                    type="text"
-                    name="gst"
-                    value={formData.gst || ""}
-                    onChange={handleSelectChange}
-                    inputMode="numeric"
-                    className={errors.gst ? "border-red-500" : ""}
-                  />
-                  {errors.gst && (
-                    <p className="text-red-500 text-sm">{errors.gst}</p>
-                  )}
-                </div>
-              )}
-
-              {/* ABN - Only for Australia */}
-              {(formData.country === "Australia" ||
-                (formData.country !== "Australia" &&
-                  formData.ABN_GST === "ABN" &&
-                  formData.has_tax_id === "Yes")) && (
-                <div className="space-y-2">
-                  <Label htmlFor="abn">
-                    Australian Business Number (ABN)
-                    <span className="text-red-500">*</span>
-                  </Label>
-                  <ConditionalInput
-                    isEditable={isEditable}
-                    type="text"
-                    name="abn"
-                    value={formData.abn || ""}
-                    onChange={handleSelectChange}
-                    inputMode="numeric"
-                    maxLength={11}
-                    className={errors.abn ? "border-red-500" : ""}
-                  />
-                  {errors.abn && (
-                    <p className="text-red-500 text-sm">{errors.abn}</p>
-                  )}
-                </div>
-              )}
-
-              {/* Address - with 100 character limit */}
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <ConditionalInput
-                  isEditable={isEditable}
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleSelectChange}
-                  placeholder="Enter your address (max 100 characters)"
-                  maxLength={100}
-                  className={errors.address ? "border-red-500" : ""}
-                />
-                <p className="text-xs text-gray-500">
-                  {formData.address.length}/100 characters
-                </p>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* City */}
-                <div className="space-y-2">
-                  <Label htmlFor="city">
-                    City<span className="text-red-500">*</span>
-                  </Label>
-                  <ConditionalInput
-                    isEditable={isEditable}
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleSelectChange}
-                    required={true}
-                    className={errors.city ? "border-red-500" : ""}
-                    placeholder="Enter city"
-                  />
-                  {errors.city && (
-                    <p className="text-red-500 text-sm">{errors.city}</p>
-                  )}
-                </div>
-
-                {/* State */}
-                <div className="space-y-2">
-                  <Label htmlFor="state">
-                    State<span className="text-red-500">*</span>
-                  </Label>
-                  <ConditionalInput
-                    isEditable={isEditable}
-                    type="text"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleSelectChange}
-                    required={true}
-                    className={errors.state ? "border-red-500" : ""}
-                    placeholder="Enter state"
-                  />
-                  {errors.state && (
-                    <p className="text-red-500 text-sm">{errors.state}</p>
-                  )}
-                </div>
-
-                {/* Postcode */}
-                <div className="space-y-2">
-                  <Label htmlFor="postcode">
-                    Postcode<span className="text-red-500">*</span>
-                  </Label>
-                  <ConditionalInput
-                    isEditable={isEditable}
-                    type="text"
-                    name="postcode"
-                    value={formData.postcode}
-                    onChange={handleSelectChange}
-                    inputMode="numeric"
-                    required={true}
-                    className={errors.postcode ? "border-red-500" : ""}
-                    placeholder="Enter postcode"
-                  />
-                  {errors.postcode && (
-                    <p className="text-red-500 text-sm">{errors.postcode}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Contact Information */}
-              <div className="grid grid-cols-1 gap-6">
-                {/* Primary Contact Email */}
-                <div className="space-y-2">
-                  <Label htmlFor="primary_contact_email">
-                    Primary Contact Email<span className="text-red-500">*</span>
-                  </Label>
-                  <ConditionalInput
-                    isEditable={isEditable}
-                    type="email"
-                    name="primary_contact_email"
-                    value={formData.primary_contact_email}
-                    onChange={handleSelectChange}
-                    onBlur={handleInputBlur}
-                    required={true}
-                    placeholder="example@domain.com"
-                    className={
-                      errors.primary_contact_email ? "border-red-500" : ""
-                    }
-                  />
-                  {errors.primary_contact_email && (
-                    <p className="text-red-500 text-sm">
-                      {errors.primary_contact_email}
-                    </p>
-                  )}
-                </div>
-
-                {/* Telephone */}
-                <div className="space-y-2">
-                  <Label htmlFor="telephone">
-                    Telephone<span className="text-red-500">*</span>
-                  </Label>
-                  <ConditionalInput
-                    isEditable={isEditable}
-                    type="text"
-                    name="telephone"
-                    value={formData.telephone}
-                    onChange={handleSelectChange}
-                    inputMode="numeric"
-                    required={true}
-                    className={errors.telephone ? "border-red-500" : ""}
-                    placeholder="Enter telephone number"
-                  />
-                  {errors.telephone && (
-                    <p className="text-red-500 text-sm">{errors.telephone}</p>
-                  )}
-                </div>
-
-                {/* PO Email */}
-                <div className="space-y-2">
-                  <Label htmlFor="po_email">
-                    PO Email<span className="text-red-500">*</span>
-                  </Label>
-                  <ConditionalInput
-                    isEditable={isEditable}
-                    type="email"
-                    name="po_email"
-                    value={formData.po_email || ""}
-                    onChange={handleSelectChange}
-                    onBlur={handleInputBlur}
-                    required={true}
-                    placeholder="example@domain.com"
-                    className={errors.po_email ? "border-red-500" : ""}
-                  />
-                  {errors.po_email && (
-                    <p className="text-red-500 text-sm">{errors.po_email}</p>
-                  )}
-                </div>
-
-                {/* Return Order Email */}
-                <div className="space-y-2">
-                  <Label htmlFor="return_order_email">
-                    Return Order Email<span className="text-red-500">*</span>
-                  </Label>
-                  <ConditionalInput
-                    isEditable={isEditable}
-                    type="email"
-                    name="return_order_email"
-                    value={formData.return_order_email}
-                    onChange={handleSelectChange}
-                    onBlur={handleInputBlur}
-                    required={true}
-                    placeholder="example@domain.com"
-                    className={
-                      errors.return_order_email ? "border-red-500" : ""
-                    }
-                  />
-                  {errors.return_order_email && (
-                    <p className="text-red-500 text-sm">
-                      {errors.return_order_email}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Invoice Currency sections based on trading entities */}
-              {(hasAuEntities || hasNzEntities) && (
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* AU Invoice Currency */}
-                  {hasAuEntities && (
-                    <div className="space-y-2">
-                      <Label htmlFor="au_invoice_currency">
-                        Select the Invoice currency when trading with our AU
-                        based entity(ies)
-                        <span className="text-red-500">*</span>
-                      </Label>
-                      <ConditionalInput
-                        isEditable={isEditable}
-                        type="select"
-                        name="au_invoice_currency"
-                        value={formData.au_invoice_currency || ""}
-                        onChange={handleSelectChange}
-                        onBlur={handleInputBlur}
-                        options={currencies.map((currency) => ({
-                          value: currency.value,
-                          label: currency.label,
-                        }))}
-                        required={true}
-                        className={
-                          errors.au_invoice_currency ? "border-red-500" : ""
-                        }
-                        placeholder="Select a currency"
-                      />
-                      {errors.au_invoice_currency && (
-                        <p className="text-red-500 text-sm">
-                          {errors.au_invoice_currency}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* NZ Invoice Currency */}
-                  {hasNzEntities && (
-                    <div className="space-y-2">
-                      <Label htmlFor="nz_invoice_currency">
-                        Select the Invoice currency when trading with NZ based
-                        entity(ies)
-                        <span className="text-red-500">*</span>
-                      </Label>
-                      <ConditionalInput
-                        isEditable={isEditable}
-                        type="select"
-                        name="nz_invoice_currency"
-                        value={formData.nz_invoice_currency || ""}
-                        onChange={handleSelectChange}
-                        options={currencies.map((currency) => ({
-                          value: currency.value,
-                          label: currency.label,
-                        }))}
-                        required={true}
-                        onBlur={handleInputBlur}
-                        className={
-                          errors.nz_invoice_currency ? "border-red-500" : ""
-                        }
-                        placeholder="Select a currency"
-                      />
-                      {errors.nz_invoice_currency && (
-                        <p className="text-red-500 text-sm">
-                          {errors.nz_invoice_currency}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            )}
           </div>
+        </div>
 
-          {/* 2. Banking Details */}
-          <div className="bg-gray-50 p-6 rounded-lg">
+        {/* 2. Banking Details */}
+        <div
+          className="p-6 rounded-lg"
+          style={{ backgroundColor: "rgba(240, 245, 250, 1)" }}
+        >
+          <div className="bg-white p-4 rounded-md border mb-6">
             <h2 className="text-xl font-semibold mb-6">2. Banking Details</h2>
-
             {/* AU Payment Container - Always shown when AU entities exist */}
             {hasAuEntities && (
               <div className="bg-white p-4 rounded-md border mb-6">
@@ -1410,7 +1473,7 @@ export default function SupplierFormExternal({
                           value={formData.au_biller_code || ""}
                           onChange={handleSelectChange}
                           onBlur={handleInputBlur}
-                          pattern="\\d+"
+                          // pattern="\\d+"
                           inputMode="numeric"
                           className={
                             errors.au_biller_code ? "border-red-500" : ""
@@ -1435,7 +1498,7 @@ export default function SupplierFormExternal({
                           value={formData.au_ref_code || ""}
                           onChange={handleSelectChange}
                           onBlur={handleInputBlur}
-                          pattern="\\d+"
+                          // pattern="\\d+"
                           inputMode="numeric"
                           className={errors.au_ref_code ? "border-red-500" : ""}
                         />
@@ -1653,24 +1716,6 @@ export default function SupplierFormExternal({
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="au_account">
-                            NZ Account Number
-                            <span className="text-red-500">*</span>
-                          </Label>
-                          <ConditionalInput
-                            isEditable={isEditable}
-                            type="text"
-                            name="au_account"
-                            value={formData.au_account || ""}
-                            onChange={handleSelectChange}
-                            onBlur={handleInputBlur}
-                            maxLength={10}
-                            inputMode="numeric"
-                            className={
-                              errors.au_account ? "border-red-500" : ""
-                            }
-                          />
-                          {errors.au_account && (
                             <p className="text-red-500 text-sm">
                               {errors.au_account}
                             </p>
@@ -2173,125 +2218,160 @@ export default function SupplierFormExternal({
               formData.au_payment_method === "Bank Transfer") ||
               (hasNzEntities &&
                 formData.nz_payment_method === "Bank Transfer")) && (
-              <div className="bg-white p-4 rounded-md border mt-4">
-                <h3 className="font-medium mb-4">Bank Statement</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="bank_statement">
-                    Upload Bank Statement (PDF only)
+              <>
+                {/* Bank Statement Instructions */}
+                <div className="bg-blue-50 p-4 rounded-md mb-3 text-sm">
+                  <p className="font-medium mb-2">Important Requirements:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>
+                      A bank statement or bank confirmation letter is required
+                      to verify your banking information
+                    </li>
+                    <li>
+                      The document must:
+                      <ul className="list-disc pl-5 mt-1">
+                        <li>Be dated within the last 3 months</li>
+                        <li>Be in PDF format only</li>
+                        <li>
+                          Clearly show the account details (sensitive
+                          information may be redacted)
+                        </li>
+                      </ul>
+                    </li>
+                    <li>
+                      Banking payment slips cannot be accepted as they lack
+                      proper dating
+                    </li>
+                    <li>
+                      Screenshots or partial images of documents cannot be
+                      verified for authenticity
+                    </li>
+                  </ul>
+                </div>
+                <div className="bg-white p-4 rounded-md border mt-4">
+                  <h3 className="font-medium mb-4">Bank Statement</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="bank_statement">
+                      Upload Bank Statement (PDF only)
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    {isEditable ? (
+                      <div className="space-y-2">
+                        <Input
+                          id="bank_statement"
+                          type="file"
+                          accept="application/pdf"
+                          onChange={handleFileChange}
+                          className={fileError ? "border-red-500" : ""}
+                        />
+                        {bankStatement && (
+                          <p className="text-sm text-green-600">
+                            File selected: {bankStatement.name}
+                          </p>
+                        )}
+                        {fileError && (
+                          <p className="text-red-500 text-sm">{fileError}</p>
+                        )}
+                        <p className="text-xs text-gray-500">
+                          Please upload a PDF copy of your bank statement or
+                          document showing your bank details
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">
+                        {bankStatement
+                          ? bankStatement.name
+                          : "No file uploaded"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+        {/* 3. Consent Statement */}
+        <div
+          className="p-6 rounded-lg"
+          style={{ backgroundColor: "rgba(240, 245, 250, 1)" }}
+        >
+          <h2 className="text-xl font-semibold mb-6">3. Consent Statement</h2>
+
+          <div className="flex flex-col items-start">
+            <button
+              type="button"
+              className="text-blue-600 underline cursor-pointer"
+              onClick={() => setShowTerms(!showTerms)}
+            >
+              Please click to view the terms and conditions
+              <span className="text-red-500">*</span>
+            </button>
+
+            {showTerms && (
+              <div className="w-full bg-white border rounded-md p-4 mt-4 mb-4">
+                <div className="h-80 overflow-y-auto border p-4 mb-4">
+                  <iframe
+                    src="/Supplierterm.pdf"
+                    width="100%"
+                    height="100%"
+                    title="Terms and Conditions"
+                    className="border-0"
+                  ></iframe>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="iAgree"
+                    checked={formData.iAgree}
+                    onCheckedChange={(checked: boolean | "indeterminate") => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        iAgree: checked === true,
+                      }));
+                      // Clear error when checked
+                      if (checked && errors.iAgree) {
+                        setErrors((prev) => {
+                          const newErrors = { ...prev };
+                          delete newErrors.iAgree;
+                          return newErrors;
+                        });
+                      }
+                    }}
+                    className={errors.iAgree ? "border-red-500" : ""}
+                  />
+                  <Label htmlFor="iAgree" className="font-medium">
+                    I acknowledge the terms and conditions
                     <span className="text-red-500">*</span>
                   </Label>
-                  {isEditable ? (
-                    <div className="space-y-2">
-                      <Input
-                        id="bank_statement"
-                        type="file"
-                        accept="application/pdf"
-                        onChange={handleFileChange}
-                        className={fileError ? "border-red-500" : ""}
-                      />
-                      {bankStatement && (
-                        <p className="text-sm text-green-600">
-                          File selected: {bankStatement.name}
-                        </p>
-                      )}
-                      {fileError && (
-                        <p className="text-red-500 text-sm">{fileError}</p>
-                      )}
-                      <p className="text-xs text-gray-500">
-                        Please upload a PDF copy of your bank statement or
-                        document showing your bank details
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">
-                      {bankStatement ? bankStatement.name : "No file uploaded"}
-                    </p>
-                  )}
                 </div>
+                {errors.iAgree && (
+                  <p className="text-red-500 text-sm mt-1">{errors.iAgree}</p>
+                )}
               </div>
             )}
           </div>
+        </div>
 
-          {/* 3. Consent Statement */}
-          <div className="bg-gray-50 p-6 rounded-lg">
-            <h2 className="text-xl font-semibold mb-6">3. Consent Statement</h2>
-
-            <div className="flex flex-col items-start">
-              <button
-                type="button"
-                className="text-blue-600 underline cursor-pointer"
-                onClick={() => setShowTerms(!showTerms)}
-              >
-                Please click to view the terms and conditions
-                <span className="text-red-500">*</span>
-              </button>
-
-              {showTerms && (
-                <div className="w-full bg-white border rounded-md p-4 mt-4 mb-4">
-                  <div className="h-80 overflow-y-auto border p-4 mb-4">
-                    <iframe
-                      src="/Supplierterm.pdf"
-                      width="100%"
-                      height="100%"
-                      title="Terms and Conditions"
-                      className="border-0"
-                    ></iframe>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="iAgree"
-                      checked={formData.iAgree}
-                      onCheckedChange={(checked: boolean | "indeterminate") => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          iAgree: checked === true,
-                        }));
-                        // Clear error when checked
-                        if (checked && errors.iAgree) {
-                          setErrors((prev) => {
-                            const newErrors = { ...prev };
-                            delete newErrors.iAgree;
-                            return newErrors;
-                          });
-                        }
-                      }}
-                      className={errors.iAgree ? "border-red-500" : ""}
-                    />
-                    <Label htmlFor="iAgree" className="font-medium">
-                      I acknowledge the terms and conditions
-                      <span className="text-red-500">*</span>
-                    </Label>
-                  </div>
-                  {errors.iAgree && (
-                    <p className="text-red-500 text-sm mt-1">{errors.iAgree}</p>
-                  )}
-                </div>
+        {/* Submit Button - only show when form is editable and not hidden */}
+        {isEditable && !hideSubmitButton && (
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
+                  Submitting...
+                </>
+              ) : (
+                "Submit Onboarding Form"
               )}
-            </div>
+            </Button>
           </div>
-
-          {/* Submit Button - only show when form is editable and not hidden */}
-          {isEditable && !hideSubmitButton && (
-            <div className="flex justify-end">
-              <Button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></span>
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Onboarding Form"
-                )}
-              </Button>
-            </div>
-          )}
-        </form>
-      </CardContent>
+        )}
+      </form>
 
       {/* Confirmation Popup */}
       <Popup
@@ -2327,6 +2407,6 @@ export default function SupplierFormExternal({
           </div>
         </div>
       )}
-    </Card>
+    </FormContainer>
   );
 }

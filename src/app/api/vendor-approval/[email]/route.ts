@@ -72,7 +72,6 @@ export async function GET(req: NextRequest, context: { params: { email: string }
               city
               state
               postcode
-              is_gst_registered
               abn
               gst
               quotes_obtained
@@ -371,9 +370,8 @@ const updateStatusMutation = {
                 po_email: "${escapeGraphQLString(formData.po_email)}"
                 return_order_email: "${escapeGraphQLString(formData.return_order_email)}"
                 telephone: "${escapeGraphQLString(formData.telephone)}"
-                
+                payment_terms: "${escapeGraphQLString(formData.payment_terms)}"
                 # Tax information
-                is_gst_registered: "${escapeGraphQLString(formData.gst_registered)}"
                 gst_registered: "${escapeGraphQLString(formData.gst_registered)}"
                 abn: "${escapeGraphQLString(formData.abn)}"
                 gst: "${escapeGraphQLString(formData.gst)}"

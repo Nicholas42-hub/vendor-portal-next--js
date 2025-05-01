@@ -5,6 +5,58 @@ import { useSession } from "next-auth/react";
 import VendorOnboardingForm from "@/components/forms/VendorOnboardingForm";
 import { useRouter } from "next/navigation";
 
+// Initialize form with empty data
+const vendorData = {
+  generalDetails: {
+    tradingEntities: [],
+    vendor_home_country: "",
+    primary_trading_business_unit: "",
+    email: "",
+    business_name: "",
+    vendor_type: "",
+  },
+  tradingTerms: {
+    quotes_obtained: "",
+    quotes_obtained_reason: "",
+    quotes_pdf_url: null,
+    back_order: "",
+  },
+  supplyTerms: {
+    exclusive_supply: "",
+    sale_or_return: "",
+    auth_required: "",
+    delivery_notice: 0,
+    min_order_value: 0,
+    min_order_quantity: 0,
+    max_order_value: 0,
+    other_comments: "",
+  },
+  financialTerms: {
+    payment_terms: "",
+    order_expiry_days: 0,
+    gross_margin: "",
+    invoice_discount: "",
+    invoice_discount_value: "",
+    settlement_discount: "",
+    settlement_discount_value: "",
+    settlement_discount_days: "",
+    flat_rebate: "",
+    flat_rebate_percent: "",
+    flat_rebate_dollar: "",
+    flat_rebate_term: "",
+    growth_rebate: "",
+    growth_rebate_percent: "",
+    growth_rebate_dollar: "",
+    growth_rebate_term: "",
+    marketing_rebate: "",
+    marketing_rebate_percent: "",
+    marketing_rebate_dollar: "",
+    marketing_rebate_term: "",
+    promotional_fund: "",
+    promotional_fund_value: "",
+  },
+};
+
 export default function CreateVendorOnboardingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -107,7 +159,7 @@ export default function CreateVendorOnboardingPage() {
 
         {/* Form container with custom width */}
         <div className="w-full max-w-[1600px] mx-auto">
-          <VendorOnboardingForm />
+          <VendorOnboardingForm initialFormData={vendorData || {}} isEditable />
         </div>
       </div>
     </div>
